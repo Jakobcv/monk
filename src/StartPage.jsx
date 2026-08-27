@@ -1,13 +1,20 @@
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Plus, Trash2, Upload } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, BG, STATUS_COLOR } from "./lib/theme";
 
 const cardCount = (b) =>
   (b.evidence?.length || 0) + (b.problems?.length || 0) + (b.ideas?.length || 0) + (b.results?.length || 0);
 
-export default function StartPage({ boards, onCreate, onOpen, onRename, onDelete }) {
+export default function StartPage({ boards, onCreate, onImport, onOpen, onRename, onDelete }) {
   const [editingId, setEditingId] = useState(null);
   const [draftName, setDraftName] = useState("");
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    e.target.value = ""; // reset so picking the same file again still fires onChange
+    if (file) onImport(file);
+  };
 
   const startEdit = (b) => { setEditingId(b.id); setDraftName(b.name); };
   const commitEdit = () => {
@@ -26,15 +33,27 @@ export default function StartPage({ boards, onCreate, onOpen, onRename, onDelete
       <div style={{ maxWidth: "880px", margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "22px" }}>
           <h1 style={{ fontFamily: font, fontSize: "20px", fontWeight: 600, color: INK, margin: 0 }}>Your boards</h1>
-          <button
-            onClick={onCreate}
-            style={{
-              display: "flex", alignItems: "center", gap: "6px", fontFamily: font, fontWeight: 600, fontSize: "13px",
-              color: "#fff", background: INK, border: "none", borderRadius: "7px", padding: "8px 14px", cursor: "pointer",
-            }}
-          >
-            <Plus size={14} /> New board
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <input ref={fileInputRef} type="file" accept="application/json" onChange={handleFileChange} style={{ display: "none" }} />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                display: "flex", alignItems: "center", gap: "6px", fontFamily: font, fontWeight: 600, fontSize: "13px",
+                color: INK, background: "#fff", border: `1px solid ${BORDER_STRONG}`, borderRadius: "7px", padding: "8px 14px", cursor: "pointer",
+              }}
+            >
+              <Upload size={14} /> Import JSON
+            </button>
+            <button
+              onClick={onCreate}
+              style={{
+                display: "flex", alignItems: "center", gap: "6px", fontFamily: font, fontWeight: 600, fontSize: "13px",
+                color: "#fff", background: INK, border: "none", borderRadius: "7px", padding: "8px 14px", cursor: "pointer",
+              }}
+            >
+              <Plus size={14} /> New board
+            </button>
+          </div>
         </div>
 
         {sorted.length === 0 ? (

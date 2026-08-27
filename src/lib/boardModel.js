@@ -1,3 +1,5 @@
+import { STATUS_OPTIONS, IMPACT_OPTIONS } from "./theme";
+
 // Card ids only need to be unique within their own board, but we hand out a single
 // monotonic counter across the whole workspace anyway — simplest way to guarantee no
 // collisions if boards are ever merged or cards moved between them later.
@@ -48,6 +50,38 @@ export function demoBoard() {
       { id: genId(), from: p1, to: i1 }, { id: genId(), from: p1, to: i2 },
       { id: genId(), from: i1, to: r1 },
     ],
+  };
+}
+
+const asString = (v, fallback = "") => (typeof v === "string" ? v : fallback);
+const asArray = (v) => (Array.isArray(v) ? v : []);
+const withId = (item) => ({ ...item, id: typeof item?.id === "number" ? item.id : genId() });
+
+// Builds a board from a parsed JSON file — typically one this app exported itself, but
+// treated as untrusted/possibly hand-edited: every field is coerced to a safe shape rather
+// than trusted as-is, and a fresh board id is always assigned (never reuse the file's id,
+// so importing a board twice — or one already open elsewhere — can't collide).
+export function boardFromImport(data) {
+  if (!data || typeof data !== "object") throw new Error("Not a valid board file");
+  const now = Date.now();
+  return {
+    id: genBoardId(),
+    createdAt: now,
+    updatedAt: now,
+    name: asString(data.name, "Imported board"),
+    goal: asString(data.goal),
+    target: asString(data.target),
+    status: STATUS_OPTIONS.includes(data.status) ? data.status : "Not started",
+    impact: IMPACT_OPTIONS.includes(data.impact) ? data.impact : "Medium",
+    owner: asString(data.owner),
+    description: asString(data.description),
+    evidence: asArray(data.evidence).map(withId),
+    problems: asArray(data.problems).map(withId),
+    ideas: asArray(data.ideas).map(withId),
+    results: asArray(data.results).map(withId),
+    connections: asArray(data.connections)
+      .filter((c) => typeof c?.from === "number" && typeof c?.to === "number")
+      .map(withId),
   };
 }
 

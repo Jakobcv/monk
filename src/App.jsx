@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { loadWorkspace, saveWorkspace } from "./lib/storage";
-import { blankBoard, demoBoard, bumpNextId } from "./lib/boardModel";
+import { blankBoard, demoBoard, boardFromImport, bumpNextId } from "./lib/boardModel";
 import { font, INK, INK_SOFT, BORDER, SAVE_STATUS_COLOR, SAVE_STATUS_LABEL } from "./lib/theme";
 import StartPage from "./StartPage";
 import Board from "./Board";
@@ -89,6 +89,21 @@ export default function App() {
     setBoards((prev) => [board, ...prev]);
     goToBoard(board.id);
   };
+  const importBoard = async (file) => {
+    let board;
+    try {
+      board = boardFromImport(JSON.parse(await file.text()));
+    } catch {
+      window.alert("Couldn't import that file — make sure it's a JSON file exported from Evidence Loop.");
+      return;
+    }
+    setBoards((prev) => {
+      const next = [board, ...prev];
+      bumpNextId(next);
+      return next;
+    });
+    goToBoard(board.id);
+  };
 
   const activeBoard = activeBoardId ? boards.find((b) => b.id === activeBoardId) : null;
 
@@ -145,7 +160,7 @@ export default function App() {
         ) : activeBoard ? (
           <Board key={activeBoard.id} board={activeBoard} onChange={(patch) => updateBoard(activeBoard.id, patch)} />
         ) : (
-          <StartPage boards={boards} onCreate={createBoard} onOpen={goToBoard} onRename={renameBoard} onDelete={deleteBoard} />
+          <StartPage boards={boards} onCreate={createBoard} onImport={importBoard} onOpen={goToBoard} onRename={renameBoard} onDelete={deleteBoard} />
         )}
       </div>
     </div>

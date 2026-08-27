@@ -22,14 +22,20 @@ That's it — no accounts, no API keys.
 - Data lives only in this browser, on this device — clearing site data or using a different
   browser/profile starts you over with the built-in demo board. It doesn't sync across devices.
 
-## Exporting a board
+## Importing / exporting a board
 
-Open a board and click **Export JSON** in the sidebar to download that board (name, goal,
-target, all its cards and connections) as a standalone `.json` file — for backup, sharing, or
-moving a board to another browser/device by hand.
+- **Export**: open a board and click **Export JSON** in the sidebar to download it (name, goal,
+  target, all its cards and connections) as a standalone `.json` file.
+- **Import**: on the start page, click **Import JSON** and pick a `.json` file — either one
+  exported from here, or hand-edited (fields are validated/coerced rather than trusted as-is;
+  an invalid file shows an error instead of crashing). Imported boards always get a fresh id, so
+  importing the same file twice — or a file already open in another tab — just creates a copy
+  rather than colliding with anything.
+
+This pair is how you move a board across browsers/devices or back it up, since nothing syncs
+automatically (see below).
 
 ## Out of scope for v1
 
-- Import (re-loading an exported `.json` back into a board).
-- Multi-user / realtime collaboration, and any cross-device sync.
+- Multi-user / realtime collaboration, and any automatic cross-device sync.
 - Save versioning/undo.
