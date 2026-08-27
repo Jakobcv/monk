@@ -1,6 +1,7 @@
 import { useState, useRef, useLayoutEffect, useEffect, useReducer, useMemo } from "react";
-import { Plus, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, ChevronUp, ChevronDown, Download } from "lucide-react";
 import { genId } from "./lib/boardModel";
+import { downloadBoardJson } from "./lib/exportBoard";
 import {
   font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, BG, BG_SIDEBAR, BG_HOVER, ACCENT,
   STATUS_OPTIONS, STATUS_COLOR, IMPACT_OPTIONS, IMPACT_COLOR,
@@ -93,6 +94,10 @@ export default function Board({ board, onChange }) {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     onChange(boardState);
   }, [boardState]);
+
+  const handleExport = () => downloadBoardJson({
+    id: board.id, createdAt: board.createdAt, updatedAt: Date.now(), ...boardState,
+  });
 
   const boardRef = useRef(null);
   const els = useRef({});
@@ -294,6 +299,8 @@ export default function Board({ board, onChange }) {
         .el-order { opacity:0; transition:opacity .12s; }
         .el-node:hover .el-order { opacity:1; }
         .el-addbtn:hover { background:${BG_HOVER}; color:${INK}; }
+        .el-export-btn { transition: border-color .12s, color .12s; }
+        .el-export-btn:hover { border-color: ${BORDER_STRONG}; color: ${INK}; }
         .el-connector { transition: opacity .15s, stroke-width .15s; }
         .el-card { border-radius:6px; padding:11px 12px; transition:box-shadow .12s; }
         .el-card:hover { box-shadow:0 2px 6px rgba(0,0,0,0.07); }
@@ -440,6 +447,19 @@ export default function Board({ board, onChange }) {
             backgroundColor: BG_SIDEBAR, borderLeft: `1px solid ${BORDER}`, boxShadow: "-6px 0 12px rgba(0,0,0,0.04)",
             padding: "18px 20px", display: "flex", flexDirection: "column", gap: "22px",
           }}>
+            <button
+              className="el-export-btn"
+              onClick={handleExport}
+              title="Download this board as a JSON file"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", alignSelf: "flex-start",
+                fontFamily: font, fontWeight: 500, fontSize: "12px", color: INK_SOFT,
+                background: "#fff", border: `1px solid ${BORDER}`, borderRadius: "6px",
+                padding: "6px 10px", cursor: "pointer",
+              }}
+            >
+              <Download size={12} /> Export JSON
+            </button>
             <div>
               <div style={eyebrow}>Name</div>
               <div className="el-side-field" style={{ marginTop: "8px" }}>
