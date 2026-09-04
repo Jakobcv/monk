@@ -7,8 +7,8 @@ import {
   STATUS_OPTIONS, STATUS_COLOR, IMPACT_OPTIONS, IMPACT_COLOR,
 } from "./lib/theme";
 
-const ALLOWED = { evidence: "problem", problem: "idea", idea: "result" };
-const EVIDENCE_TYPES = ["Metric", "Interview", "Support", "Analytics", "Other"];
+const ALLOWED = { signal: "insight", insight: "action", action: "result" };
+const SIGNAL_TYPES = ["Metric", "Interview", "Support", "Analytics", "Other"];
 
 // low-alpha accent fill/border so cards read as tinted, not flat white
 const tint = (hex, alpha) => `${hex}${alpha}`;
@@ -34,7 +34,7 @@ const typeSelectStyle = (hasValue) => ({
   border: "1px solid transparent", background: "transparent", borderRadius: "4px",
   padding: "2px 20px 2px 6px", margin: "0 -6px", width: "calc(100% + 12px)", boxSizing: "border-box",
   fontFamily: font, fontWeight: 600, fontSize: "10px", letterSpacing: "0.02em", textTransform: "uppercase",
-  color: hasValue ? ACCENT.evidence : INK_FAINT, cursor: "pointer",
+  color: hasValue ? ACCENT.signal : INK_FAINT, cursor: "pointer",
   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
 });
 const sidebarSelectStyle = (color) => ({
@@ -78,15 +78,15 @@ export default function Board({ board, onChange }) {
   const [owner, setOwner] = useState(board.owner);
   const [description, setDescription] = useState(board.description);
 
-  const [evidence, setEvidence] = useState(board.evidence);
-  const [problems, setProblems] = useState(board.problems);
-  const [ideas, setIdeas] = useState(board.ideas);
+  const [signals, setSignals] = useState(board.signals);
+  const [insights, setInsights] = useState(board.insights);
+  const [actions, setActions] = useState(board.actions);
   const [results, setResults] = useState(board.results);
   const [connections, setConnections] = useState(board.connections);
 
   const boardState = useMemo(
-    () => ({ name, goal, target, status, impact, owner, description, evidence, problems, ideas, results, connections }),
-    [name, goal, target, status, impact, owner, description, evidence, problems, ideas, results, connections]
+    () => ({ name, goal, target, status, impact, owner, description, signals, insights, actions, results, connections }),
+    [name, goal, target, status, impact, owner, description, signals, insights, actions, results, connections]
   );
 
   const isFirstRender = useRef(true);
@@ -110,7 +110,7 @@ export default function Board({ board, onChange }) {
   const [hoverConnId, setHoverConnId] = useState(null);
 
   // all node ids reachable from the hovered card by following connections in either direction —
-  // this is what traces the full evidence -> problem -> idea -> result throughline
+  // this is what traces the full signal -> insight -> action -> result throughline
   const connectedIds = useMemo(() => {
     if (hoverId == null) return null;
     const set = new Set([hoverId]);
@@ -149,21 +149,21 @@ export default function Board({ board, onChange }) {
   useEffect(() => { window.addEventListener("resize", force); return () => window.removeEventListener("resize", force); }, []);
 
   const kindOf = (id) => {
-    if (evidence.some((x) => x.id === id)) return "evidence";
-    if (problems.some((x) => x.id === id)) return "problem";
-    if (ideas.some((x) => x.id === id)) return "idea";
+    if (signals.some((x) => x.id === id)) return "signal";
+    if (insights.some((x) => x.id === id)) return "insight";
+    if (actions.some((x) => x.id === id)) return "action";
     if (results.some((x) => x.id === id)) return "result";
     return null;
   };
 
-  const patchEvidence = (id, patch) => setEvidence((p) => p.map((e) => (e.id === id ? { ...e, ...patch } : e)));
-  const patchProblem = (id, patch) => setProblems((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
-  const patchIdea = (id, patch) => setIdeas((p) => p.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+  const patchSignal = (id, patch) => setSignals((p) => p.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  const patchInsight = (id, patch) => setInsights((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  const patchAction = (id, patch) => setActions((p) => p.map((a) => (a.id === id ? { ...a, ...patch } : a)));
   const patchResult = (id, patch) => setResults((p) => p.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
-  const addEvidence = () => setEvidence((p) => [...p, { id: genId(), type: "", text: "" }]);
-  const addProblem = () => setProblems((p) => [...p, { id: genId(), text: "" }]);
-  const addIdea = () => setIdeas((p) => [...p, { id: genId(), ifWe: "", then: "", expected: "" }]);
+  const addSignal = () => setSignals((p) => [...p, { id: genId(), type: "", text: "" }]);
+  const addInsight = () => setInsights((p) => [...p, { id: genId(), text: "" }]);
+  const addAction = () => setActions((p) => [...p, { id: genId(), ifWe: "", then: "", expected: "" }]);
   const addResult = () => setResults((p) => [...p, { id: genId(), text: "" }]);
 
   const reorder = (setList) => (id, dir) => setList((prev) => {
@@ -175,15 +175,15 @@ export default function Board({ board, onChange }) {
     copy.splice(next, 0, item);
     return copy;
   });
-  const moveEvidence = reorder(setEvidence);
-  const moveProblem = reorder(setProblems);
-  const moveIdea = reorder(setIdeas);
+  const moveSignal = reorder(setSignals);
+  const moveInsight = reorder(setInsights);
+  const moveAction = reorder(setActions);
   const moveResult = reorder(setResults);
 
   const deleteCard = (id, kind) => {
-    if (kind === "evidence") setEvidence((p) => p.filter((x) => x.id !== id));
-    else if (kind === "problem") setProblems((p) => p.filter((x) => x.id !== id));
-    else if (kind === "idea") setIdeas((p) => p.filter((x) => x.id !== id));
+    if (kind === "signal") setSignals((p) => p.filter((x) => x.id !== id));
+    else if (kind === "insight") setInsights((p) => p.filter((x) => x.id !== id));
+    else if (kind === "action") setActions((p) => p.filter((x) => x.id !== id));
     else if (kind === "result") setResults((p) => p.filter((x) => x.id !== id));
     setConnections((c) => c.filter((x) => x.from !== id && x.to !== id));
     delete els.current[id];
@@ -306,7 +306,7 @@ export default function Board({ board, onChange }) {
         .el-card:hover { box-shadow:0 2px 6px rgba(0,0,0,0.07); }
         .el-type-select { transition: border-color .12s, background-color .12s; }
         .el-node:hover .el-type-select { border-color: ${BORDER}; background: #fff; }
-        .el-type-select:focus { outline: none; border-color: ${ACCENT.evidence}; background: #fff; }
+        .el-type-select:focus { outline: none; border-color: ${ACCENT.signal}; background: #fff; }
         .el-type-chevron { opacity: 0; transition: opacity .12s; pointer-events: none; }
         .el-node:hover .el-type-chevron, .el-type-select:focus ~ .el-type-chevron { opacity: 1; }
         .el-side-field { border:none; border-bottom:1px solid transparent; transition: border-color .12s; }
@@ -365,63 +365,63 @@ export default function Board({ board, onChange }) {
             })()}
           </svg>
 
-          {/* EVIDENCE */}
-          <Column kind="evidence" title="Evidence" count={evidence.length} onAdd={addEvidence}>
-            {evidence.map((e, idx) => (
-              <div key={e.id} className="el-node" style={{ opacity: nodeOpacity(e.id) }} {...hoverProps(e.id)}>
-                {renderOrder(e.id, idx, evidence.length, moveEvidence)}
-                <div ref={setRef(e.id)} data-node-id={e.id} data-node-kind="evidence" className="el-card" style={cardStyle("evidence")}>
+          {/* SIGNAL */}
+          <Column kind="signal" title="Signal" count={signals.length} onAdd={addSignal}>
+            {signals.map((s, idx) => (
+              <div key={s.id} className="el-node" style={{ opacity: nodeOpacity(s.id) }} {...hoverProps(s.id)}>
+                {renderOrder(s.id, idx, signals.length, moveSignal)}
+                <div ref={setRef(s.id)} data-node-id={s.id} data-node-kind="signal" className="el-card" style={cardStyle("signal")}>
                   <div style={typeWrapStyle}>
                     <select
                       className="el-type-select"
-                      value={e.type}
-                      onChange={(ev) => patchEvidence(e.id, { type: ev.target.value })}
-                      style={typeSelectStyle(!!e.type)}
+                      value={s.type}
+                      onChange={(ev) => patchSignal(s.id, { type: ev.target.value })}
+                      style={typeSelectStyle(!!s.type)}
                     >
                       <option value="">Type</option>
-                      {EVIDENCE_TYPES.map((t) => (
+                      {SIGNAL_TYPES.map((t) => (
                         <option key={t} value={t}>{t}</option>
                       ))}
                     </select>
                     <ChevronDown size={11} className="el-type-chevron" style={{ position: "absolute", right: "5px", top: "50%", transform: "translateY(-50%)", color: INK_SOFT }} />
                   </div>
-                  <textarea className="el-edit" rows={2} value={e.text} onChange={(ev) => patchEvidence(e.id, { text: ev.target.value })} placeholder="What did you observe?" style={editArea} />
+                  <textarea className="el-edit" rows={2} value={s.text} onChange={(ev) => patchSignal(s.id, { text: ev.target.value })} placeholder="What did you observe?" style={editArea} />
                 </div>
-                {renderHandle(e.id, "evidence", connections.some((c) => c.from === e.id))}
-                {renderDelete(e.id, "evidence")}
+                {renderHandle(s.id, "signal", connections.some((c) => c.from === s.id))}
+                {renderDelete(s.id, "signal")}
               </div>
             ))}
           </Column>
 
-          {/* PROBLEM */}
-          <Column kind="problem" title="Problem" count={problems.length} onAdd={addProblem}>
-            {problems.map((p, idx) => (
-              <div key={p.id} className="el-node" style={{ opacity: nodeOpacity(p.id) }} {...hoverProps(p.id)}>
-                {renderOrder(p.id, idx, problems.length, moveProblem)}
-                <div ref={setRef(p.id)} data-node-id={p.id} data-node-kind="problem" className="el-card" style={{ ...cardStyle("problem"), ...targetStyle(p.id) }}>
-                  <textarea className="el-edit" rows={2} value={p.text} onChange={(ev) => patchProblem(p.id, { text: ev.target.value })} placeholder="State the problem…" style={editArea} />
+          {/* INSIGHT */}
+          <Column kind="insight" title="Insight" count={insights.length} onAdd={addInsight}>
+            {insights.map((n, idx) => (
+              <div key={n.id} className="el-node" style={{ opacity: nodeOpacity(n.id) }} {...hoverProps(n.id)}>
+                {renderOrder(n.id, idx, insights.length, moveInsight)}
+                <div ref={setRef(n.id)} data-node-id={n.id} data-node-kind="insight" className="el-card" style={{ ...cardStyle("insight"), ...targetStyle(n.id) }}>
+                  <textarea className="el-edit" rows={2} value={n.text} onChange={(ev) => patchInsight(n.id, { text: ev.target.value })} placeholder="State the insight…" style={editArea} />
                 </div>
-                {renderHandle(p.id, "problem", connections.some((c) => c.from === p.id))}
-                {renderDelete(p.id, "problem")}
+                {renderHandle(n.id, "insight", connections.some((c) => c.from === n.id))}
+                {renderDelete(n.id, "insight")}
               </div>
             ))}
           </Column>
 
-          {/* IDEAS */}
-          <Column kind="idea" title="Ideas" count={ideas.length} onAdd={addIdea}>
-            {ideas.map((i, idx) => (
-              <div key={i.id} className="el-node" style={{ opacity: nodeOpacity(i.id) }} {...hoverProps(i.id)}>
-                {renderOrder(i.id, idx, ideas.length, moveIdea)}
-                <div ref={setRef(i.id)} data-node-id={i.id} data-node-kind="idea" className="el-card" style={{ ...cardStyle("idea"), ...targetStyle(i.id) }}>
+          {/* ACTION */}
+          <Column kind="action" title="Action" count={actions.length} onAdd={addAction}>
+            {actions.map((a, idx) => (
+              <div key={a.id} className="el-node" style={{ opacity: nodeOpacity(a.id) }} {...hoverProps(a.id)}>
+                {renderOrder(a.id, idx, actions.length, moveAction)}
+                <div ref={setRef(a.id)} data-node-id={a.id} data-node-kind="action" className="el-card" style={{ ...cardStyle("action"), ...targetStyle(a.id) }}>
                   <div style={eyebrow}>If we</div>
-                  <textarea className="el-edit" rows={2} value={i.ifWe} onChange={(e) => patchIdea(i.id, { ifWe: e.target.value })} placeholder="…do this" style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }} />
+                  <textarea className="el-edit" rows={2} value={a.ifWe} onChange={(e) => patchAction(a.id, { ifWe: e.target.value })} placeholder="…do this" style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }} />
                   <div style={eyebrow}>Then</div>
-                  <textarea className="el-edit" rows={2} value={i.then} onChange={(e) => patchIdea(i.id, { then: e.target.value })} placeholder="…this happens" style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }} />
+                  <textarea className="el-edit" rows={2} value={a.then} onChange={(e) => patchAction(a.id, { then: e.target.value })} placeholder="…this happens" style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }} />
                   <div style={eyebrow}>Expected</div>
-                  <textarea className="el-edit" rows={2} value={i.expected} onChange={(e) => patchIdea(i.id, { expected: e.target.value })} placeholder="…measurable outcome" style={{ ...editArea, marginTop: "2px" }} />
+                  <textarea className="el-edit" rows={2} value={a.expected} onChange={(e) => patchAction(a.id, { expected: e.target.value })} placeholder="…measurable outcome" style={{ ...editArea, marginTop: "2px" }} />
                 </div>
-                {renderHandle(i.id, "idea", connections.some((c) => c.from === i.id))}
-                {renderDelete(i.id, "idea")}
+                {renderHandle(a.id, "action", connections.some((c) => c.from === a.id))}
+                {renderDelete(a.id, "action")}
               </div>
             ))}
           </Column>

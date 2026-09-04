@@ -16,7 +16,7 @@ export function blankBoard(name = "Untitled board") {
   return {
     id: genBoardId(), name, createdAt: now, updatedAt: now,
     goal: "", target: "", status: "Not started", impact: "Medium", owner: "", description: "",
-    evidence: [], problems: [], ideas: [], results: [], connections: [],
+    signals: [], insights: [], actions: [], results: [], connections: [],
   };
 }
 
@@ -34,13 +34,13 @@ export function demoBoard() {
     impact: "High",
     owner: "",
     description: "",
-    evidence: [
+    signals: [
       { id: e1, type: "Metric", text: "70% of users try the feature 1–2 times before abandoning it." },
       { id: e2, type: "Interview", text: "3 users couldn't find the apply button when finishing, and got frustrated." },
       { id: genId(), type: "Support", text: 'Tickets mentioning "apply button" rose 20% last month.' },
     ],
-    problems: [{ id: p1, text: "Users abandon the feature because they can't find the apply button." }],
-    ideas: [
+    insights: [{ id: p1, text: "Users abandon the feature because they can't find the apply button." }],
+    actions: [
       { id: i1, ifWe: "make the apply step automatic", then: "users complete the flow without hunting for a button", expected: "Completion rate climbs above 50% within two weeks." },
       { id: i2, ifWe: "add a progress bar highlighting the next required action", then: "users notice the apply step and complete it", expected: "Drop-off at the apply step falls by half." },
     ],
@@ -75,9 +75,9 @@ export function boardFromImport(data) {
     impact: IMPACT_OPTIONS.includes(data.impact) ? data.impact : "Medium",
     owner: asString(data.owner),
     description: asString(data.description),
-    evidence: asArray(data.evidence).map(withId),
-    problems: asArray(data.problems).map(withId),
-    ideas: asArray(data.ideas).map(withId),
+    signals: asArray(data.signals).map(withId),
+    insights: asArray(data.insights).map(withId),
+    actions: asArray(data.actions).map(withId),
     results: asArray(data.results).map(withId),
     connections: asArray(data.connections)
       .filter((c) => typeof c?.from === "number" && typeof c?.to === "number")
@@ -88,7 +88,7 @@ export function boardFromImport(data) {
 export function bumpNextId(boards) {
   let max = 999;
   for (const board of boards || []) {
-    for (const list of [board.evidence, board.problems, board.ideas, board.results, board.connections]) {
+    for (const list of [board.signals, board.insights, board.actions, board.results, board.connections]) {
       for (const item of list || []) if (item.id > max) max = item.id;
     }
   }

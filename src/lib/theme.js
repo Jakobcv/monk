@@ -11,10 +11,10 @@ export const BG_HOVER = "#F7F7F5";
 
 // accent used sparingly: a small dot in the column header, the connector line, and the drag handle
 export const ACCENT = {
-  evidence: "#D9730D", // amber
-  problem: "#2383E2",  // blue
-  idea: "#0F7B6C",     // teal
-  result: "#AD1A72",   // rose
+  signal: "#D9730D",  // amber
+  insight: "#2383E2", // blue
+  action: "#0F7B6C",  // teal
+  result: "#AD1A72",  // rose
 };
 
 export const STATUS_OPTIONS = ["Not started", "In progress", "Blocked", "Done"];

@@ -3,7 +3,7 @@ import { Plus, Trash2, Upload } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, BG, STATUS_COLOR } from "./lib/theme";
 
 const cardCount = (b) =>
-  (b.evidence?.length || 0) + (b.problems?.length || 0) + (b.ideas?.length || 0) + (b.results?.length || 0);
+  (b.signals?.length || 0) + (b.insights?.length || 0) + (b.actions?.length || 0) + (b.results?.length || 0);
 
 export default function StartPage({ boards, onCreate, onImport, onOpen, onRename, onDelete }) {
   const [editingId, setEditingId] = useState(null);
