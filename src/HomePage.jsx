@@ -11,6 +11,7 @@ const TYPE_DEFS = [
   { kind: "result", label: "Result", arrayKey: "results", fields: (x) => [x.text] },
 ];
 const ATTACHABLE_KINDS = new Set(TYPE_DEFS.map((d) => d.kind));
+const UNLINKED_COLOR = "#E03E3E"; // same red used for Blocked/High elsewhere — reads as "needs attention"
 
 const tint = (hex, alpha) => `${hex}${alpha}`;
 const cardCount = (b) =>
@@ -72,6 +73,16 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
     const ql = q.toLowerCase();
     const out = [];
     for (const board of boards) {
+      if (activeKind === "unlinked") {
+        for (const item of board.signals || []) {
+          if (item.ref) continue; // a reference's "linked" status belongs to its source board
+          if ((board.connections || []).some((c) => c.from === item.id)) continue; // has an outgoing link
+          const text = item.text || "";
+          if (q && !text.toLowerCase().includes(ql)) continue;
+          out.push({ key: `${board.id}:${item.id}`, boardId: board.id, cardId: item.id, boardName: board.name || "Untitled board", kind: "signal", label: "Signal", text, boardUpdatedAt: board.updatedAt || 0 });
+        }
+        continue;
+      }
       for (const def of TYPE_DEFS) {
         if (activeKind !== "all" && def.kind !== activeKind) continue;
         for (const item of board[def.arrayKey] || []) {
@@ -158,12 +169,31 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
               </button>
             );
           })}
+          <button
+            onClick={() => setActiveKind("unlinked")}
+            title="Signals not yet connected to any insight — easy to misread out of context"
+            style={{
+              display: "flex", alignItems: "center", gap: "6px",
+              fontFamily: font, fontWeight: 600, fontSize: "12px", cursor: "pointer",
+              borderRadius: "999px", padding: "5px 12px",
+              border: `1px solid ${activeKind === "unlinked" ? tint(UNLINKED_COLOR, "60") : BORDER_STRONG}`,
+              background: activeKind === "unlinked" ? tint(UNLINKED_COLOR, "12") : "#fff",
+              color: activeKind === "unlinked" ? UNLINKED_COLOR : INK_SOFT,
+            }}
+          >
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: UNLINKED_COLOR, flexShrink: 0 }} />
+            Unlinked
+          </button>
         </div>
 
         {browsing ? (
           matches.length === 0 ? (
             <div style={{ fontFamily: font, color: INK_FAINT, fontSize: "13.5px", textAlign: "center", padding: "50px 0" }}>
-              {q ? `No matches for "${q}".` : `No ${TYPE_DEFS.find((d) => d.kind === activeKind)?.label.toLowerCase()} cards yet.`}
+              {q
+                ? `No matches for "${q}".`
+                : activeKind === "unlinked"
+                  ? "Every signal is linked to an insight — nothing to flag."
+                  : `No ${TYPE_DEFS.find((d) => d.kind === activeKind)?.label.toLowerCase()} cards yet.`}
             </div>
           ) : (
             <>
