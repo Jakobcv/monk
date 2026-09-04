@@ -141,6 +141,10 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
   return (
     <div style={{ height: "100%", overflowY: "auto", padding: "32px 40px", boxSizing: "border-box" }}>
       <div style={{ maxWidth: "880px", margin: "0 auto" }}>
+        <style>{`
+          @keyframes el-fade-in-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+          .el-page-transition { animation: el-fade-in-up 160ms ease-out; }
+        `}</style>
         <div style={{ height: "20px", marginBottom: "10px" }}>
           <button
             onClick={backToBoards}
@@ -183,7 +187,7 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
         </div>
 
         {activated && (
-        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "26px" }}>
+        <div className="el-page-transition" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "26px" }}>
           <button
             onClick={() => setActiveKind("all")}
             style={{
@@ -252,7 +256,7 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
 
         {activated ? (
           matches.length === 0 ? (
-            <div style={{ fontFamily: font, color: INK_FAINT, fontSize: "13.5px", textAlign: "center", padding: "50px 0" }}>
+            <div className="el-page-transition" style={{ fontFamily: font, color: INK_FAINT, fontSize: "13.5px", textAlign: "center", padding: "50px 0" }}>
               {q
                 ? `No matches for "${q}".`
                 : activeKind === "unlinked"
@@ -264,7 +268,7 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
                       : `No ${TYPE_DEFS.find((d) => d.kind === activeKind)?.label.toLowerCase()} cards yet.`}
             </div>
           ) : (
-            <>
+            <div className="el-page-transition">
               <div style={{ fontFamily: font, fontSize: "12px", color: INK_FAINT, marginBottom: "10px" }}>
                 {matches.length} result{matches.length === 1 ? "" : "s"}
               </div>
@@ -333,10 +337,10 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           )
         ) : (
-          <>
+          <div className="el-page-transition">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "22px" }}>
               <h1 style={{ fontFamily: font, fontSize: "16px", fontWeight: 600, color: INK, margin: 0 }}>Your boards</h1>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -444,7 +448,7 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
                 ))}
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>
