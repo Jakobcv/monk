@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Plus, Trash2, Upload, Search as SearchIcon, X, Link2, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Upload, Search as SearchIcon, X, Link2, ArrowLeft, Star } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, BG, STATUS_COLOR, ACCENT } from "./lib/theme";
 
 // per-type: which array on a board holds these cards, and which of the card's fields to
@@ -12,6 +12,7 @@ const TYPE_DEFS = [
 ];
 const ATTACHABLE_KINDS = new Set(TYPE_DEFS.map((d) => d.kind));
 const UNLINKED_COLOR = "#E03E3E"; // same red used for Blocked/High elsewhere — reads as "needs attention"
+const CITED_COLOR = "#946800"; // muted gold — reads as "authoritative", distinct from the four type accents
 
 const tint = (hex, alpha) => `${hex}${alpha}`;
 const cardCount = (b) =>
@@ -76,6 +77,35 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
     if (!activated) return [];
     const ql = q.toLowerCase();
     const out = [];
+
+    if (activeKind === "cited") {
+      // count how many reference cards point at each original, across every board
+      const counts = new Map(); // `${boardId}:${itemId}` -> count
+      for (const board of boards) {
+        for (const def of TYPE_DEFS) {
+          for (const item of board[def.arrayKey] || []) {
+            if (!item.ref) continue;
+            const refKey = `${item.ref.boardId}:${item.ref.itemId}`;
+            counts.set(refKey, (counts.get(refKey) || 0) + 1);
+          }
+        }
+      }
+      for (const board of boards) {
+        for (const def of TYPE_DEFS) {
+          for (const item of board[def.arrayKey] || []) {
+            if (item.ref) continue; // only originals can be cited, not references themselves
+            const count = counts.get(`${board.id}:${item.id}`) || 0;
+            if (count === 0) continue;
+            const text = def.fields(item).filter(Boolean)[0] || "";
+            if (q && !text.toLowerCase().includes(ql)) continue;
+            out.push({ key: `${board.id}:${item.id}`, boardId: board.id, cardId: item.id, boardName: board.name || "Untitled board", kind: def.kind, label: def.label, text, citationCount: count });
+          }
+        }
+      }
+      out.sort((a, b) => b.citationCount - a.citationCount); // ranked by citations, always — not by recency
+      return out;
+    }
+
     for (const board of boards) {
       if (activeKind === "unlinked") {
         for (const item of board.signals || []) {
@@ -202,6 +232,21 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
             <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: UNLINKED_COLOR, flexShrink: 0 }} />
             Unlinked
           </button>
+          <button
+            onClick={() => setActiveKind("cited")}
+            title="Cards referenced by the most other boards — likely authoritative findings"
+            style={{
+              display: "flex", alignItems: "center", gap: "6px",
+              fontFamily: font, fontWeight: 600, fontSize: "12px", cursor: "pointer",
+              borderRadius: "999px", padding: "5px 12px",
+              border: `1px solid ${activeKind === "cited" ? tint(CITED_COLOR, "60") : BORDER_STRONG}`,
+              background: activeKind === "cited" ? tint(CITED_COLOR, "12") : "#fff",
+              color: activeKind === "cited" ? CITED_COLOR : INK_SOFT,
+            }}
+          >
+            <Star size={11} fill={activeKind === "cited" ? CITED_COLOR : "none"} />
+            Most cited
+          </button>
         </div>
         )}
 
@@ -212,9 +257,11 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
                 ? `No matches for "${q}".`
                 : activeKind === "unlinked"
                   ? "Every signal is linked to an insight — nothing to flag."
-                  : activeKind === "all"
-                    ? "No cards yet — add some to a board first."
-                    : `No ${TYPE_DEFS.find((d) => d.kind === activeKind)?.label.toLowerCase()} cards yet.`}
+                  : activeKind === "cited"
+                    ? "No cards have been cited elsewhere yet."
+                    : activeKind === "all"
+                      ? "No cards yet — add some to a board first."
+                      : `No ${TYPE_DEFS.find((d) => d.kind === activeKind)?.label.toLowerCase()} cards yet.`}
             </div>
           ) : (
             <>
@@ -235,6 +282,11 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
                       <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: ACCENT[m.kind], flexShrink: 0 }} />
                       <span style={{ fontFamily: font, fontWeight: 600, fontSize: "11px", color: ACCENT[m.kind] }}>{m.label}</span>
                       <span style={{ fontFamily: font, fontSize: "11px", color: INK_FAINT }}>in {m.boardName}</span>
+                      {m.citationCount != null && (
+                        <span style={{ display: "flex", alignItems: "center", gap: "3px", fontFamily: font, fontWeight: 600, fontSize: "11px", color: CITED_COLOR }}>
+                          <Star size={10} fill={CITED_COLOR} /> {m.citationCount} citation{m.citationCount === 1 ? "" : "s"}
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontFamily: font, fontSize: "13.5px", color: INK, lineHeight: 1.5 }}>
                       {highlight(m.text, q)}
