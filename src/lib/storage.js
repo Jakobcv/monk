@@ -51,9 +51,17 @@ export async function loadWorkspace(dirHandle) {
 export async function saveWorkspace(dirHandle, workspace) {
   const currentBoardIds = new Set(workspace.boards.map((b) => b.id));
   for await (const [name, handle] of dirHandle.entries()) {
-    if (handle.kind === "directory" && !currentBoardIds.has(name)) {
-      await dirHandle.removeEntry(name, { recursive: true });
+    if (handle.kind !== "directory" || currentBoardIds.has(name)) continue;
+    // Never delete anything that isn't recognizably one of our own board folders — the
+    // connected directory might not be a dedicated folder (it could be a whole product repo
+    // with its own .git/node_modules/src), so only remove entries that actually contain a
+    // board.md, mirroring the same check loadWorkspace uses to identify a board folder.
+    try {
+      await handle.getFileHandle("board.md");
+    } catch {
+      continue;
     }
+    await dirHandle.removeEntry(name, { recursive: true });
   }
 
   for (const board of workspace.boards) {

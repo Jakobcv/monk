@@ -17,14 +17,22 @@ npm run dev
 No accounts, no API keys — on first load you'll be asked to pick a folder (ideally one inside
 your project's repo) where boards get saved.
 
-**Browser requirement**: this needs the File System Access API, available in Chrome, Edge, and
-other Chromium-based browsers. Firefox and Safari aren't supported.
+**Browser requirement**: this needs the File System Access API. Confirmed working in **Chrome**
+and **Edge**. Firefox and Safari don't implement the API at all. **Brave doesn't expose it by
+default** (disabled as part of its fingerprinting protections) — the app correctly shows "browser
+not supported" there rather than failing oddly; untested whether enabling it via `brave://flags`
+actually works end-to-end.
 
 ## How persistence works
 
 - On first load, you grant the app access to a folder. It's remembered (via IndexedDB) for next
   time — Chrome will silently reuse the granted permission unless it's lapsed (e.g. after a
-  browser restart), in which case you'll see a one-click "Reconnect" prompt.
+  browser restart), in which case you'll see a one-click "Reconnect" prompt. **Change folder** in
+  the header switches to a different one at any time.
+- The folder doesn't need to be dedicated to Evidence Loop — it's safe to point this at a real
+  product repo's root. Saving only ever creates/rewrites/deletes directories that actually
+  contain a `board.md`; anything else already in the folder (`.git`, `node_modules`, your actual
+  source code) is never touched.
 - Every board is its own subfolder (named by an internal id, so renaming a board never touches
   the folder path), containing a `board.md` plus one markdown file per card, grouped by kind:
   ```
@@ -51,13 +59,11 @@ copy), shows a dashed border and a "↗ source board" link, and shows "no longer
 if the source is later deleted. This is how a signal, insight, action, or result from one study
 gets cited in another without duplicating it.
 
-## Importing / exporting a single board
+## Moving or sharing a board
 
-- **Export**: open a board and click **Export JSON** in the sidebar to download it as a
-  standalone `.json` file — a snapshot, separate from the markdown files on disk.
-- **Import**: on the home page, click **Import JSON** and pick a `.json` file (fields are
-  validated/coerced rather than trusted as-is). Imported boards always get a fresh id, so
-  importing the same file twice just creates a copy.
+There's no export/import feature — the markdown files *are* the shareable artifact now. To move
+or share a board, copy its folder (or `git mv` it, or send someone the folder directly); the app
+picks up whatever's in the connected folder on next load, no import step needed.
 
 ## Out of scope for v1
 

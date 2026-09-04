@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { loadWorkspace, saveWorkspace } from "./lib/storage";
-import { blankBoard, boardFromImport, bumpNextId, genId, KIND_ARRAY_KEY } from "./lib/boardModel";
+import { blankBoard, bumpNextId, genId, KIND_ARRAY_KEY } from "./lib/boardModel";
 import { fsAccessSupported, getStoredHandle, pickFolder, tryReuseHandle, reconnectHandle } from "./lib/fsPersistence";
 import { font, INK, INK_SOFT } from "./lib/theme";
 import Header from "./Header";
@@ -113,7 +113,7 @@ export default function App() {
     const t = setTimeout(() => {
       saveWorkspace(dirHandle, workspace).then(
         () => setSaveStatus("saved"),
-        () => setSaveStatus("error")
+        (err) => { console.error("Failed to save the research folder:", err); setSaveStatus("error"); }
       );
     }, 700);
     return () => clearTimeout(t);
@@ -123,7 +123,7 @@ export default function App() {
     setSaveStatus("saving");
     saveWorkspace(dirHandle, workspace).then(
       () => setSaveStatus("saved"),
-      () => setSaveStatus("error")
+      (err) => { console.error("Failed to save the research folder:", err); setSaveStatus("error"); }
     );
   };
 
@@ -142,6 +142,18 @@ export default function App() {
       setPhase("loading");
     }
   };
+  const handleChangeFolder = async () => {
+    try {
+      const handle = await pickFolder();
+      skipNextSaveRef.current = true; // skip the redundant re-save right after this fresh load
+      setBoards([]);
+      setDirHandle(handle);
+      setPhase("loading");
+      goToStart();
+    } catch {
+      // user cancelled the picker — stay right where we are
+    }
+  };
 
   const updateBoard = (id, patch) =>
     setBoards((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch, updatedAt: Date.now() } : b)));
@@ -155,22 +167,6 @@ export default function App() {
     setBoards((prev) => [board, ...prev]);
     goToBoard(board.id);
   };
-  const importBoard = async (file) => {
-    let board;
-    try {
-      board = boardFromImport(JSON.parse(await file.text()));
-    } catch {
-      window.alert("Couldn't import that file — make sure it's a JSON file exported from Evidence Loop.");
-      return;
-    }
-    setBoards((prev) => {
-      const next = [board, ...prev];
-      bumpNextId(next);
-      return next;
-    });
-    goToBoard(board.id);
-  };
-
   // attach a card found in search onto another board as a live reference — never a copy,
   // so edits to the source (or the source disappearing) show up wherever it's cited
   const attachReference = (kind, sourceBoardId, sourceItemId, destBoardId) => {
@@ -225,7 +221,7 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column" }}>
-      <Header onGoHome={goToStart} saveStatus={saveStatus} onRetrySave={retrySave} />
+      <Header onGoHome={goToStart} saveStatus={saveStatus} onRetrySave={retrySave} onChangeFolder={handleChangeFolder} />
 
       <div style={{ flex: 1, minHeight: 0, padding: activeBoard ? "12px" : 0, boxSizing: "border-box" }}>
         {activeBoardId && !activeBoard ? (
@@ -245,7 +241,7 @@ export default function App() {
             onOpenBoard={goToBoard}
           />
         ) : (
-          <HomePage boards={boards} onCreate={createBoard} onImport={importBoard} onOpen={goToBoard} onRename={renameBoard} onDelete={deleteBoard} onAttach={attachReference} />
+          <HomePage boards={boards} onCreate={createBoard} onOpen={goToBoard} onRename={renameBoard} onDelete={deleteBoard} onAttach={attachReference} />
         )}
       </div>
     </div>

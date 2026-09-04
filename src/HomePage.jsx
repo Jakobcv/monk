@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from "react";
-import { Plus, Trash2, Upload, Search as SearchIcon, X, Link2, ArrowLeft, Star } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Plus, Trash2, Search as SearchIcon, X, Link2, ArrowLeft, Star } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, BG, STATUS_COLOR, ACCENT } from "./lib/theme";
 
 // per-type: which array on a board holds these cards, and which of the card's fields to
@@ -33,23 +33,16 @@ function highlight(text, query) {
 }
 
 // The home page leads with search — before you spin up a new study, check whether the
-// answer already exists somewhere in the repository. The board list (create/import) sits
+// answer already exists somewhere in the repository. The board list (create new) sits
 // right below, always reachable, but search is what you see first.
-export default function HomePage({ boards, onCreate, onImport, onOpen, onRename, onDelete, onAttach }) {
+export default function HomePage({ boards, onCreate, onOpen, onRename, onDelete, onAttach }) {
   const [editingId, setEditingId] = useState(null);
   const [draftName, setDraftName] = useState("");
-  const fileInputRef = useRef(null);
 
   const [query, setQuery] = useState("");
   const [activeKind, setActiveKind] = useState("all");
   const [activated, setActivated] = useState(false);
   const [attachOpenKey, setAttachOpenKey] = useState(null);
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    e.target.value = ""; // reset so picking the same file again still fires onChange
-    if (file) onImport(file);
-  };
 
   const startEdit = (b) => { setEditingId(b.id); setDraftName(b.name); };
   const commitEdit = () => {
@@ -344,16 +337,6 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "22px" }}>
               <h1 style={{ fontFamily: font, fontSize: "16px", fontWeight: 600, color: INK, margin: 0 }}>Your boards</h1>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <input ref={fileInputRef} type="file" accept="application/json" onChange={handleFileChange} style={{ display: "none" }} />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    display: "flex", alignItems: "center", gap: "6px", fontFamily: font, fontWeight: 600, fontSize: "13px",
-                    color: INK, background: "#fff", border: `1px solid ${BORDER_STRONG}`, borderRadius: "7px", padding: "8px 14px", cursor: "pointer",
-                  }}
-                >
-                  <Upload size={14} /> Import JSON
-                </button>
                 <button
                   onClick={onCreate}
                   style={{
