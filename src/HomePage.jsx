@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Plus, Trash2, Upload, Search as SearchIcon, X, Link2 } from "lucide-react";
+import { Plus, Trash2, Upload, Search as SearchIcon, X, Link2, ArrowLeft } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, BG, STATUS_COLOR, ACCENT } from "./lib/theme";
 
 // per-type: which array on a board holds these cards, and which of the card's fields to
@@ -111,6 +111,19 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
   return (
     <div style={{ height: "100%", overflowY: "auto", padding: "32px 40px", boxSizing: "border-box" }}>
       <div style={{ maxWidth: "880px", margin: "0 auto" }}>
+        <div style={{ height: "20px", marginBottom: "10px" }}>
+          <button
+            onClick={backToBoards}
+            style={{
+              visibility: activated ? "visible" : "hidden",
+              display: "flex", alignItems: "center", gap: "5px",
+              fontFamily: font, fontWeight: 600, fontSize: "13px", color: INK,
+              background: "none", border: "none", cursor: "pointer", padding: 0,
+            }}
+          >
+            <ArrowLeft size={14} /> Your boards
+          </button>
+        </div>
         <div style={{ position: "relative", marginBottom: "14px" }}>
           <SearchIcon size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: INK_FAINT }} />
           <input
@@ -141,15 +154,6 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
 
         {activated && (
         <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "26px" }}>
-          <button
-            onClick={backToBoards}
-            style={{
-              fontFamily: font, fontWeight: 600, fontSize: "12px", color: INK_SOFT,
-              background: "none", border: "none", cursor: "pointer", padding: "5px 4px 5px 0",
-            }}
-          >
-            ← Your boards
-          </button>
           <button
             onClick={() => setActiveKind("all")}
             style={{
