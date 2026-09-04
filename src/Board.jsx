@@ -447,6 +447,41 @@ export default function Board({ board, onChange, highlightCardId, allBoards, onO
     );
   };
 
+  const renderResultCard = (r, idx) => {
+    const ref = r.ref;
+    const resolved = ref ? resolveRef(allBoards, "result", ref) : null;
+    return (
+      <div key={r.id} className="el-node" style={{ opacity: nodeOpacity(r.id) }} {...hoverProps(r.id)}>
+        {renderOrder(r.id, idx, results.length, moveResult)}
+        {ref ? (
+          <div
+            ref={setRef(r.id)} data-node-id={r.id} data-node-kind="result"
+            className={cardClass(r.id)}
+            style={{ ...cardStyle("result"), ...targetStyle(r.id), borderStyle: "dashed" }}
+          >
+            {resolved ? (
+              <>
+                <div style={eyebrow}>Result</div>
+                <div style={{ ...editArea, marginTop: "2px" }}>{resolved.item.text}</div>
+                {renderRefSource(resolved.board)}
+              </>
+            ) : (
+              <div style={{ fontFamily: font, fontStyle: "italic", fontSize: "13px", color: INK_FAINT }}>
+                Referenced result no longer exists.
+              </div>
+            )}
+          </div>
+        ) : (
+          <div ref={setRef(r.id)} data-node-id={r.id} data-node-kind="result" className={cardClass(r.id)} style={{ ...cardStyle("result"), ...targetStyle(r.id) }}>
+            <div style={eyebrow}>Result</div>
+            <textarea className="el-edit" rows={2} value={r.text} onChange={(e) => patchResult(r.id, { text: e.target.value })} placeholder="What actually happened?" style={{ ...editArea, marginTop: "2px" }} />
+          </div>
+        )}
+        {renderDelete(r.id, "result")}
+      </div>
+    );
+  };
+
   return (
     <div style={{ fontFamily: font, height: "100%", display: "flex", flexDirection: "column" }}>
       <style>{`
@@ -547,16 +582,7 @@ export default function Board({ board, onChange, highlightCardId, allBoards, onO
 
           {/* RESULT */}
           <Column kind="result" title="Result" count={results.length} last onAdd={addResult}>
-            {results.map((r, idx) => (
-              <div key={r.id} className="el-node" style={{ opacity: nodeOpacity(r.id) }} {...hoverProps(r.id)}>
-                {renderOrder(r.id, idx, results.length, moveResult)}
-                <div ref={setRef(r.id)} data-node-id={r.id} data-node-kind="result" className={cardClass(r.id)} style={{ ...cardStyle("result"), ...targetStyle(r.id) }}>
-                  <div style={eyebrow}>Result</div>
-                  <textarea className="el-edit" rows={2} value={r.text} onChange={(e) => patchResult(r.id, { text: e.target.value })} placeholder="What actually happened?" style={{ ...editArea, marginTop: "2px" }} />
-                </div>
-                {renderDelete(r.id, "result")}
-              </div>
-            ))}
+            {results.map((r, idx) => renderResultCard(r, idx))}
           </Column>
 
           {/* SIDEBAR — full height */}

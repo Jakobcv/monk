@@ -28,7 +28,7 @@ function highlight(text, query) {
   );
 }
 
-const ATTACHABLE_KINDS = new Set(["signal", "insight", "action"]);
+const ATTACHABLE_KINDS = new Set(["signal", "insight", "action", "result"]);
 
 export default function SearchPage({ boards, onOpenBoard, onAttach }) {
   const [query, setQuery] = useState("");
