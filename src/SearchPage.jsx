@@ -28,13 +28,15 @@ function highlight(text, query) {
   );
 }
 
-export default function SearchPage({ boards, onOpenBoard, onAttachSignal }) {
+const ATTACHABLE_KINDS = new Set(["signal", "insight"]);
+
+export default function SearchPage({ boards, onOpenBoard, onAttach }) {
   const [query, setQuery] = useState("");
   const [activeKinds, setActiveKinds] = useState(() => new Set(ALL_KINDS));
   const [attachOpenKey, setAttachOpenKey] = useState(null);
 
   const handleAttach = (m, destBoardId) => {
-    onAttachSignal(m.boardId, m.cardId, destBoardId);
+    onAttach(m.kind, m.boardId, m.cardId, destBoardId);
     setAttachOpenKey(null);
   };
 
@@ -167,7 +169,7 @@ export default function SearchPage({ boards, onOpenBoard, onAttachSignal }) {
                   <div style={{ fontFamily: font, fontSize: "13.5px", color: INK, lineHeight: 1.5 }}>
                     {highlight(m.text, q)}
                   </div>
-                  {m.kind === "signal" && (
+                  {ATTACHABLE_KINDS.has(m.kind) && (
                     <div onClick={(e) => e.stopPropagation()} style={{ marginTop: "8px" }}>
                       {attachOpenKey === m.key ? (
                         <select

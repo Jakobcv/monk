@@ -87,14 +87,17 @@ export function boardFromImport(data) {
   };
 }
 
-// A signal card is either locally authored (has type/text) or a live reference to a signal
-// defined in another board (has `ref: { boardId, signalId }` instead). Resolved at render
-// time — never copied — so edits to the source propagate everywhere it's cited, and a
-// deleted source just resolves to null rather than leaving stale text behind.
-export function resolveSignalRef(boards, ref) {
+export const KIND_ARRAY_KEY = { signal: "signals", insight: "insights", action: "actions", result: "results" };
+
+// A card is either locally authored, or a live reference to a card of the same kind living
+// in another board (has `ref: { boardId, itemId }` instead of its own content). Resolved at
+// render time — never copied — so edits to the source propagate everywhere it's cited, and
+// a deleted source just resolves to null rather than leaving stale text behind.
+export function resolveRef(boards, kind, ref) {
+  const arrayKey = KIND_ARRAY_KEY[kind];
   const board = (boards || []).find((b) => b.id === ref.boardId);
-  const signal = board?.signals.find((s) => s.id === ref.signalId);
-  return signal ? { board, signal } : null;
+  const item = board?.[arrayKey]?.find((x) => x.id === ref.itemId);
+  return item ? { board, item } : null;
 }
 
 export function bumpNextId(boards) {

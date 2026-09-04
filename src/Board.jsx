@@ -1,6 +1,6 @@
 import { useState, useRef, useLayoutEffect, useEffect, useReducer, useMemo } from "react";
 import { Plus, ChevronUp, ChevronDown, Download, ArrowUpRight } from "lucide-react";
-import { genId, resolveSignalRef } from "./lib/boardModel";
+import { genId, resolveRef } from "./lib/boardModel";
 import { downloadBoardJson } from "./lib/exportBoard";
 import {
   font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, BG, BG_SIDEBAR, BG_HOVER, ACCENT,
@@ -300,12 +300,27 @@ export default function Board({ board, onChange, highlightCardId, allBoards, onO
 
   const cardClass = (id) => (pulseId === id ? "el-card el-card-pulse" : "el-card");
 
-  // a signal card is either authored locally (has type/text) or a live reference to a
-  // signal defined in another board (has `ref` instead) — resolved fresh on every render
-  // so edits to the source, or the source disappearing, always show up here immediately
+  const renderRefSource = (board) => (
+    <button
+      className="el-ref-source"
+      onClick={(e) => { e.stopPropagation(); onOpenBoard?.(board.id); }}
+      title={`Open "${board.name || "Untitled board"}"`}
+      style={{
+        display: "flex", alignItems: "center", gap: "4px", marginTop: "8px",
+        fontFamily: font, fontSize: "10.5px", fontWeight: 500, color: INK_FAINT,
+        background: "none", border: "none", cursor: "pointer", padding: 0,
+      }}
+    >
+      <ArrowUpRight size={11} /> {board.name || "Untitled board"}
+    </button>
+  );
+
+  // a card is either authored locally, or a live reference to a card of the same kind
+  // living in another board (has `ref` instead) — resolved fresh on every render so edits
+  // to the source, or the source disappearing, always show up here immediately
   const renderSignalCard = (s, idx) => {
     const ref = s.ref;
-    const resolved = ref ? resolveSignalRef(allBoards, ref) : null;
+    const resolved = ref ? resolveRef(allBoards, "signal", ref) : null;
     return (
       <div key={s.id} className="el-node" style={{ opacity: nodeOpacity(s.id) }} {...hoverProps(s.id)}>
         {renderOrder(s.id, idx, signals.length, moveSignal)}
@@ -318,21 +333,10 @@ export default function Board({ board, onChange, highlightCardId, allBoards, onO
             {resolved ? (
               <>
                 <div style={typeWrapStyle}>
-                  <span style={typeSelectStyle(!!resolved.signal.type)}>{resolved.signal.type || "Type"}</span>
+                  <span style={typeSelectStyle(!!resolved.item.type)}>{resolved.item.type || "Type"}</span>
                 </div>
-                <div style={editArea}>{resolved.signal.text}</div>
-                <button
-                  className="el-ref-source"
-                  onClick={(e) => { e.stopPropagation(); onOpenBoard?.(resolved.board.id); }}
-                  title={`Open "${resolved.board.name || "Untitled board"}"`}
-                  style={{
-                    display: "flex", alignItems: "center", gap: "4px", marginTop: "8px",
-                    fontFamily: font, fontSize: "10.5px", fontWeight: 500, color: INK_FAINT,
-                    background: "none", border: "none", cursor: "pointer", padding: 0,
-                  }}
-                >
-                  <ArrowUpRight size={11} /> {resolved.board.name || "Untitled board"}
-                </button>
+                <div style={editArea}>{resolved.item.text}</div>
+                {renderRefSource(resolved.board)}
               </>
             ) : (
               <div style={{ fontFamily: font, fontStyle: "italic", fontSize: "13px", color: INK_FAINT }}>
@@ -361,6 +365,40 @@ export default function Board({ board, onChange, highlightCardId, allBoards, onO
         )}
         {renderHandle(s.id, "signal", connections.some((c) => c.from === s.id))}
         {renderDelete(s.id, "signal")}
+      </div>
+    );
+  };
+
+  const renderInsightCard = (n, idx) => {
+    const ref = n.ref;
+    const resolved = ref ? resolveRef(allBoards, "insight", ref) : null;
+    return (
+      <div key={n.id} className="el-node" style={{ opacity: nodeOpacity(n.id) }} {...hoverProps(n.id)}>
+        {renderOrder(n.id, idx, insights.length, moveInsight)}
+        {ref ? (
+          <div
+            ref={setRef(n.id)} data-node-id={n.id} data-node-kind="insight"
+            className={cardClass(n.id)}
+            style={{ ...cardStyle("insight"), ...targetStyle(n.id), borderStyle: "dashed" }}
+          >
+            {resolved ? (
+              <>
+                <div style={editArea}>{resolved.item.text}</div>
+                {renderRefSource(resolved.board)}
+              </>
+            ) : (
+              <div style={{ fontFamily: font, fontStyle: "italic", fontSize: "13px", color: INK_FAINT }}>
+                Referenced insight no longer exists.
+              </div>
+            )}
+          </div>
+        ) : (
+          <div ref={setRef(n.id)} data-node-id={n.id} data-node-kind="insight" className={cardClass(n.id)} style={{ ...cardStyle("insight"), ...targetStyle(n.id) }}>
+            <textarea className="el-edit" rows={2} value={n.text} onChange={(ev) => patchInsight(n.id, { text: ev.target.value })} placeholder="State the insight…" style={editArea} />
+          </div>
+        )}
+        {renderHandle(n.id, "insight", connections.some((c) => c.from === n.id))}
+        {renderDelete(n.id, "insight")}
       </div>
     );
   };
@@ -455,16 +493,7 @@ export default function Board({ board, onChange, highlightCardId, allBoards, onO
 
           {/* INSIGHT */}
           <Column kind="insight" title="Insight" count={insights.length} onAdd={addInsight}>
-            {insights.map((n, idx) => (
-              <div key={n.id} className="el-node" style={{ opacity: nodeOpacity(n.id) }} {...hoverProps(n.id)}>
-                {renderOrder(n.id, idx, insights.length, moveInsight)}
-                <div ref={setRef(n.id)} data-node-id={n.id} data-node-kind="insight" className={cardClass(n.id)} style={{ ...cardStyle("insight"), ...targetStyle(n.id) }}>
-                  <textarea className="el-edit" rows={2} value={n.text} onChange={(ev) => patchInsight(n.id, { text: ev.target.value })} placeholder="State the insight…" style={editArea} />
-                </div>
-                {renderHandle(n.id, "insight", connections.some((c) => c.from === n.id))}
-                {renderDelete(n.id, "insight")}
-              </div>
-            ))}
+            {insights.map((n, idx) => renderInsightCard(n, idx))}
           </Column>
 
           {/* ACTION */}
