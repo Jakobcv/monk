@@ -403,6 +403,50 @@ export default function Board({ board, onChange, highlightCardId, allBoards, onO
     );
   };
 
+  const renderActionCard = (a, idx) => {
+    const ref = a.ref;
+    const resolved = ref ? resolveRef(allBoards, "action", ref) : null;
+    return (
+      <div key={a.id} className="el-node" style={{ opacity: nodeOpacity(a.id) }} {...hoverProps(a.id)}>
+        {renderOrder(a.id, idx, actions.length, moveAction)}
+        {ref ? (
+          <div
+            ref={setRef(a.id)} data-node-id={a.id} data-node-kind="action"
+            className={cardClass(a.id)}
+            style={{ ...cardStyle("action"), ...targetStyle(a.id), borderStyle: "dashed" }}
+          >
+            {resolved ? (
+              <>
+                <div style={eyebrow}>If we</div>
+                <div style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }}>{resolved.item.ifWe}</div>
+                <div style={eyebrow}>Then</div>
+                <div style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }}>{resolved.item.then}</div>
+                <div style={eyebrow}>Expected</div>
+                <div style={{ ...editArea, marginTop: "2px" }}>{resolved.item.expected}</div>
+                {renderRefSource(resolved.board)}
+              </>
+            ) : (
+              <div style={{ fontFamily: font, fontStyle: "italic", fontSize: "13px", color: INK_FAINT }}>
+                Referenced action no longer exists.
+              </div>
+            )}
+          </div>
+        ) : (
+          <div ref={setRef(a.id)} data-node-id={a.id} data-node-kind="action" className={cardClass(a.id)} style={{ ...cardStyle("action"), ...targetStyle(a.id) }}>
+            <div style={eyebrow}>If we</div>
+            <textarea className="el-edit" rows={2} value={a.ifWe} onChange={(e) => patchAction(a.id, { ifWe: e.target.value })} placeholder="…do this" style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }} />
+            <div style={eyebrow}>Then</div>
+            <textarea className="el-edit" rows={2} value={a.then} onChange={(e) => patchAction(a.id, { then: e.target.value })} placeholder="…this happens" style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }} />
+            <div style={eyebrow}>Expected</div>
+            <textarea className="el-edit" rows={2} value={a.expected} onChange={(e) => patchAction(a.id, { expected: e.target.value })} placeholder="…measurable outcome" style={{ ...editArea, marginTop: "2px" }} />
+          </div>
+        )}
+        {renderHandle(a.id, "action", connections.some((c) => c.from === a.id))}
+        {renderDelete(a.id, "action")}
+      </div>
+    );
+  };
+
   return (
     <div style={{ fontFamily: font, height: "100%", display: "flex", flexDirection: "column" }}>
       <style>{`
@@ -498,21 +542,7 @@ export default function Board({ board, onChange, highlightCardId, allBoards, onO
 
           {/* ACTION */}
           <Column kind="action" title="Action" count={actions.length} onAdd={addAction}>
-            {actions.map((a, idx) => (
-              <div key={a.id} className="el-node" style={{ opacity: nodeOpacity(a.id) }} {...hoverProps(a.id)}>
-                {renderOrder(a.id, idx, actions.length, moveAction)}
-                <div ref={setRef(a.id)} data-node-id={a.id} data-node-kind="action" className={cardClass(a.id)} style={{ ...cardStyle("action"), ...targetStyle(a.id) }}>
-                  <div style={eyebrow}>If we</div>
-                  <textarea className="el-edit" rows={2} value={a.ifWe} onChange={(e) => patchAction(a.id, { ifWe: e.target.value })} placeholder="…do this" style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }} />
-                  <div style={eyebrow}>Then</div>
-                  <textarea className="el-edit" rows={2} value={a.then} onChange={(e) => patchAction(a.id, { then: e.target.value })} placeholder="…this happens" style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }} />
-                  <div style={eyebrow}>Expected</div>
-                  <textarea className="el-edit" rows={2} value={a.expected} onChange={(e) => patchAction(a.id, { expected: e.target.value })} placeholder="…measurable outcome" style={{ ...editArea, marginTop: "2px" }} />
-                </div>
-                {renderHandle(a.id, "action", connections.some((c) => c.from === a.id))}
-                {renderDelete(a.id, "action")}
-              </div>
-            ))}
+            {actions.map((a, idx) => renderActionCard(a, idx))}
           </Column>
 
           {/* RESULT */}
