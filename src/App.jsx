@@ -1,22 +1,28 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { Search as SearchIcon } from "lucide-react";
 import { loadWorkspace, saveWorkspace } from "./lib/storage";
 import { blankBoard, demoBoard, boardFromImport, bumpNextId } from "./lib/boardModel";
 import { font, INK, INK_SOFT, BORDER, SAVE_STATUS_COLOR, SAVE_STATUS_LABEL } from "./lib/theme";
 import StartPage from "./StartPage";
 import Board from "./Board";
+import SearchPage from "./SearchPage";
 
 const HASH_PREFIX = "#/board/";
+const SEARCH_HASH = "#/search";
 const goToStart = () => { window.location.hash = ""; };
 const goToBoard = (id) => { window.location.hash = HASH_PREFIX + encodeURIComponent(id); };
+const goToSearch = () => { window.location.hash = SEARCH_HASH; };
 
-function useActiveBoardId() {
+function useRoute() {
   const [hash, setHash] = useState(() => window.location.hash);
   useEffect(() => {
     const onChange = () => setHash(window.location.hash);
     window.addEventListener("hashchange", onChange);
     return () => window.removeEventListener("hashchange", onChange);
   }, []);
-  return hash.startsWith(HASH_PREFIX) ? decodeURIComponent(hash.slice(HASH_PREFIX.length)) : null;
+  if (hash.startsWith(HASH_PREFIX)) return { name: "board", boardId: decodeURIComponent(hash.slice(HASH_PREFIX.length)) };
+  if (hash === SEARCH_HASH) return { name: "search", boardId: null };
+  return { name: "start", boardId: null };
 }
 
 export default function App() {
@@ -25,7 +31,8 @@ export default function App() {
   const [boards, setBoards] = useState([]);
   const loadedRef = useRef(false);
   const skipNextSaveRef = useRef(true);
-  const activeBoardId = useActiveBoardId();
+  const route = useRoute();
+  const activeBoardId = route.boardId;
 
   // load once on mount: server data wins, a single demo board is only the fallback
   // for a brand-new/empty workspace, not a permanent default
@@ -121,7 +128,7 @@ export default function App() {
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "10px 18px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0,
       }}>
-        {activeBoard ? (
+        {route.name !== "start" ? (
           <button
             onClick={goToStart}
             style={{
@@ -135,17 +142,31 @@ export default function App() {
           <span style={{ fontFamily: font, fontWeight: 600, fontSize: "14px", color: INK }}>Evidence Loop</span>
         )}
 
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: SAVE_STATUS_COLOR[saveStatus] }} />
-          <span style={{ fontFamily: font, fontSize: "11px", color: INK_SOFT }}>{SAVE_STATUS_LABEL[saveStatus]}</span>
-          {saveStatus === "error" && (
+        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          {route.name !== "search" && (
             <button
-              onClick={retrySave}
-              style={{ fontFamily: font, fontSize: "11px", color: INK, background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+              onClick={goToSearch}
+              title="Search across boards"
+              style={{
+                display: "flex", alignItems: "center", gap: "6px", fontFamily: font, fontWeight: 600, fontSize: "12px",
+                color: INK_SOFT, background: "none", border: "none", cursor: "pointer", padding: 0,
+              }}
             >
-              Retry
+              <SearchIcon size={14} /> Search
             </button>
           )}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: SAVE_STATUS_COLOR[saveStatus] }} />
+            <span style={{ fontFamily: font, fontSize: "11px", color: INK_SOFT }}>{SAVE_STATUS_LABEL[saveStatus]}</span>
+            {saveStatus === "error" && (
+              <button
+                onClick={retrySave}
+                style={{ fontFamily: font, fontSize: "11px", color: INK, background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+              >
+                Retry
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -159,6 +180,8 @@ export default function App() {
           </div>
         ) : activeBoard ? (
           <Board key={activeBoard.id} board={activeBoard} onChange={(patch) => updateBoard(activeBoard.id, patch)} />
+        ) : route.name === "search" ? (
+          <SearchPage boards={boards} onOpenBoard={goToBoard} />
         ) : (
           <StartPage boards={boards} onCreate={createBoard} onImport={importBoard} onOpen={goToBoard} onRename={renameBoard} onDelete={deleteBoard} />
         )}
