@@ -269,12 +269,17 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
                 {matches.length} result{matches.length === 1 ? "" : "s"}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <style>{`
+                  .el-resultcard { border: 1px solid ${BORDER}; transition: border-color .12s, box-shadow .12s; }
+                  .el-resultcard:hover { border-color: ${BORDER_STRONG}; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+                `}</style>
                 {matches.map((m) => (
                   <div
                     key={m.key}
+                    className="el-resultcard"
                     onClick={() => onOpen(m.boardId, m.cardId)}
                     style={{
-                      cursor: "pointer", border: `1px solid ${BORDER}`, borderRadius: "8px",
+                      cursor: "pointer", borderRadius: "8px",
                       padding: "10px 14px", background: BG,
                     }}
                   >
