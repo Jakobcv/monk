@@ -1,19 +1,16 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Search as SearchIcon } from "lucide-react";
 import { loadWorkspace, saveWorkspace } from "./lib/storage";
 import { blankBoard, demoBoard, boardFromImport, bumpNextId, genId, KIND_ARRAY_KEY } from "./lib/boardModel";
-import { font, INK, INK_SOFT, BORDER, SAVE_STATUS_COLOR, SAVE_STATUS_LABEL } from "./lib/theme";
-import StartPage from "./StartPage";
+import { font, INK, INK_SOFT } from "./lib/theme";
+import Header from "./Header";
+import HomePage from "./HomePage";
 import Board from "./Board";
-import SearchPage from "./SearchPage";
 
 const HASH_PREFIX = "#/board/";
-const SEARCH_HASH = "#/search";
 const goToStart = () => { window.location.hash = ""; };
 const goToBoard = (id, cardId) => {
   window.location.hash = HASH_PREFIX + encodeURIComponent(id) + (cardId != null ? "/" + encodeURIComponent(cardId) : "");
 };
-const goToSearch = () => { window.location.hash = SEARCH_HASH; };
 
 function useRoute() {
   const [hash, setHash] = useState(() => window.location.hash);
@@ -30,7 +27,6 @@ function useRoute() {
       cardId: cardIdRaw ? Number(decodeURIComponent(cardIdRaw)) : null,
     };
   }
-  if (hash === SEARCH_HASH) return { name: "search", boardId: null, cardId: null };
   return { name: "start", boardId: null, cardId: null };
 }
 
@@ -148,51 +144,7 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column" }}>
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "10px 18px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0,
-      }}>
-        {route.name !== "start" ? (
-          <button
-            onClick={goToStart}
-            style={{
-              fontFamily: font, fontWeight: 600, fontSize: "13px", color: INK_SOFT,
-              background: "none", border: "none", cursor: "pointer", padding: 0,
-            }}
-          >
-            ← Boards
-          </button>
-        ) : (
-          <span style={{ fontFamily: font, fontWeight: 600, fontSize: "14px", color: INK }}>Evidence Loop</span>
-        )}
-
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          {route.name !== "search" && (
-            <button
-              onClick={goToSearch}
-              title="Search across boards"
-              style={{
-                display: "flex", alignItems: "center", gap: "6px", fontFamily: font, fontWeight: 600, fontSize: "12px",
-                color: INK_SOFT, background: "none", border: "none", cursor: "pointer", padding: 0,
-              }}
-            >
-              <SearchIcon size={14} /> Search
-            </button>
-          )}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: SAVE_STATUS_COLOR[saveStatus] }} />
-            <span style={{ fontFamily: font, fontSize: "11px", color: INK_SOFT }}>{SAVE_STATUS_LABEL[saveStatus]}</span>
-            {saveStatus === "error" && (
-              <button
-                onClick={retrySave}
-                style={{ fontFamily: font, fontSize: "11px", color: INK, background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
-              >
-                Retry
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      <Header onGoHome={goToStart} saveStatus={saveStatus} onRetrySave={retrySave} />
 
       <div style={{ flex: 1, minHeight: 0, padding: activeBoard ? "12px" : 0, boxSizing: "border-box" }}>
         {activeBoardId && !activeBoard ? (
@@ -211,10 +163,8 @@ export default function App() {
             allBoards={boards}
             onOpenBoard={goToBoard}
           />
-        ) : route.name === "search" ? (
-          <SearchPage boards={boards} onOpenBoard={goToBoard} onAttach={attachReference} />
         ) : (
-          <StartPage boards={boards} onCreate={createBoard} onImport={importBoard} onOpen={goToBoard} onRename={renameBoard} onDelete={deleteBoard} />
+          <HomePage boards={boards} onCreate={createBoard} onImport={importBoard} onOpen={goToBoard} onRename={renameBoard} onDelete={deleteBoard} onAttach={attachReference} />
         )}
       </div>
     </div>
