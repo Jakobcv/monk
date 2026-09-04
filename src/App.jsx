@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Search as SearchIcon } from "lucide-react";
 import { loadWorkspace, saveWorkspace } from "./lib/storage";
-import { blankBoard, demoBoard, boardFromImport, bumpNextId } from "./lib/boardModel";
+import { blankBoard, demoBoard, boardFromImport, bumpNextId, genId } from "./lib/boardModel";
 import { font, INK, INK_SOFT, BORDER, SAVE_STATUS_COLOR, SAVE_STATUS_LABEL } from "./lib/theme";
 import StartPage from "./StartPage";
 import Board from "./Board";
@@ -121,6 +121,20 @@ export default function App() {
     goToBoard(board.id);
   };
 
+  // attach a signal found in search onto another board as a live reference — never a copy,
+  // so edits to the source (or the source disappearing) show up wherever it's cited
+  const attachSignal = (sourceBoardId, sourceSignalId, destBoardId) => {
+    const card = { id: genId(), ref: { boardId: sourceBoardId, signalId: sourceSignalId } };
+    if (destBoardId === "__new__") {
+      const board = { ...blankBoard(), signals: [card] };
+      setBoards((prev) => [board, ...prev]);
+      goToBoard(board.id, card.id);
+    } else {
+      setBoards((prev) => prev.map((b) => (b.id === destBoardId ? { ...b, signals: [...b.signals, card], updatedAt: Date.now() } : b)));
+      goToBoard(destBoardId, card.id);
+    }
+  };
+
   const activeBoard = activeBoardId ? boards.find((b) => b.id === activeBoardId) : null;
 
   if (loading) {
@@ -188,9 +202,16 @@ export default function App() {
             </button>
           </div>
         ) : activeBoard ? (
-          <Board key={activeBoard.id} board={activeBoard} onChange={(patch) => updateBoard(activeBoard.id, patch)} highlightCardId={route.cardId} />
+          <Board
+            key={activeBoard.id}
+            board={activeBoard}
+            onChange={(patch) => updateBoard(activeBoard.id, patch)}
+            highlightCardId={route.cardId}
+            allBoards={boards}
+            onOpenBoard={goToBoard}
+          />
         ) : route.name === "search" ? (
-          <SearchPage boards={boards} onOpenBoard={goToBoard} />
+          <SearchPage boards={boards} onOpenBoard={goToBoard} onAttachSignal={attachSignal} />
         ) : (
           <StartPage boards={boards} onCreate={createBoard} onImport={importBoard} onOpen={goToBoard} onRename={renameBoard} onDelete={deleteBoard} />
         )}

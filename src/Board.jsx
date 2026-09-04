@@ -1,6 +1,6 @@
 import { useState, useRef, useLayoutEffect, useEffect, useReducer, useMemo } from "react";
-import { Plus, ChevronUp, ChevronDown, Download } from "lucide-react";
-import { genId } from "./lib/boardModel";
+import { Plus, ChevronUp, ChevronDown, Download, ArrowUpRight } from "lucide-react";
+import { genId, resolveSignalRef } from "./lib/boardModel";
 import { downloadBoardJson } from "./lib/exportBoard";
 import {
   font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, BG, BG_SIDEBAR, BG_HOVER, ACCENT,
@@ -69,7 +69,7 @@ function Column({ kind, title, count, children, last, onAdd }) {
 // `board` is only used to seed local state on mount — the parent remounts this component
 // (via `key={board.id}`) whenever the active board changes, so local state never needs to
 // resync mid-life. Every change is pushed up via `onChange`; the parent owns persistence.
-export default function Board({ board, onChange, highlightCardId }) {
+export default function Board({ board, onChange, highlightCardId, allBoards, onOpenBoard }) {
   const [name, setName] = useState(board.name);
   const [goal, setGoal] = useState(board.goal);
   const [target, setTarget] = useState(board.target);
@@ -300,6 +300,71 @@ export default function Board({ board, onChange, highlightCardId }) {
 
   const cardClass = (id) => (pulseId === id ? "el-card el-card-pulse" : "el-card");
 
+  // a signal card is either authored locally (has type/text) or a live reference to a
+  // signal defined in another board (has `ref` instead) — resolved fresh on every render
+  // so edits to the source, or the source disappearing, always show up here immediately
+  const renderSignalCard = (s, idx) => {
+    const ref = s.ref;
+    const resolved = ref ? resolveSignalRef(allBoards, ref) : null;
+    return (
+      <div key={s.id} className="el-node" style={{ opacity: nodeOpacity(s.id) }} {...hoverProps(s.id)}>
+        {renderOrder(s.id, idx, signals.length, moveSignal)}
+        {ref ? (
+          <div
+            ref={setRef(s.id)} data-node-id={s.id} data-node-kind="signal"
+            className={cardClass(s.id)}
+            style={{ ...cardStyle("signal"), borderStyle: "dashed" }}
+          >
+            {resolved ? (
+              <>
+                <div style={typeWrapStyle}>
+                  <span style={typeSelectStyle(!!resolved.signal.type)}>{resolved.signal.type || "Type"}</span>
+                </div>
+                <div style={editArea}>{resolved.signal.text}</div>
+                <button
+                  className="el-ref-source"
+                  onClick={(e) => { e.stopPropagation(); onOpenBoard?.(resolved.board.id); }}
+                  title={`Open "${resolved.board.name || "Untitled board"}"`}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "4px", marginTop: "8px",
+                    fontFamily: font, fontSize: "10.5px", fontWeight: 500, color: INK_FAINT,
+                    background: "none", border: "none", cursor: "pointer", padding: 0,
+                  }}
+                >
+                  <ArrowUpRight size={11} /> {resolved.board.name || "Untitled board"}
+                </button>
+              </>
+            ) : (
+              <div style={{ fontFamily: font, fontStyle: "italic", fontSize: "13px", color: INK_FAINT }}>
+                Referenced signal no longer exists.
+              </div>
+            )}
+          </div>
+        ) : (
+          <div ref={setRef(s.id)} data-node-id={s.id} data-node-kind="signal" className={cardClass(s.id)} style={cardStyle("signal")}>
+            <div style={typeWrapStyle}>
+              <select
+                className="el-type-select"
+                value={s.type}
+                onChange={(ev) => patchSignal(s.id, { type: ev.target.value })}
+                style={typeSelectStyle(!!s.type)}
+              >
+                <option value="">Type</option>
+                {SIGNAL_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+              <ChevronDown size={11} className="el-type-chevron" style={{ position: "absolute", right: "5px", top: "50%", transform: "translateY(-50%)", color: INK_SOFT }} />
+            </div>
+            <textarea className="el-edit" rows={2} value={s.text} onChange={(ev) => patchSignal(s.id, { text: ev.target.value })} placeholder="What did you observe?" style={editArea} />
+          </div>
+        )}
+        {renderHandle(s.id, "signal", connections.some((c) => c.from === s.id))}
+        {renderDelete(s.id, "signal")}
+      </div>
+    );
+  };
+
   return (
     <div style={{ fontFamily: font, height: "100%", display: "flex", flexDirection: "column" }}>
       <style>{`
@@ -316,6 +381,7 @@ export default function Board({ board, onChange, highlightCardId }) {
         .el-addbtn:hover { background:${BG_HOVER}; color:${INK}; }
         .el-export-btn { transition: border-color .12s, color .12s; }
         .el-export-btn:hover { border-color: ${BORDER_STRONG}; color: ${INK}; }
+        .el-ref-source:hover { color: ${INK_SOFT}; text-decoration: underline; }
         .el-connector { transition: opacity .15s, stroke-width .15s; }
         .el-card { border-radius:6px; padding:11px 12px; transition:box-shadow .12s; }
         .el-card:hover { box-shadow:0 2px 6px rgba(0,0,0,0.07); }
@@ -384,30 +450,7 @@ export default function Board({ board, onChange, highlightCardId }) {
 
           {/* SIGNAL */}
           <Column kind="signal" title="Signal" count={signals.length} onAdd={addSignal}>
-            {signals.map((s, idx) => (
-              <div key={s.id} className="el-node" style={{ opacity: nodeOpacity(s.id) }} {...hoverProps(s.id)}>
-                {renderOrder(s.id, idx, signals.length, moveSignal)}
-                <div ref={setRef(s.id)} data-node-id={s.id} data-node-kind="signal" className={cardClass(s.id)} style={cardStyle("signal")}>
-                  <div style={typeWrapStyle}>
-                    <select
-                      className="el-type-select"
-                      value={s.type}
-                      onChange={(ev) => patchSignal(s.id, { type: ev.target.value })}
-                      style={typeSelectStyle(!!s.type)}
-                    >
-                      <option value="">Type</option>
-                      {SIGNAL_TYPES.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={11} className="el-type-chevron" style={{ position: "absolute", right: "5px", top: "50%", transform: "translateY(-50%)", color: INK_SOFT }} />
-                  </div>
-                  <textarea className="el-edit" rows={2} value={s.text} onChange={(ev) => patchSignal(s.id, { text: ev.target.value })} placeholder="What did you observe?" style={editArea} />
-                </div>
-                {renderHandle(s.id, "signal", connections.some((c) => c.from === s.id))}
-                {renderDelete(s.id, "signal")}
-              </div>
-            ))}
+            {signals.map((s, idx) => renderSignalCard(s, idx))}
           </Column>
 
           {/* INSIGHT */}

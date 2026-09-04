@@ -87,6 +87,16 @@ export function boardFromImport(data) {
   };
 }
 
+// A signal card is either locally authored (has type/text) or a live reference to a signal
+// defined in another board (has `ref: { boardId, signalId }` instead). Resolved at render
+// time — never copied — so edits to the source propagate everywhere it's cited, and a
+// deleted source just resolves to null rather than leaving stale text behind.
+export function resolveSignalRef(boards, ref) {
+  const board = (boards || []).find((b) => b.id === ref.boardId);
+  const signal = board?.signals.find((s) => s.id === ref.signalId);
+  return signal ? { board, signal } : null;
+}
+
 export function bumpNextId(boards) {
   let max = 999;
   for (const board of boards || []) {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search as SearchIcon, X } from "lucide-react";
+import { Search as SearchIcon, X, Link2 } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, BG, ACCENT } from "./lib/theme";
 
 // per-type: which array on a board holds these cards, and which of the card's fields to
@@ -28,9 +28,15 @@ function highlight(text, query) {
   );
 }
 
-export default function SearchPage({ boards, onOpenBoard }) {
+export default function SearchPage({ boards, onOpenBoard, onAttachSignal }) {
   const [query, setQuery] = useState("");
   const [activeKinds, setActiveKinds] = useState(() => new Set(ALL_KINDS));
+  const [attachOpenKey, setAttachOpenKey] = useState(null);
+
+  const handleAttach = (m, destBoardId) => {
+    onAttachSignal(m.boardId, m.cardId, destBoardId);
+    setAttachOpenKey(null);
+  };
 
   const toggleKind = (kind) => {
     setActiveKinds((prev) => {
@@ -161,6 +167,40 @@ export default function SearchPage({ boards, onOpenBoard }) {
                   <div style={{ fontFamily: font, fontSize: "13.5px", color: INK, lineHeight: 1.5 }}>
                     {highlight(m.text, q)}
                   </div>
+                  {m.kind === "signal" && (
+                    <div onClick={(e) => e.stopPropagation()} style={{ marginTop: "8px" }}>
+                      {attachOpenKey === m.key ? (
+                        <select
+                          autoFocus
+                          defaultValue=""
+                          onChange={(e) => { if (e.target.value) handleAttach(m, e.target.value); }}
+                          onBlur={() => setAttachOpenKey(null)}
+                          style={{
+                            fontFamily: font, fontSize: "12px", color: INK, border: `1px solid ${BORDER_STRONG}`,
+                            borderRadius: "6px", padding: "4px 8px", cursor: "pointer", background: "#fff",
+                          }}
+                        >
+                          <option value="" disabled>Attach to…</option>
+                          <option value="__new__">+ New board</option>
+                          {boards.map((b) => (
+                            <option key={b.id} value={b.id}>{b.name || "Untitled board"}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <button
+                          onClick={() => setAttachOpenKey(m.key)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: "5px",
+                            fontFamily: font, fontWeight: 600, fontSize: "11.5px", color: INK_SOFT,
+                            background: "none", border: `1px solid ${BORDER_STRONG}`, borderRadius: "6px",
+                            padding: "4px 9px", cursor: "pointer",
+                          }}
+                        >
+                          <Link2 size={11} /> Attach to board
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
