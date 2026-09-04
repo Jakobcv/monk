@@ -1,4 +1,4 @@
-import { STATUS_OPTIONS, IMPACT_OPTIONS } from "./theme";
+import { STATUS_OPTIONS, IMPACT_OPTIONS, METHOD_OPTIONS } from "./theme";
 
 // Card ids only need to be unique within their own board, but we hand out a single
 // monotonic counter across the whole workspace anyway — simplest way to guarantee no
@@ -15,7 +15,7 @@ export function blankBoard(name = "Untitled board") {
   const now = Date.now();
   return {
     id: genBoardId(), name, createdAt: now, updatedAt: now,
-    goal: "", target: "", status: "Not started", impact: "Medium", owner: "", description: "",
+    goal: "", target: "", status: "Not started", impact: "Medium", method: "", author: "", description: "",
     signals: [], insights: [], actions: [], results: [], connections: [],
   };
 }
@@ -32,7 +32,8 @@ export function demoBoard() {
     target: "Increase task completion by 50%.",
     status: "In progress",
     impact: "High",
-    owner: "",
+    method: "Interview",
+    author: "",
     description: "",
     signals: [
       { id: e1, type: "Metric", text: "70% of users try the feature 1–2 times before abandoning it." },
@@ -73,7 +74,8 @@ export function boardFromImport(data) {
     target: asString(data.target),
     status: STATUS_OPTIONS.includes(data.status) ? data.status : "Not started",
     impact: IMPACT_OPTIONS.includes(data.impact) ? data.impact : "Medium",
-    owner: asString(data.owner),
+    method: METHOD_OPTIONS.includes(data.method) ? data.method : "",
+    author: asString(data.author),
     description: asString(data.description),
     signals: asArray(data.signals).map(withId),
     insights: asArray(data.insights).map(withId),

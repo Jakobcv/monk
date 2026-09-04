@@ -22,5 +22,8 @@ export const STATUS_COLOR = { "Not started": INK_FAINT, "In progress": "#2383E2"
 export const IMPACT_OPTIONS = ["Low", "Medium", "High"];
 export const IMPACT_COLOR = { Low: INK_FAINT, Medium: "#D9730D", High: "#E03E3E" };
 
+// how the research behind this board (this Activity) was conducted
+export const METHOD_OPTIONS = ["Interview", "Survey", "Usage metrics", "Client call", "Other"];
+
 export const SAVE_STATUS_COLOR = { saved: "#0F7B6C", saving: INK_FAINT, error: "#E03E3E", idle: INK_FAINT };
 export const SAVE_STATUS_LABEL = { saved: "Saved", saving: "Saving…", error: "Save failed — retry", idle: "" };

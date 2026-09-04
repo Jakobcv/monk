@@ -4,7 +4,7 @@ import { genId } from "./lib/boardModel";
 import { downloadBoardJson } from "./lib/exportBoard";
 import {
   font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, BG, BG_SIDEBAR, BG_HOVER, ACCENT,
-  STATUS_OPTIONS, STATUS_COLOR, IMPACT_OPTIONS, IMPACT_COLOR,
+  STATUS_OPTIONS, STATUS_COLOR, IMPACT_OPTIONS, IMPACT_COLOR, METHOD_OPTIONS,
 } from "./lib/theme";
 
 const ALLOWED = { signal: "insight", insight: "action", action: "result" };
@@ -75,7 +75,8 @@ export default function Board({ board, onChange }) {
   const [target, setTarget] = useState(board.target);
   const [status, setStatus] = useState(board.status);
   const [impact, setImpact] = useState(board.impact);
-  const [owner, setOwner] = useState(board.owner);
+  const [method, setMethod] = useState(board.method);
+  const [author, setAuthor] = useState(board.author);
   const [description, setDescription] = useState(board.description);
 
   const [signals, setSignals] = useState(board.signals);
@@ -85,8 +86,8 @@ export default function Board({ board, onChange }) {
   const [connections, setConnections] = useState(board.connections);
 
   const boardState = useMemo(
-    () => ({ name, goal, target, status, impact, owner, description, signals, insights, actions, results, connections }),
-    [name, goal, target, status, impact, owner, description, signals, insights, actions, results, connections]
+    () => ({ name, goal, target, status, impact, method, author, description, signals, insights, actions, results, connections }),
+    [name, goal, target, status, impact, method, author, description, signals, insights, actions, results, connections]
   );
 
   const isFirstRender = useRef(true);
@@ -505,11 +506,23 @@ export default function Board({ board, onChange }) {
               </div>
             </div>
             <div style={{ height: "1px", backgroundColor: BORDER }} />
-            <div>
-              <div style={eyebrow}>Owner</div>
-              <div className="el-side-field" style={{ marginTop: "8px" }}>
-                <input className="el-edit" value={owner} onChange={(e) => setOwner(e.target.value)}
-                  placeholder="Who owns this?" style={{ ...editArea, fontWeight: 500, fontSize: "14px" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+              <div>
+                <div style={eyebrow}>Method</div>
+                <div style={{ position: "relative", marginTop: "8px" }}>
+                  <select className="el-select" value={method} onChange={(e) => setMethod(e.target.value)} style={sidebarSelectStyle()}>
+                    <option value="">Method</option>
+                    {METHOD_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <ChevronDown size={12} style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", color: INK_FAINT, pointerEvents: "none" }} />
+                </div>
+              </div>
+              <div>
+                <div style={eyebrow}>Author</div>
+                <div className="el-side-field" style={{ marginTop: "8px" }}>
+                  <input className="el-edit" value={author} onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="Who ran this?" style={{ ...editArea, fontWeight: 500, fontSize: "14px" }} />
+                </div>
               </div>
             </div>
             <div style={{ height: "1px", backgroundColor: BORDER }} />
