@@ -41,6 +41,7 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
 
   const [query, setQuery] = useState("");
   const [activeKind, setActiveKind] = useState("all");
+  const [activated, setActivated] = useState(false);
   const [attachOpenKey, setAttachOpenKey] = useState(null);
 
   const handleFileChange = (e) => {
@@ -63,13 +64,16 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
     setAttachOpenKey(null);
   };
 
+  const backToBoards = () => {
+    setActivated(false);
+    setQuery("");
+    setActiveKind("all");
+  };
+
   const q = query.trim();
-  // touching the type filter away from "All" browses that type even with no typed query
-  // (e.g. "show me every Insight") — typing a query searches within whatever's selected
-  const browsing = q.length > 0 || activeKind !== "all";
 
   const matches = useMemo(() => {
-    if (!browsing) return [];
+    if (!activated) return [];
     const ql = q.toLowerCase();
     const out = [];
     for (const board of boards) {
@@ -100,7 +104,7 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
     }
     if (!q) out.sort((a, b) => b.boardUpdatedAt - a.boardUpdatedAt); // browsing: most recently active board first
     return out;
-  }, [browsing, q, activeKind, boards]);
+  }, [activated, q, activeKind, boards]);
 
   const sorted = [...boards].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
@@ -110,9 +114,9 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
         <div style={{ position: "relative", marginBottom: "14px" }}>
           <SearchIcon size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: INK_FAINT }} />
           <input
-            autoFocus
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setActivated(true); }}
+            onFocus={() => setActivated(true)}
             placeholder="Search across every board before starting something new…"
             style={{
               width: "100%", boxSizing: "border-box", fontFamily: font, fontSize: "14px", color: INK,
@@ -135,7 +139,17 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
           )}
         </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "26px" }}>
+        {activated && (
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "26px" }}>
+          <button
+            onClick={backToBoards}
+            style={{
+              fontFamily: font, fontWeight: 600, fontSize: "12px", color: INK_SOFT,
+              background: "none", border: "none", cursor: "pointer", padding: "5px 4px 5px 0",
+            }}
+          >
+            ← Your boards
+          </button>
           <button
             onClick={() => setActiveKind("all")}
             style={{
@@ -185,15 +199,18 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
             Unlinked
           </button>
         </div>
+        )}
 
-        {browsing ? (
+        {activated ? (
           matches.length === 0 ? (
             <div style={{ fontFamily: font, color: INK_FAINT, fontSize: "13.5px", textAlign: "center", padding: "50px 0" }}>
               {q
                 ? `No matches for "${q}".`
                 : activeKind === "unlinked"
                   ? "Every signal is linked to an insight — nothing to flag."
-                  : `No ${TYPE_DEFS.find((d) => d.kind === activeKind)?.label.toLowerCase()} cards yet.`}
+                  : activeKind === "all"
+                    ? "No cards yet — add some to a board first."
+                    : `No ${TYPE_DEFS.find((d) => d.kind === activeKind)?.label.toLowerCase()} cards yet.`}
             </div>
           ) : (
             <>
