@@ -485,7 +485,6 @@ export default function Board({ board, onChange, highlightCardId, allBoards, onO
   return (
     <div style={{ fontFamily: font, height: "100%", display: "flex", flexDirection: "column" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         .el-edit::placeholder { color: ${INK_FAINT}; font-weight: 400; }
         .el-board { display:grid; grid-template-columns: repeat(4, minmax(220px, 1fr)) 300px; grid-template-rows: 1fr; align-items:stretch; position:relative; z-index:1; flex:1; min-height:0; min-width:1180px; }
         .el-node { position:relative; transition: opacity .15s; }
