@@ -10,8 +10,7 @@ const TYPE_DEFS = [
   { kind: "action", label: "Action", arrayKey: "actions", fields: (x) => [x.ifWe, x.then, x.expected] },
   { kind: "result", label: "Result", arrayKey: "results", fields: (x) => [x.text] },
 ];
-const ALL_KINDS = TYPE_DEFS.map((d) => d.kind);
-const ATTACHABLE_KINDS = new Set(ALL_KINDS);
+const ATTACHABLE_KINDS = new Set(TYPE_DEFS.map((d) => d.kind));
 
 const tint = (hex, alpha) => `${hex}${alpha}`;
 const cardCount = (b) =>
@@ -40,7 +39,7 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
   const fileInputRef = useRef(null);
 
   const [query, setQuery] = useState("");
-  const [activeKinds, setActiveKinds] = useState(() => new Set(ALL_KINDS));
+  const [activeKind, setActiveKind] = useState("all");
   const [attachOpenKey, setAttachOpenKey] = useState(null);
 
   const handleFileChange = (e) => {
@@ -58,40 +57,41 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
     if (window.confirm(`Delete "${b.name || "Untitled board"}"? This can't be undone.`)) onDelete(b.id);
   };
 
-  const toggleKind = (kind) => {
-    setActiveKinds((prev) => {
-      const next = new Set(prev);
-      if (next.has(kind)) next.delete(kind); else next.add(kind);
-      return next;
-    });
-  };
-  const selectAll = () => setActiveKinds(new Set(ALL_KINDS));
-
   const handleAttach = (m, destBoardId) => {
     onAttach(m.kind, m.boardId, m.cardId, destBoardId);
     setAttachOpenKey(null);
   };
 
+  const q = query.trim();
+  // touching the type filter away from "All" browses that type even with no typed query
+  // (e.g. "show me every Insight") — typing a query searches within whatever's selected
+  const browsing = q.length > 0 || activeKind !== "all";
+
   const matches = useMemo(() => {
-    const q = query.trim();
-    if (!q) return [];
+    if (!browsing) return [];
     const ql = q.toLowerCase();
     const out = [];
     for (const board of boards) {
       for (const def of TYPE_DEFS) {
-        if (!activeKinds.has(def.kind)) continue;
+        if (activeKind !== "all" && def.kind !== activeKind) continue;
         for (const item of board[def.arrayKey] || []) {
-          const hit = def.fields(item).filter(Boolean).find((f) => f.toLowerCase().includes(ql));
-          if (hit) out.push({ key: `${board.id}:${item.id}`, boardId: board.id, cardId: item.id, boardName: board.name || "Untitled board", kind: def.kind, label: def.label, text: hit });
+          if (item.ref) continue; // reference cards carry no local text of their own
+          let text;
+          if (q) {
+            text = def.fields(item).filter(Boolean).find((f) => f.toLowerCase().includes(ql));
+            if (!text) continue;
+          } else {
+            text = def.fields(item).filter(Boolean)[0] || "";
+          }
+          out.push({ key: `${board.id}:${item.id}`, boardId: board.id, cardId: item.id, boardName: board.name || "Untitled board", kind: def.kind, label: def.label, text, boardUpdatedAt: board.updatedAt || 0 });
         }
       }
     }
+    if (!q) out.sort((a, b) => b.boardUpdatedAt - a.boardUpdatedAt); // browsing: most recently active board first
     return out;
-  }, [query, activeKinds, boards]);
+  }, [browsing, q, activeKind, boards]);
 
   const sorted = [...boards].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  const allSelected = activeKinds.size === ALL_KINDS.length;
-  const q = query.trim();
 
   return (
     <div style={{ height: "100%", overflowY: "auto", padding: "32px 40px", boxSizing: "border-box" }}>
@@ -126,24 +126,24 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "26px" }}>
           <button
-            onClick={selectAll}
+            onClick={() => setActiveKind("all")}
             style={{
               fontFamily: font, fontWeight: 600, fontSize: "12px", cursor: "pointer",
               borderRadius: "999px", padding: "5px 12px",
-              border: `1px solid ${allSelected ? INK : BORDER_STRONG}`,
-              background: allSelected ? INK : "#fff",
-              color: allSelected ? "#fff" : INK_SOFT,
+              border: `1px solid ${activeKind === "all" ? INK : BORDER_STRONG}`,
+              background: activeKind === "all" ? INK : "#fff",
+              color: activeKind === "all" ? "#fff" : INK_SOFT,
             }}
           >
             All
           </button>
           {TYPE_DEFS.map((def) => {
-            const active = activeKinds.has(def.kind);
+            const active = activeKind === def.kind;
             const color = ACCENT[def.kind];
             return (
               <button
                 key={def.kind}
-                onClick={() => toggleKind(def.kind)}
+                onClick={() => setActiveKind(def.kind)}
                 style={{
                   display: "flex", alignItems: "center", gap: "6px",
                   fontFamily: font, fontWeight: 600, fontSize: "12px", cursor: "pointer",
@@ -160,10 +160,10 @@ export default function HomePage({ boards, onCreate, onImport, onOpen, onRename,
           })}
         </div>
 
-        {q ? (
+        {browsing ? (
           matches.length === 0 ? (
             <div style={{ fontFamily: font, color: INK_FAINT, fontSize: "13.5px", textAlign: "center", padding: "50px 0" }}>
-              No matches for "{q}".
+              {q ? `No matches for "${q}".` : `No ${TYPE_DEFS.find((d) => d.kind === activeKind)?.label.toLowerCase()} cards yet.`}
             </div>
           ) : (
             <>
