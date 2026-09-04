@@ -308,7 +308,7 @@ export default function HomePage({ boards, onCreate, onOpen, onRename, onDelete,
                           >
                             <option value="" disabled>Attach to…</option>
                             <option value="__new__">+ New board</option>
-                            {boards.map((b) => (
+                            {boards.filter((b) => b.id !== m.boardId).map((b) => (
                               <option key={b.id} value={b.id}>{b.name || "Untitled board"}</option>
                             ))}
                           </select>
