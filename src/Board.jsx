@@ -69,7 +69,7 @@ function Column({ kind, title, count, children, last, onAdd }) {
 // `board` is only used to seed local state on mount — the parent remounts this component
 // (via `key={board.id}`) whenever the active board changes, so local state never needs to
 // resync mid-life. Every change is pushed up via `onChange`; the parent owns persistence.
-export default function Board({ board, onChange }) {
+export default function Board({ board, onChange, highlightCardId }) {
   const [name, setName] = useState(board.name);
   const [goal, setGoal] = useState(board.goal);
   const [target, setTarget] = useState(board.target);
@@ -103,6 +103,18 @@ export default function Board({ board, onChange }) {
   const boardRef = useRef(null);
   const els = useRef({});
   const setRef = (id) => (el) => { if (el) els.current[id] = el; else delete els.current[id]; };
+
+  // deep link from search: scroll the matched card into view and pulse it briefly
+  const [pulseId, setPulseId] = useState(null);
+  useEffect(() => {
+    if (highlightCardId == null) return;
+    const el = els.current[highlightCardId];
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    setPulseId(highlightCardId);
+    const t = setTimeout(() => setPulseId(null), 2000);
+    return () => clearTimeout(t);
+  }, [highlightCardId]);
 
   const [pos, setPos] = useState({});
   const [, force] = useReducer((x) => x + 1, 0);
@@ -286,6 +298,8 @@ export default function Board({ board, onChange }) {
     return { outline: `2px solid ${c}`, outlineOffset: "2px", boxShadow: `0 4px 14px ${c}33` };
   };
 
+  const cardClass = (id) => (pulseId === id ? "el-card el-card-pulse" : "el-card");
+
   return (
     <div style={{ fontFamily: font, height: "100%", display: "flex", flexDirection: "column" }}>
       <style>{`
@@ -305,6 +319,8 @@ export default function Board({ board, onChange }) {
         .el-connector { transition: opacity .15s, stroke-width .15s; }
         .el-card { border-radius:6px; padding:11px 12px; transition:box-shadow .12s; }
         .el-card:hover { box-shadow:0 2px 6px rgba(0,0,0,0.07); }
+        @keyframes el-pulse { 0% { box-shadow: 0 0 0 0 rgba(217,164,6,0.55); } 70% { box-shadow: 0 0 0 9px rgba(217,164,6,0); } 100% { box-shadow: 0 0 0 0 rgba(217,164,6,0); } }
+        .el-card-pulse { animation: el-pulse 1s ease-out 2; }
         .el-type-select { transition: border-color .12s, background-color .12s; }
         .el-node:hover .el-type-select { border-color: ${BORDER}; background: #fff; }
         .el-type-select:focus { outline: none; border-color: ${ACCENT.signal}; background: #fff; }
@@ -371,7 +387,7 @@ export default function Board({ board, onChange }) {
             {signals.map((s, idx) => (
               <div key={s.id} className="el-node" style={{ opacity: nodeOpacity(s.id) }} {...hoverProps(s.id)}>
                 {renderOrder(s.id, idx, signals.length, moveSignal)}
-                <div ref={setRef(s.id)} data-node-id={s.id} data-node-kind="signal" className="el-card" style={cardStyle("signal")}>
+                <div ref={setRef(s.id)} data-node-id={s.id} data-node-kind="signal" className={cardClass(s.id)} style={cardStyle("signal")}>
                   <div style={typeWrapStyle}>
                     <select
                       className="el-type-select"
@@ -399,7 +415,7 @@ export default function Board({ board, onChange }) {
             {insights.map((n, idx) => (
               <div key={n.id} className="el-node" style={{ opacity: nodeOpacity(n.id) }} {...hoverProps(n.id)}>
                 {renderOrder(n.id, idx, insights.length, moveInsight)}
-                <div ref={setRef(n.id)} data-node-id={n.id} data-node-kind="insight" className="el-card" style={{ ...cardStyle("insight"), ...targetStyle(n.id) }}>
+                <div ref={setRef(n.id)} data-node-id={n.id} data-node-kind="insight" className={cardClass(n.id)} style={{ ...cardStyle("insight"), ...targetStyle(n.id) }}>
                   <textarea className="el-edit" rows={2} value={n.text} onChange={(ev) => patchInsight(n.id, { text: ev.target.value })} placeholder="State the insight…" style={editArea} />
                 </div>
                 {renderHandle(n.id, "insight", connections.some((c) => c.from === n.id))}
@@ -413,7 +429,7 @@ export default function Board({ board, onChange }) {
             {actions.map((a, idx) => (
               <div key={a.id} className="el-node" style={{ opacity: nodeOpacity(a.id) }} {...hoverProps(a.id)}>
                 {renderOrder(a.id, idx, actions.length, moveAction)}
-                <div ref={setRef(a.id)} data-node-id={a.id} data-node-kind="action" className="el-card" style={{ ...cardStyle("action"), ...targetStyle(a.id) }}>
+                <div ref={setRef(a.id)} data-node-id={a.id} data-node-kind="action" className={cardClass(a.id)} style={{ ...cardStyle("action"), ...targetStyle(a.id) }}>
                   <div style={eyebrow}>If we</div>
                   <textarea className="el-edit" rows={2} value={a.ifWe} onChange={(e) => patchAction(a.id, { ifWe: e.target.value })} placeholder="…do this" style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }} />
                   <div style={eyebrow}>Then</div>
@@ -432,7 +448,7 @@ export default function Board({ board, onChange }) {
             {results.map((r, idx) => (
               <div key={r.id} className="el-node" style={{ opacity: nodeOpacity(r.id) }} {...hoverProps(r.id)}>
                 {renderOrder(r.id, idx, results.length, moveResult)}
-                <div ref={setRef(r.id)} data-node-id={r.id} data-node-kind="result" className="el-card" style={{ ...cardStyle("result"), ...targetStyle(r.id) }}>
+                <div ref={setRef(r.id)} data-node-id={r.id} data-node-kind="result" className={cardClass(r.id)} style={{ ...cardStyle("result"), ...targetStyle(r.id) }}>
                   <div style={eyebrow}>Result</div>
                   <textarea className="el-edit" rows={2} value={r.text} onChange={(e) => patchResult(r.id, { text: e.target.value })} placeholder="What actually happened?" style={{ ...editArea, marginTop: "2px" }} />
                 </div>

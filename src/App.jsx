@@ -10,7 +10,9 @@ import SearchPage from "./SearchPage";
 const HASH_PREFIX = "#/board/";
 const SEARCH_HASH = "#/search";
 const goToStart = () => { window.location.hash = ""; };
-const goToBoard = (id) => { window.location.hash = HASH_PREFIX + encodeURIComponent(id); };
+const goToBoard = (id, cardId) => {
+  window.location.hash = HASH_PREFIX + encodeURIComponent(id) + (cardId != null ? "/" + encodeURIComponent(cardId) : "");
+};
 const goToSearch = () => { window.location.hash = SEARCH_HASH; };
 
 function useRoute() {
@@ -20,9 +22,16 @@ function useRoute() {
     window.addEventListener("hashchange", onChange);
     return () => window.removeEventListener("hashchange", onChange);
   }, []);
-  if (hash.startsWith(HASH_PREFIX)) return { name: "board", boardId: decodeURIComponent(hash.slice(HASH_PREFIX.length)) };
-  if (hash === SEARCH_HASH) return { name: "search", boardId: null };
-  return { name: "start", boardId: null };
+  if (hash.startsWith(HASH_PREFIX)) {
+    const [boardIdRaw, cardIdRaw] = hash.slice(HASH_PREFIX.length).split("/");
+    return {
+      name: "board",
+      boardId: decodeURIComponent(boardIdRaw),
+      cardId: cardIdRaw ? Number(decodeURIComponent(cardIdRaw)) : null,
+    };
+  }
+  if (hash === SEARCH_HASH) return { name: "search", boardId: null, cardId: null };
+  return { name: "start", boardId: null, cardId: null };
 }
 
 export default function App() {
@@ -179,7 +188,7 @@ export default function App() {
             </button>
           </div>
         ) : activeBoard ? (
-          <Board key={activeBoard.id} board={activeBoard} onChange={(patch) => updateBoard(activeBoard.id, patch)} />
+          <Board key={activeBoard.id} board={activeBoard} onChange={(patch) => updateBoard(activeBoard.id, patch)} highlightCardId={route.cardId} />
         ) : route.name === "search" ? (
           <SearchPage boards={boards} onOpenBoard={goToBoard} />
         ) : (

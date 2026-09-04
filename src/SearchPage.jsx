@@ -51,7 +51,7 @@ export default function SearchPage({ boards, onOpenBoard }) {
         if (!activeKinds.has(def.kind)) continue;
         for (const item of board[def.arrayKey] || []) {
           const hit = def.fields(item).filter(Boolean).find((f) => f.toLowerCase().includes(ql));
-          if (hit) out.push({ key: `${board.id}:${item.id}`, boardId: board.id, boardName: board.name || "Untitled board", kind: def.kind, label: def.label, text: hit });
+          if (hit) out.push({ key: `${board.id}:${item.id}`, boardId: board.id, cardId: item.id, boardName: board.name || "Untitled board", kind: def.kind, label: def.label, text: hit });
         }
       }
     }
@@ -147,7 +147,7 @@ export default function SearchPage({ boards, onOpenBoard }) {
               {matches.map((m) => (
                 <div
                   key={m.key}
-                  onClick={() => onOpenBoard(m.boardId)}
+                  onClick={() => onOpenBoard(m.boardId, m.cardId)}
                   style={{
                     cursor: "pointer", border: `1px solid ${BORDER}`, borderRadius: "8px",
                     padding: "10px 14px", background: BG,
