@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { loadWorkspace, saveWorkspace } from "./lib/storage";
-import { blankBoard, demoBoard, boardFromImport, bumpNextId, genId, KIND_ARRAY_KEY } from "./lib/boardModel";
+import { blankBoard, boardFromImport, bumpNextId, genId, KIND_ARRAY_KEY } from "./lib/boardModel";
+import { fsAccessSupported, getStoredHandle, pickFolder, tryReuseHandle, reconnectHandle } from "./lib/fsPersistence";
 import { font, INK, INK_SOFT } from "./lib/theme";
 import Header from "./Header";
 import HomePage from "./HomePage";
@@ -30,63 +31,116 @@ function useRoute() {
   return { name: "start", boardId: null, cardId: null };
 }
 
+function ConnectScreen({ title, message, buttonLabel, onClick }) {
+  return (
+    <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+      <div style={{ maxWidth: "380px", textAlign: "center" }}>
+        <div style={{ fontFamily: font, fontWeight: 600, fontSize: "16px", color: INK, marginBottom: "8px" }}>{title}</div>
+        <div style={{ fontFamily: font, fontSize: "13.5px", color: INK_SOFT, lineHeight: 1.5, marginBottom: buttonLabel ? "18px" : 0 }}>
+          {message}
+        </div>
+        {buttonLabel && (
+          <button
+            onClick={onClick}
+            style={{
+              fontFamily: font, fontWeight: 600, fontSize: "13px", color: "#fff",
+              background: INK, border: "none", borderRadius: "7px", padding: "9px 18px", cursor: "pointer",
+            }}
+          >
+            {buttonLabel}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
-  const [loading, setLoading] = useState(true);
+  // phase: checking -> (needsConnect | needsReconnect | unsupported) -> loading -> ready
+  const [phase, setPhase] = useState("checking");
+  const [dirHandle, setDirHandle] = useState(null);
+  const [pendingHandle, setPendingHandle] = useState(null);
   const [saveStatus, setSaveStatus] = useState("idle");
   const [boards, setBoards] = useState([]);
-  const loadedRef = useRef(false);
   const skipNextSaveRef = useRef(true);
   const route = useRoute();
   const activeBoardId = route.boardId;
 
-  // load once on mount: server data wins, a single demo board is only the fallback
-  // for a brand-new/empty workspace, not a permanent default
+  // on mount: reuse a previously-granted folder silently if permission is still live,
+  // otherwise ask for a click — showDirectoryPicker/requestPermission both require one
   useEffect(() => {
+    if (!fsAccessSupported) { setPhase("unsupported"); return; }
+    (async () => {
+      const stored = await getStoredHandle();
+      if (!stored) { setPhase("needsConnect"); return; }
+      if (await tryReuseHandle(stored)) {
+        setDirHandle(stored);
+        setPhase("loading");
+      } else {
+        setPendingHandle(stored);
+        setPhase("needsReconnect");
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "loading" || !dirHandle) return;
     let cancelled = false;
-    loadWorkspace()
+    loadWorkspace(dirHandle)
       .then((record) => {
         if (cancelled) return;
-        const loaded = record && Array.isArray(record.boards) && record.boards.length ? record.boards : [demoBoard()];
-        bumpNextId(loaded);
-        setBoards(loaded);
+        bumpNextId(record.boards);
+        setBoards(record.boards);
       })
-      .catch(() => {
-        if (cancelled) return;
-        const loaded = [demoBoard()];
-        bumpNextId(loaded);
-        setBoards(loaded);
+      .catch((err) => {
+        console.error("Failed to load the research folder:", err);
       })
       .finally(() => {
         if (cancelled) return;
-        loadedRef.current = true;
-        setLoading(false);
+        setPhase("ready");
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [phase, dirHandle]);
 
   const workspace = useMemo(() => ({ boards }), [boards]);
 
-  // debounced autosave: skip while the initial load hasn't landed, and skip the one
-  // save that would otherwise immediately re-PUT the data we just fetched
+  // debounced autosave: skip the one save that would otherwise immediately re-write the
+  // data we just loaded from disk
   useEffect(() => {
-    if (!loadedRef.current) return;
+    if (phase !== "ready" || !dirHandle) return;
     if (skipNextSaveRef.current) { skipNextSaveRef.current = false; return; }
     setSaveStatus("saving");
     const t = setTimeout(() => {
-      saveWorkspace(workspace).then(
+      saveWorkspace(dirHandle, workspace).then(
         () => setSaveStatus("saved"),
         () => setSaveStatus("error")
       );
     }, 700);
     return () => clearTimeout(t);
-  }, [workspace]);
+  }, [phase, dirHandle, workspace]);
 
   const retrySave = () => {
     setSaveStatus("saving");
-    saveWorkspace(workspace).then(
+    saveWorkspace(dirHandle, workspace).then(
       () => setSaveStatus("saved"),
       () => setSaveStatus("error")
     );
+  };
+
+  const handleConnect = async () => {
+    try {
+      const handle = await pickFolder();
+      setDirHandle(handle);
+      setPhase("loading");
+    } catch {
+      // user cancelled the picker — stay on the connect screen
+    }
+  };
+  const handleReconnect = async () => {
+    if (await reconnectHandle(pendingHandle)) {
+      setDirHandle(pendingHandle);
+      setPhase("loading");
+    }
   };
 
   const updateBoard = (id, patch) =>
@@ -134,12 +188,39 @@ export default function App() {
 
   const activeBoard = activeBoardId ? boards.find((b) => b.id === activeBoardId) : null;
 
-  if (loading) {
+  if (phase === "unsupported") {
     return (
-      <div style={{ fontFamily: font, height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", color: INK_SOFT, fontSize: "14px" }}>
-        Loading…
-      </div>
+      <ConnectScreen
+        title="Browser not supported"
+        message="Evidence Loop stores your research as files in a folder you pick, which needs the File System Access API — available in Chrome, Edge, and other Chromium-based browsers, but not Firefox or Safari."
+      />
     );
+  }
+  if (phase === "checking") {
+    return <ConnectScreen title="Evidence Loop" message="Checking for a connected folder…" />;
+  }
+  if (phase === "needsConnect") {
+    return (
+      <ConnectScreen
+        title="Connect your research folder"
+        message="Pick a folder — ideally one inside your project's repo — where every board is saved as plain markdown files you can read, grep, and commit like any other file."
+        buttonLabel="Connect folder"
+        onClick={handleConnect}
+      />
+    );
+  }
+  if (phase === "needsReconnect") {
+    return (
+      <ConnectScreen
+        title="Reconnect your research folder"
+        message="Permission to read and write your research folder needs to be re-granted after a browser restart."
+        buttonLabel="Reconnect folder"
+        onClick={handleReconnect}
+      />
+    );
+  }
+  if (phase === "loading") {
+    return <ConnectScreen title="Evidence Loop" message="Loading your research folder…" />;
   }
 
   return (

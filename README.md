@@ -1,7 +1,11 @@
 # Evidence Loop
 
-A multi-board "evidence → problem → idea → result" tracker. Start page lists your boards and
-lets you create new ones; each board is its own evidence/problem/idea/result grid. Vite + React.
+A repository for atomic research findings — Signal → Insight → Action → Result — meant to sit
+next to your product's codebase as the "atomic research insights" slice of a spec-driven-design
+knowledge base ([futurice.com/blog/spec-driven-design](https://www.futurice.com/blog/spec-driven-design)).
+Every board is saved as plain markdown files in a folder you pick, so both humans and coding
+agents can read prior research directly from the repo. Home page leads with search — check
+whether the answer already exists before starting new research — with the board list right below.
 
 ## Setup
 
@@ -10,32 +14,54 @@ npm install
 npm run dev
 ```
 
-That's it — no accounts, no API keys.
+No accounts, no API keys — on first load you'll be asked to pick a folder (ideally one inside
+your project's repo) where boards get saved.
+
+**Browser requirement**: this needs the File System Access API, available in Chrome, Edge, and
+other Chromium-based browsers. Firefox and Safari aren't supported.
 
 ## How persistence works
 
-- Everything is saved to this browser's `localStorage` — one key holding every board as JSON.
-- On any edit — including creating, renaming, or deleting a board — a save is debounced ~700ms.
-- The top bar shows a small save-status dot: saved / saving / failed (with a manual retry link;
-  `localStorage` writes essentially never fail outside quota limits or private-browsing lockouts,
-  but the indicator is there either way).
-- Data lives only in this browser, on this device — clearing site data or using a different
-  browser/profile starts you over with the built-in demo board. It doesn't sync across devices.
+- On first load, you grant the app access to a folder. It's remembered (via IndexedDB) for next
+  time — Chrome will silently reuse the granted permission unless it's lapsed (e.g. after a
+  browser restart), in which case you'll see a one-click "Reconnect" prompt.
+- Every board is its own subfolder (named by an internal id, so renaming a board never touches
+  the folder path), containing a `board.md` plus one markdown file per card, grouped by kind:
+  ```
+  <your folder>/
+    <board-id>/
+      board.md
+      signals/<card-id>.md
+      insights/<card-id>.md
+      actions/<card-id>.md
+      results/<card-id>.md
+  ```
+  Each file is a small JSON frontmatter block (id, connections, cross-board reference) followed
+  by the actual text — readable, diffable, grep-able like any other file in the repo.
+- On any edit, a save is debounced ~700ms and rewrites the affected files. **Write-only**: the
+  app never runs `git add`/`git commit` — commit your research the same way you'd commit a code
+  change, on your own schedule, with your own message.
+- The top bar shows a small save-status dot: saved / saving / failed (with a manual retry link).
 
-## Importing / exporting a board
+## Cross-board references
 
-- **Export**: open a board and click **Export JSON** in the sidebar to download it (name, goal,
-  target, all its cards and connections) as a standalone `.json` file.
-- **Import**: on the start page, click **Import JSON** and pick a `.json` file — either one
-  exported from here, or hand-edited (fields are validated/coerced rather than trusted as-is;
-  an invalid file shows an error instead of crashing). Imported boards always get a fresh id, so
-  importing the same file twice — or a file already open in another tab — just creates a copy
-  rather than colliding with anything.
+Any card can be a *live reference* to a card in another board — found via search's "Attach to
+board" action. A reference always resolves the source's current content at render time (never a
+copy), shows a dashed border and a "↗ source board" link, and shows "no longer exists" gracefully
+if the source is later deleted. This is how a signal, insight, action, or result from one study
+gets cited in another without duplicating it.
 
-This pair is how you move a board across browsers/devices or back it up, since nothing syncs
-automatically (see below).
+## Importing / exporting a single board
+
+- **Export**: open a board and click **Export JSON** in the sidebar to download it as a
+  standalone `.json` file — a snapshot, separate from the markdown files on disk.
+- **Import**: on the home page, click **Import JSON** and pick a `.json` file (fields are
+  validated/coerced rather than trusted as-is). Imported boards always get a fresh id, so
+  importing the same file twice just creates a copy.
 
 ## Out of scope for v1
 
-- Multi-user / realtime collaboration, and any automatic cross-device sync.
-- Save versioning/undo.
+- Multi-user / realtime collaboration.
+- Save versioning/undo (git history covers this once you commit).
+- Per-card dirty-tracking — every save currently rewrites every file for every board. Fine at
+  personal scale; worth revisiting if it's ever slow with many boards.
