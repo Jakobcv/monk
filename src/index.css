@@ -324,8 +324,11 @@ body {
 }
 
 /* A clickable breadcrumb — including the first one, which names the connected folder and
-   re-opens the folder picker. */
+   re-opens the folder picker. Base colour/background live here (not inline on the element)
+   so :hover can actually take. */
 .crumb {
+  color: var(--ink-soft);
+  background: none;
   transition:
     background-color var(--motion-fast) var(--ease),
     color var(--motion-fast) var(--ease);

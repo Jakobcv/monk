@@ -7,10 +7,13 @@ import { font, INK, INK_SOFT, INK_FAINT, BORDER, SIZE, WEIGHT } from "./lib/them
 // an action that isn't navigation (the folder crumb re-opens the folder picker), and plain text
 // when it goes nowhere (a "Section not found" crumb). The first crumb is the connected folder,
 // which is why `icon` exists: it should read as "the folder this all lives in".
+//
+// Colour / background / hover live in `.crumb` (index.css) — keep them out of here so :hover
+// isn't overridden by an inline value.
 const crumbStyle = {
   display: "flex", alignItems: "center", gap: "5px", minWidth: 0,
-  fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.ui, color: INK_SOFT,
-  background: "none", border: "none", cursor: "pointer", padding: "2px 4px", margin: "0 -4px",
+  fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.ui,
+  border: "none", cursor: "pointer", padding: "2px 4px", margin: "0 -4px",
   borderRadius: "4px", textDecoration: "none",
 };
 
