@@ -562,15 +562,11 @@ body {
   transition:
     background-color var(--motion-fast) var(--ease),
     color var(--motion-fast) var(--ease),
-    box-shadow var(--motion-fast) var(--ease),
-    transform var(--motion-instant) var(--ease);
+    box-shadow var(--motion-fast) var(--ease);
 }
 .nav-item:hover:not([aria-current="page"]) {
   background: var(--bg-hover);
   color: var(--ink);
-}
-.nav-item:active:not([aria-current="page"]) {
-  transform: translateY(0.5px);
 }
 .nav-item[aria-current="page"] {
   color: var(--ink);
