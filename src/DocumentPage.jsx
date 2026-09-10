@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { FileText, Copy, Check } from "lucide-react";
+import { FileText, Copy, Check, ChevronDown } from "lucide-react";
 import { BORDER, SPACE, INK, INK_SOFT, INK_FAINT, SIZE, ACCENT } from "./lib/theme";
 import { pageTitleInput, eyebrow } from "./ui/text";
 import { documentToMarkdown } from "./lib/markdown";
@@ -22,23 +22,46 @@ const CHEATS = [
   ["Divider", "---"],
 ];
 
+const LEGEND_KEY = "md-legend-open";
+
 function MarkdownLegend() {
+  // Collapsed by default; the choice is a per-viewer convenience, so it lives in localStorage.
+  const [open, setOpen] = useState(() => {
+    try { return localStorage.getItem(LEGEND_KEY) === "1"; } catch { return false; }
+  });
+  const toggle = () => setOpen((v) => {
+    const next = !v;
+    try { localStorage.setItem(LEGEND_KEY, next ? "1" : "0"); } catch { /* private mode, etc. */ }
+    return next;
+  });
+
   return (
     <Card padded style={{ background: "var(--bg-sidebar)" }}>
-      <div style={{ ...eyebrow, marginBottom: SPACE.md }}>Markdown reference</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: SPACE.lg }}>
-        {CHEATS.map(([label, example]) => (
-          <div key={label}>
-            <div style={{ fontSize: SIZE.micro, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: INK_FAINT, marginBottom: SPACE.xs }}>
-              {label}
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        style={{ ...eyebrow, display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+      >
+        Markdown reference
+        <ChevronDown size={13} style={{ color: INK_FAINT, transition: "transform var(--motion-base) var(--ease)", transform: open ? "rotate(180deg)" : "none" }} />
+      </button>
+
+      <div className={`md-legend-body${open ? " open" : ""}`}>
+        <div style={{ display: "flex", flexDirection: "column", gap: SPACE.lg, paddingTop: SPACE.md }}>
+          {CHEATS.map(([label, example]) => (
+            <div key={label}>
+              <div style={{ fontSize: SIZE.micro, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: INK_FAINT, marginBottom: SPACE.xs }}>
+                {label}
+              </div>
+              <pre style={{ margin: 0, fontFamily: MONO, fontSize: SIZE.xs, lineHeight: 1.55, color: INK, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                {example}
+              </pre>
             </div>
-            <pre style={{ margin: 0, fontFamily: MONO, fontSize: SIZE.xs, lineHeight: 1.55, color: INK, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-              {example}
-            </pre>
+          ))}
+          <div style={{ fontSize: SIZE.micro, color: INK_FAINT, lineHeight: 1.5, marginTop: SPACE.xs }}>
+            Saved as plain Markdown — no preview, what you type is the file.
           </div>
-        ))}
-        <div style={{ fontSize: SIZE.micro, color: INK_FAINT, lineHeight: 1.5, marginTop: SPACE.xs }}>
-          Saved as plain Markdown — no preview, what you type is the file.
         </div>
       </div>
     </Card>

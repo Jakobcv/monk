@@ -648,6 +648,23 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   Collapsible Markdown-reference card body (DocumentPage). max-height eases
+   the open/close; the cap only needs to exceed the real content height.
+   --------------------------------------------------------------------------- */
+.md-legend-body {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition:
+    max-height var(--motion-base) var(--ease),
+    opacity var(--motion-fast) var(--ease);
+}
+.md-legend-body.open {
+  max-height: 800px;
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
    Modal — a centred dialog over the blurred, dimmed page (see ui/Modal.jsx).
    --------------------------------------------------------------------------- */
 .modal-backdrop {
