@@ -568,15 +568,16 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   Spec sidebar selects (Status, Initiative). Same border / hover / focus-ring
-   language as .field, plus the chevron rotates while the control is focused —
-   the closest proxy there is to a native <select>'s open state.
+   Select — the app's styled <select> (spec Status / Initiative, activity
+   Method). Same border / hover / focus-ring language as .field, plus the
+   chevron rotates while the control is focused — the closest proxy there is
+   to a native <select>'s open state. Wrap in .select-wrap and drop a
+   .select-chevron in as a following sibling.
    --------------------------------------------------------------------------- */
-.spec-select-wrap {
+.select-wrap {
   position: relative;
-  margin-top: 8px;
 }
-.spec-select {
+.select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -586,6 +587,7 @@ body {
   font-family: var(--font);
   font-weight: 500;
   font-size: var(--size-ui);
+  color: var(--ink);
   background: var(--bg);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -595,14 +597,14 @@ body {
     border-color var(--motion-fast) var(--ease),
     box-shadow var(--motion-fast) var(--ease);
 }
-.spec-select:hover:not(:focus) {
+.select:hover:not(:focus) {
   border-color: var(--ink-faint);
 }
-.spec-select:focus {
+.select:focus {
   border-color: var(--accent-insight);
   box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.12);
 }
-.spec-select-chevron {
+.select-chevron {
   position: absolute;
   right: 8px;
   top: 50%;
@@ -613,7 +615,7 @@ body {
     transform var(--motion-base) var(--ease),
     color var(--motion-fast) var(--ease);
 }
-.spec-select:focus ~ .spec-select-chevron {
+.select:focus ~ .select-chevron {
   transform: translateY(-50%) rotate(180deg);
   color: var(--ink-soft);
 }

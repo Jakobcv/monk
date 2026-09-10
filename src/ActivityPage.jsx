@@ -30,8 +30,14 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
 
   const linked = signalsForActivity(signals, activity.id);
 
+  // Anything not linked when the page opened is an arrival — it animates in and takes focus.
+  const [presentOnMount] = useState(() => new Set(linked.map((s) => s.id)));
+  const [focusId, setFocusId] = useState(null);
+
   const addSignal = () => {
-    onCreateSignal({ ...blankSignal(), source: { type: "activity", activityId: activity.id } });
+    const sig = { ...blankSignal(), source: { type: "activity", activityId: activity.id } };
+    onCreateSignal(sig);
+    setFocusId(sig.id);
   };
 
   return (
@@ -48,15 +54,17 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
           />
 
           <div style={{ display: "flex", gap: SPACE.lg, flexWrap: "wrap" }}>
-            <div style={{ position: "relative" }}>
-              <Field
-                as="select" size="ui" value={method} onChange={(e) => setMethod(e.target.value)}
-                style={{ appearance: "none", WebkitAppearance: "none", MozAppearance: "none", padding: "6px 26px 6px 9px", width: "200px", cursor: "pointer" }}
+            <div className="select-wrap" style={{ width: "200px" }}>
+              <select
+                className="select"
+                value={method}
+                onChange={(e) => setMethod(e.target.value)}
+                style={{ color: method ? undefined : INK_FAINT }}
               >
                 <option value="">Method</option>
                 {METHOD_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
-              </Field>
-              <ChevronDown size={12} style={{ position: "absolute", right: SPACE.base, top: "50%", transform: "translateY(-50%)", color: INK_FAINT, pointerEvents: "none" }} />
+              </select>
+              <ChevronDown size={12} className="select-chevron" />
             </div>
             <Field size="ui" value={link} onChange={(e) => setLink(e.target.value)} placeholder="Link" style={{ flex: 1, minWidth: "220px" }} />
             <Field
@@ -85,13 +93,15 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
               // wherever you meet it.
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: SPACE.lg }}>
                 {linked.map((sig) => (
-                  <SignalCard
-                    key={sig.id}
-                    signal={sig}
-                    activities={activities}
-                    onChange={(patch) => onUpdateSignal(sig.id, patch)}
-                    onDelete={() => onDeleteSignal(sig.id)}
-                  />
+                  <div key={sig.id} className={presentOnMount.has(sig.id) ? undefined : "enter-up"}>
+                    <SignalCard
+                      signal={sig}
+                      activities={activities}
+                      autoFocus={focusId === sig.id}
+                      onChange={(patch) => onUpdateSignal(sig.id, patch)}
+                      onDelete={() => onDeleteSignal(sig.id)}
+                    />
+                  </div>
                 ))}
               </div>
             )}

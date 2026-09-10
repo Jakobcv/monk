@@ -41,11 +41,11 @@ function SpecSidebar({ status, onStatusChange, owner, onOwnerChange, initiativeI
     }}>
       <div>
         <div style={eyebrow}>Status</div>
-        <div className="spec-select-wrap">
-          <select className="spec-select" style={{ color: SPEC_STATUS_COLOR[status] }} value={status} onChange={(e) => onStatusChange(e.target.value)}>
+        <div className="select-wrap" style={{ marginTop: "8px" }}>
+          <select className="select" style={{ color: SPEC_STATUS_COLOR[status] }} value={status} onChange={(e) => onStatusChange(e.target.value)}>
             {SPEC_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
-          <ChevronDown size={12} className="spec-select-chevron" />
+          <ChevronDown size={12} className="select-chevron" />
         </div>
       </div>
 
@@ -53,9 +53,9 @@ function SpecSidebar({ status, onStatusChange, owner, onOwnerChange, initiativeI
 
       <div>
         <div style={eyebrow}>Initiative</div>
-        <div className="spec-select-wrap">
+        <div className="select-wrap" style={{ marginTop: "8px" }}>
           <select
-            className="spec-select"
+            className="select"
             style={{ color: initiativeId ? INK : INK_FAINT }}
             value={initiativeId || ""}
             onChange={(e) => onInitiativeChange(e.target.value || null)}
@@ -65,7 +65,7 @@ function SpecSidebar({ status, onStatusChange, owner, onOwnerChange, initiativeI
               <option key={i.id} value={i.id}>{i.title || "Untitled initiative"}</option>
             ))}
           </select>
-          <ChevronDown size={12} className="spec-select-chevron" />
+          <ChevronDown size={12} className="select-chevron" />
         </div>
       </div>
 
