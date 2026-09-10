@@ -420,6 +420,50 @@ body {
   animation: enter-up var(--motion-base) var(--ease-entrance);
 }
 
+/* Dashboard bars grow up from the baseline on mount. transform-origin bottom so the
+   scale doesn't push the bar off its axis. */
+@keyframes bar-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+.bar-rise {
+  transform-origin: bottom;
+  animation: bar-rise var(--motion-slow) var(--ease-entrance) backwards;
+}
+
+/* A horizontal bar / track segment wiped in from the left — clip-path keeps the corner
+   radius crisp and touches no layout. */
+@keyframes reveal-x {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.reveal-x {
+  animation: reveal-x var(--motion-slow) var(--ease-entrance) backwards;
+}
+
+/* Donut / ring settles in — keeps the -90deg base rotation the SVG is drawn at. */
+@keyframes donut-in {
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-90deg) scale(1);
+  }
+}
+.donut-in {
+  animation: donut-in var(--motion-slow) var(--ease-entrance) backwards;
+}
+
 /* ---------------------------------------------------------------------------
    Checklist rows — Spec's Open questions and Acceptance criteria. A deliberate
    checkbox: an 18px box centred in a 26px hit target (the native input is

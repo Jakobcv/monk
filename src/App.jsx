@@ -6,6 +6,7 @@ import { blankSection, blankDocument, ensureFixedSections, isFixedSection } from
 import { blankSpec } from "./lib/specModel";
 import { blankActivity } from "./lib/signalModel";
 import { blankInitiative, specsForInitiative } from "./lib/initiativeModel";
+import { mockWorkspace } from "./lib/mockWorkspace";
 import { fsAccessSupported, getStoredHandle, pickFolder, tryReuseHandle, reconnectHandle } from "./lib/fsPersistence";
 import { font, INK, INK_SOFT, SIZE, WEIGHT, SPACE } from "./lib/theme";
 import { insertAt } from "./lib/arrays";
@@ -95,6 +96,9 @@ function useRoute() {
   }
   if (hash.startsWith(ACTIVITY_PREFIX)) {
     return { name: "activity", id: decodeURIComponent(hash.slice(ACTIVITY_PREFIX.length)) };
+  }
+  if (hash === "#/dashboard-preview") {
+    return { name: "dashboardPreview" };
   }
   return { name: "home" };
 }
@@ -601,6 +605,15 @@ export default function App() {
     document.title = name ? `${name} · Monk` : "Monk";
   }, [route, isSpecRoute, activeDocument, activeSpec, activeInitiative, activeActivity]);
 
+  // Dev-only: preview the Home dashboard populated with mock data, no folder needed.
+  if (import.meta.env.DEV && route.name === "dashboardPreview") {
+    return (
+      <div style={{ fontFamily: font, height: "100dvh", overflowY: "auto", background: "var(--bg)" }}>
+        <Home {...mockWorkspace(1)} demo />
+      </div>
+    );
+  }
+
   if (phase === "unsupported") {
     return (
       <ConnectScreen
@@ -769,7 +782,15 @@ export default function App() {
                 />
               )
             ) : (
-              <Home onCreateSpec={createSpec} />
+              <Home
+                signals={signals}
+                insights={insights}
+                activities={activities}
+                specs={specs}
+                initiatives={initiatives}
+                sections={sections}
+                onCreateSpec={createSpec}
+              />
             )}
           </main>
         </div>
