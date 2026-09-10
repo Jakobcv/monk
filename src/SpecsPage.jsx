@@ -6,14 +6,16 @@ import IconButton from "./ui/IconButton";
 import Card from "./ui/Card";
 import EmptyState from "./ui/EmptyState";
 
-function SpecCard({ spec, href, onDelete }) {
+function SpecCard({ spec, idx = 0, href, onDelete }) {
   return (
     <Card
       as="a"
       href={href}
       interactive
       className="reveal-group enter-up"
-      style={{ position: "relative", textAlign: "left", padding: "14px 16px" }}
+      // A gentle stagger on load — capped so a long list doesn't have a visible tail.
+      // fill-mode backwards holds each card hidden through its delay.
+      style={{ position: "relative", textAlign: "left", padding: "14px 16px", animationDelay: `${Math.min(idx * 30, 300)}ms`, animationFillMode: "backwards" }}
     >
       <IconButton
         className="reveal"
@@ -60,7 +62,7 @@ function SpecCard({ spec, href, onDelete }) {
 function SpecGrid({ specs, specHref, onDelete }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "14px" }}>
-      {specs.map((s) => <SpecCard key={s.id} spec={s} href={specHref(s.id)} onDelete={onDelete} />)}
+      {specs.map((s, i) => <SpecCard key={s.id} spec={s} idx={i} href={specHref(s.id)} onDelete={onDelete} />)}
     </div>
   );
 }
@@ -102,8 +104,8 @@ export default function SpecsPage({ specs, initiatives, specHref, initiativeHref
                     href={initiativeHref(ini.id)}
                     className="crumb"
                     style={{
-                      display: "flex", alignItems: "center", gap: SPACE.sm, marginBottom: SPACE.lg,
-                      padding: "2px 4px", marginLeft: "-4px", textDecoration: "none",
+                      display: "inline-flex", alignItems: "center", gap: SPACE.sm, marginBottom: SPACE.lg,
+                      padding: "3px 6px", marginLeft: "-6px", textDecoration: "none",
                       fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK,
                     }}
                   >

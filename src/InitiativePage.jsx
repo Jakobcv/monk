@@ -6,7 +6,6 @@ import { INITIATIVE_STATUS_OPTIONS } from "./lib/initiativeModel";
 import Breadcrumbs from "./Breadcrumbs";
 import CrepeEditor from "./CrepeEditor";
 import Button from "./ui/Button";
-import Field from "./ui/Field";
 import Card from "./ui/Card";
 import IconButton from "./ui/IconButton";
 import EmptyState from "./ui/EmptyState";
@@ -47,14 +46,16 @@ export default function InitiativePage({
           />
 
           <div style={{ display: "flex", gap: SPACE.lg, alignItems: "center" }}>
-            <div style={{ position: "relative" }}>
-              <Field
-                as="select" size="ui" value={status} onChange={(e) => setStatus(e.target.value)}
-                style={{ appearance: "none", WebkitAppearance: "none", MozAppearance: "none", padding: "6px 26px 6px 9px", width: "160px", cursor: "pointer", color: SPEC_STATUS_COLOR[status] || INK, fontWeight: WEIGHT.medium }}
+            <div className="select-wrap" style={{ width: "160px" }}>
+              <select
+                className="select"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                style={{ color: SPEC_STATUS_COLOR[status] || INK }}
               >
                 {INITIATIVE_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-              </Field>
-              <ChevronDown size={12} style={{ position: "absolute", right: SPACE.base, top: "50%", transform: "translateY(-50%)", color: INK_FAINT, pointerEvents: "none" }} />
+              </select>
+              <ChevronDown size={12} className="select-chevron" />
             </div>
           </div>
 
