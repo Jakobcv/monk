@@ -113,10 +113,26 @@ export function mockWorkspace(seed = 42) {
     };
   });
 
-  // --- signals: skewed toward recent (a rising research trend), ~65% tied to an activity ---
-  const signals = Array.from({ length: 52 }, (_, i) => {
-    const daysAgo = Math.pow(rand(), 1.4) * (WINDOW_DAYS - 3);
-    const created = NOW - Math.round(daysAgo) * DAY;
+  // --- signals: a rising cadence over the last 12 weeks (each week's share follows a ramp
+  //     with a little noise, so the momentum chart trends up without wild single-bar spikes).
+  const MOM_WEEKS = 12;
+  const weekWeight = Array.from({ length: MOM_WEEKS }, (_, w) => {
+    const ramp = 0.4 + (w / (MOM_WEEKS - 1)) * 1.9; // w=0 oldest, w=11 most recent
+    return Math.max(0.15, ramp + (rand() - 0.5) * 0.45);
+  });
+  const wTotal = weekWeight.reduce((a, b) => a + b, 0);
+  const TARGET_SIGNALS = 54;
+  const signalDates = [];
+  weekWeight.forEach((wt, w) => {
+    const n = Math.round((TARGET_SIGNALS * wt) / wTotal);
+    for (let k = 0; k < n; k++) {
+      const daysAgo = (MOM_WEEKS - 1 - w + rand()) * 7;
+      signalDates.push(NOW - Math.round(daysAgo) * DAY);
+    }
+  });
+  signalDates.sort((a, b) => a - b); // oldest first
+
+  const signals = signalDates.map((created, i) => {
     const tied = rand() < 0.65;
     return {
       id: genEntityId(rand),
@@ -126,48 +142,61 @@ export function mockWorkspace(seed = 42) {
       link: "",
       author: pick(rand, OWNERS),
       createdAt: created,
-      updatedAt: Math.min(NOW - DAY, created + Math.round(rand() * 14) * DAY),
+      updatedAt: created, // untouched since creation; the recent-edits pass adds the spread
     };
   });
 
-  // --- insights: each formed from 1–4 signals that predate it; ~72% of signals get used ---
-  const shuffledSignals = [...signals].sort(() => rand() - 0.5);
-  let cursor = 0;
-  const insights = INSIGHT_TEXT.map((text, i) => {
-    const count = 1 + Math.floor(rand() * 4);
-    const sources = shuffledSignals.slice(cursor, cursor + count).map((s) => s.id);
-    cursor += count;
-    if (rand() < 0.15) sources.length = 0; // a few insights formed from nothing
-    const latestSource = sources.length
-      ? Math.max(...sources.map((id) => signals.find((s) => s.id === id).createdAt))
-      : at(rand, WINDOW_DAYS - 10, 0);
-    const created = Math.min(NOW - DAY, latestSource + Math.round(rand() * 12) * DAY);
+  // --- insights: their own rising cadence, trailing signals — nothing in the first couple of
+  //     weeks (no evidence yet), then a ramp. Each takes 1–4 source signals that predate it.
+  const insWeight = Array.from({ length: MOM_WEEKS }, (_, w) => {
+    if (w < 2) return 0.03;
+    const ramp = 0.2 + ((w - 2) / (MOM_WEEKS - 3)) * 1.25;
+    return Math.max(0.05, ramp + (rand() - 0.5) * 0.3);
+  });
+  const insTotal = insWeight.reduce((a, b) => a + b, 0);
+  const TARGET_INSIGHTS = 21;
+  const insightDates = [];
+  insWeight.forEach((wt, w) => {
+    const n = Math.round((TARGET_INSIGHTS * wt) / insTotal);
+    for (let k = 0; k < n; k++) {
+      const daysAgo = (MOM_WEEKS - 1 - w + rand()) * 7;
+      insightDates.push(NOW - Math.round(daysAgo) * DAY);
+    }
+  });
+  insightDates.sort((a, b) => a - b);
+
+  const insights = insightDates.map((created, i) => {
+    const eligible = signals.filter((s) => s.createdAt < created);
+    const count = Math.min(eligible.length, 1 + Math.floor(rand() * 4));
+    const sources = [...eligible].sort(() => rand() - 0.5).slice(0, count).map((s) => s.id);
+    if (rand() < 0.14) sources.length = 0; // a few insights formed from nothing
     return {
       id: genEntityId(rand),
-      text,
+      text: INSIGHT_TEXT[i % INSIGHT_TEXT.length],
       sources,
       createdAt: created,
-      updatedAt: created + Math.round(rand() * 10) * DAY,
-      _slot: i,
+      updatedAt: created, // untouched since creation; the recent-edits pass adds the spread
     };
   });
 
   // --- initiatives ---
   const initiatives = INITIATIVES.map((ini) => {
     const created = at(rand, WINDOW_DAYS, WINDOW_DAYS - 30);
-    return { id: genEntityId(rand), title: ini.title, status: ini.status, description: "", createdAt: created, updatedAt: at(rand, 30, 0) };
+    return { id: genEntityId(rand), title: ini.title, status: ini.status, description: "", createdAt: created, updatedAt: at(rand, 44, 12) };
   });
 
   // --- specs: weighted statuses, ~half under an initiative, each with a small board ---
   const STATUS_PLAN = ["draft", "draft", "draft", "draft", "active", "active", "active", "active", "active", "shipped", "shipped"];
   const specs = SPEC_TITLES.map((title, i) => {
     const status = STATUS_PLAN[i] || "draft";
-    const created = at(rand, WINDOW_DAYS - 5, 0);
+    const created = at(rand, WINDOW_DAYS - 5, 8);
+    // active specs land 8–40 days back so a couple read as "stale" and none crowd the recent
+    // feed (which comes from the curated pass below); shipped/draft sit further back still.
     const updatedAt = status === "shipped"
-      ? at(rand, 40, 5)
+      ? at(rand, 58, 22)
       : status === "active"
-        ? at(rand, 35, 0) // some of these will be "stale"
-        : at(rand, 20, 0);
+        ? at(rand, 40, 8)
+        : at(rand, 34, 6);
     const initiativeId = rand() < 0.55 ? pick(rand, initiatives).id : null;
 
     const boardSignals = signals.filter(() => rand() < 0.12).map((s) => ({ id: s.id, connectsTo: [] }));
@@ -199,6 +228,21 @@ export function mockWorkspace(seed = 42) {
       updatedAt,
     };
   });
+
+  // --- recent-edits pass: bump a spread of entities so "Recently touched" reads today → ~3
+  //     weeks instead of everything clustering on "today". ------------------------------------
+  const RECENT_OFFSETS = [0, 1, 3, 5, 8, 12, 17, 24];
+  const touchPool = [
+    ...specs,
+    ...insights.slice(0, 12),
+    ...activities,
+    ...initiatives,
+  ];
+  touchPool
+    .map((x) => ({ x, r: rand() }))
+    .sort((a, b) => a.r - b.r)
+    .slice(0, RECENT_OFFSETS.length)
+    .forEach(({ x }, i) => { x.updatedAt = NOW - RECENT_OFFSETS[i] * DAY; });
 
   // --- KB sections/docs (only the count is read) ---
   const mkDoc = (title) => ({ id: genEntityId(rand), title, body: "" });

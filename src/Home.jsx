@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Sparkles } from "lucide-react";
+import { mockWorkspace } from "./lib/mockWorkspace";
 import {
   font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, CITED, SIZE, WEIGHT, SPACE, RADIUS,
   SPEC_STATUS_COLOR,
@@ -71,17 +72,26 @@ function MiniStat({ label, value, accent = INK }) {
 
 // --- the dashboard -------------------------------------------------------
 export default function Home({ signals = [], insights = [], activities = [], specs = [], initiatives = [], sections = [], onCreateSpec, demo = false }) {
-  // Fixed for the component's life so week buckets / relative times don't jitter on re-render.
-  const [now] = useState(() => (demo ? Date.UTC(2026, 8, 10) : Date.now()));
-  const data = { signals, insights, activities, specs, initiatives, sections };
+  // `sample` swaps the whole dashboard over to generated data — for seeing it populated even
+  // with a real (possibly new/sparse) folder connected. `demo` forces it on for the
+  // #/dashboard-preview route.
+  const [sample, setSample] = useState(demo);
+  const real = { signals, insights, activities, specs, initiatives, sections };
+  const mock = useMemo(() => mockWorkspace(1), []);
+  const data = sample ? mock : real;
+
+  // Fixed for the component's life so week buckets / relative times don't jitter on re-render;
+  // the sample set is anchored to its own generation date.
+  const [nowReal] = useState(() => Date.now());
+  const now = sample ? Date.UTC(2026, 8, 10) : nowReal;
 
   const inv = inventory(data);
   const fun = funnel(data);
   const funMax = Math.max(...fun.map((s) => s.value), 1);
   const syn = synthesis(data);
   const reused = mostReusedInsight(data);
-  const specStatus = statusSplit(specs, SPEC_STATUS_ORDER);
-  const iniStatus = statusSplit(initiatives, INITIATIVE_STATUS_ORDER);
+  const specStatus = statusSplit(data.specs, SPEC_STATUS_ORDER);
+  const iniStatus = statusSplit(data.initiatives, INITIATIVE_STATUS_ORDER);
   const acc = acceptanceProgress(data);
   const oq = openQuestions(data);
   const mo = momentum(data, 12, now);
@@ -93,13 +103,13 @@ export default function Home({ signals = [], insights = [], activities = [], spe
   // The feed — one column, cards top to bottom, each animating up on load.
   const feed = [
     <StatRow key="s1">
-      <Stat label="Signals" value={inv.signals} accent={ACCENT.signal} spark={spark(signals, ACCENT.signal)} sub="observations captured" />
-      <Stat label="Insights" value={inv.insights} accent={ACCENT.insight} spark={spark(insights, ACCENT.insight)} sub="synthesised findings" />
+      <Stat label="Signals" value={inv.signals} accent={ACCENT.signal} spark={spark(data.signals, ACCENT.signal)} sub="observations captured" />
+      <Stat label="Insights" value={inv.insights} accent={ACCENT.insight} spark={spark(data.insights, ACCENT.insight)} sub="synthesised findings" />
     </StatRow>,
 
     <StatRow key="s2">
-      <Stat label="Activities" value={inv.activities} accent={ACTIVITY} spark={spark(activities, ACTIVITY)} sub="research efforts" />
-      <Stat label="Specs" value={inv.specs} accent={INK} spark={spark(specs, INK_FAINT)} sub={`${inv.initiatives} initiatives · ${inv.docs} KB docs`} />
+      <Stat label="Activities" value={inv.activities} accent={ACTIVITY} spark={spark(data.activities, ACTIVITY)} sub="research efforts" />
+      <Stat label="Specs" value={inv.specs} accent={INK} spark={spark(data.specs, INK_FAINT)} sub={`${inv.initiatives} initiatives · ${inv.docs} KB docs`} />
     </StatRow>,
 
     <Card key="pipe" padded style={{ padding: "22px 24px" }}>
@@ -158,7 +168,7 @@ export default function Home({ signals = [], insights = [], activities = [], spe
             size={148} thickness={17}
             segments={specStatus.map((s) => ({ value: s.value, color: SPEC_STATUS_COLOR[s.key] }))}
             center={<>
-              <span style={{ ...NUM, fontSize: "26px", color: INK }}>{specs.length}</span>
+              <span style={{ ...NUM, fontSize: "26px", color: INK }}>{data.specs.length}</span>
               <span style={{ ...meta, fontSize: SIZE.sm }}>specs</span>
             </>}
           />
@@ -234,21 +244,36 @@ export default function Home({ signals = [], insights = [], activities = [], spe
           <div>
             <h1 style={{ ...pageHeading, fontSize: "26px", letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: SPACE.base }}>
               Overview
-              {demo && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", ...meta, fontSize: SIZE.xs, color: ACCENT.insight, border: `1px solid ${ACCENT.insight}44`, borderRadius: RADIUS.pill, padding: "2px 9px" }}>
-                  <Sparkles size={11} /> Sample data
-                </span>
+              {sample && (
+                <button
+                  onClick={() => !demo && setSample(false)}
+                  title={demo ? "Sample data" : "Switch back to your data"}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", ...meta, fontSize: SIZE.xs, color: ACCENT.insight, background: "none", border: `1px solid ${ACCENT.insight}44`, borderRadius: RADIUS.pill, padding: "2px 9px", cursor: demo ? "default" : "pointer" }}
+                >
+                  <Sparkles size={11} /> Sample data{!demo && " ✕"}
+                </button>
               )}
             </h1>
             <div style={{ ...meta, fontSize: SIZE.sm, marginTop: "6px" }}>
               {inv.specs} specs · {inv.signals} signals · {inv.insights} insights · {inv.activities} activities
             </div>
           </div>
-          {onCreateSpec && (
-            <Button variant="primary" size="md" onClick={onCreateSpec}>
-              <Plus size={14} /> New spec
-            </Button>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: SPACE.lg }}>
+            {!sample && (
+              <button
+                onClick={() => setSample(true)}
+                className="btn btn--sm btn--subtle"
+                title="See the dashboard populated with generated data"
+              >
+                <Sparkles size={12} /> Preview with sample data
+              </button>
+            )}
+            {onCreateSpec && (
+              <Button variant="primary" size="md" onClick={onCreateSpec}>
+                <Plus size={14} /> New spec
+              </Button>
+            )}
+          </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
