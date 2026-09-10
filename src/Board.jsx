@@ -110,6 +110,7 @@ export default function Board({
   const [, force] = useReducer((x) => x + 1, 0);
   const [pending, setPending] = useState(null); // { from, kind, x, y, over, rewireId? }
   const [hoverId, setHoverId] = useState(null);
+  const [focusedId, setFocusedId] = useState(null);
   const [hoverConnId, setHoverConnId] = useState(null);
 
   // all node ids reachable from the hovered card by following connections in either direction —
@@ -131,10 +132,18 @@ export default function Board({
     return set;
   }, [hoverId, connections]);
 
-  const nodeOpacity = (id) => (pending || hoverId == null ? 1 : connectedIds.has(id) ? 1 : 0.25);
+  // A card never dims while it holds focus — you're editing it, and a scroll-into-view on a
+  // freshly-created card can drift another card under the pointer, which would otherwise fade
+  // the one you're typing in.
+  const nodeOpacity = (id) =>
+    pending || hoverId == null || id === focusedId ? 1 : connectedIds.has(id) ? 1 : 0.25;
   const hoverProps = (id) => ({
     onMouseEnter: () => setHoverId(id),
     onMouseLeave: () => setHoverId((h) => (h === id ? null : h)),
+    onFocus: () => setFocusedId(id),
+    onBlur: (e) => {
+      if (!e.currentTarget.contains(e.relatedTarget)) setFocusedId((f) => (f === id ? null : f));
+    },
   });
 
   const measure = () => {
