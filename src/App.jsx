@@ -1,17 +1,47 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { FolderOpen } from "lucide-react";
 import { loadWorkspace, saveWorkspace } from "./lib/storage";
 import { blankBoard, bumpNextId, genId, KIND_ARRAY_KEY } from "./lib/boardModel";
+import { blankSection, blankDocument, ensureFixedSections, isFixedSection } from "./lib/documentModel";
+import { blankSpec } from "./lib/specModel";
+import { blankActivity } from "./lib/signalModel";
+import { blankInitiative, specsForInitiative } from "./lib/initiativeModel";
 import { fsAccessSupported, getStoredHandle, pickFolder, tryReuseHandle, reconnectHandle } from "./lib/fsPersistence";
-import { font, INK, INK_SOFT } from "./lib/theme";
+import { font, INK, INK_SOFT, SIZE, WEIGHT, SPACE } from "./lib/theme";
+import { insertAt } from "./lib/arrays";
+import Button from "./ui/Button";
+import Toast from "./ui/Toast";
 import Header from "./Header";
-import HomePage from "./HomePage";
-import Board from "./Board";
+import Home from "./Home";
+import ResearchRepositoryPage from "./ResearchRepositoryPage";
+import Sidebar from "./Sidebar";
+import Breadcrumbs from "./Breadcrumbs";
+import DocumentPage from "./DocumentPage";
+import SpecsPage from "./SpecsPage";
+import SpecPage from "./SpecPage";
+import InitiativePage from "./InitiativePage";
+import ActivityPage from "./ActivityPage";
 
-const HASH_PREFIX = "#/board/";
+const DOC_PREFIX = "#/doc/";
+const RESEARCH_ROUTE = "#/research";
+const SPECS_ROUTE = "#/specs";
+const SPEC_PREFIX = "#/spec/";
+const INITIATIVE_PREFIX = "#/initiative/";
+const ACTIVITY_PREFIX = "#/activity/";
 const goToStart = () => { window.location.hash = ""; };
-const goToBoard = (id, cardId) => {
-  window.location.hash = HASH_PREFIX + encodeURIComponent(id) + (cardId != null ? "/" + encodeURIComponent(cardId) : "");
+const goToDocument = (sectionId, docId) => {
+  window.location.hash = DOC_PREFIX + encodeURIComponent(sectionId) + "/" + encodeURIComponent(docId);
 };
+const goToResearch = () => { window.location.hash = RESEARCH_ROUTE; };
+const goToSpecs = () => { window.location.hash = SPECS_ROUTE; };
+const goToSpec = (id) => { window.location.hash = SPEC_PREFIX + encodeURIComponent(id); };
+const goToSpecDesign = (id) => { window.location.hash = SPEC_PREFIX + encodeURIComponent(id) + "/design"; };
+const goToSpecPlan = (id) => { window.location.hash = SPEC_PREFIX + encodeURIComponent(id) + "/plan"; };
+const goToSpecDiscovery = (id, cardId) => {
+  window.location.hash = SPEC_PREFIX + encodeURIComponent(id) + "/discovery" + (cardId != null ? "/" + encodeURIComponent(cardId) : "");
+};
+const goToInitiative = (id) => { window.location.hash = INITIATIVE_PREFIX + encodeURIComponent(id); };
+const goToActivity = (id) => { window.location.hash = ACTIVITY_PREFIX + encodeURIComponent(id); };
 
 function useRoute() {
   const [hash, setHash] = useState(() => window.location.hash);
@@ -20,37 +50,62 @@ function useRoute() {
     window.addEventListener("hashchange", onChange);
     return () => window.removeEventListener("hashchange", onChange);
   }, []);
-  if (hash.startsWith(HASH_PREFIX)) {
-    const [boardIdRaw, cardIdRaw] = hash.slice(HASH_PREFIX.length).split("/");
+  if (hash.startsWith(DOC_PREFIX)) {
+    const [sectionIdRaw, docIdRaw] = hash.slice(DOC_PREFIX.length).split("/");
     return {
-      name: "board",
-      boardId: decodeURIComponent(boardIdRaw),
+      name: "doc",
+      sectionId: decodeURIComponent(sectionIdRaw),
+      docId: docIdRaw ? decodeURIComponent(docIdRaw) : null,
+    };
+  }
+  if (hash === RESEARCH_ROUTE) {
+    return { name: "research" };
+  }
+  if (hash === SPECS_ROUTE) {
+    return { name: "specs" };
+  }
+  if (hash.startsWith(SPEC_PREFIX)) {
+    const [idRaw, sub, cardIdRaw] = hash.slice(SPEC_PREFIX.length).split("/");
+    return {
+      name: sub === "design" ? "specDesign" : sub === "plan" ? "specPlan" : sub === "discovery" ? "specDiscovery" : "spec",
+      id: decodeURIComponent(idRaw),
       cardId: cardIdRaw ? Number(decodeURIComponent(cardIdRaw)) : null,
     };
   }
-  return { name: "start", boardId: null, cardId: null };
+  if (hash.startsWith(INITIATIVE_PREFIX)) {
+    return { name: "initiative", id: decodeURIComponent(hash.slice(INITIATIVE_PREFIX.length)) };
+  }
+  if (hash.startsWith(ACTIVITY_PREFIX)) {
+    return { name: "activity", id: decodeURIComponent(hash.slice(ACTIVITY_PREFIX.length)) };
+  }
+  return { name: "home" };
 }
 
 function ConnectScreen({ title, message, buttonLabel, onClick }) {
   return (
     <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
-      <div style={{ maxWidth: "380px", textAlign: "center" }}>
-        <div style={{ fontFamily: font, fontWeight: 600, fontSize: "16px", color: INK, marginBottom: "8px" }}>{title}</div>
-        <div style={{ fontFamily: font, fontSize: "13.5px", color: INK_SOFT, lineHeight: 1.5, marginBottom: buttonLabel ? "18px" : 0 }}>
+      <div className="enter-up" style={{ maxWidth: "380px", textAlign: "center" }}>
+        <div style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK, marginBottom: SPACE.base }}>{title}</div>
+        <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK_SOFT, lineHeight: 1.5, marginBottom: buttonLabel ? "18px" : 0 }}>
           {message}
         </div>
         {buttonLabel && (
-          <button
-            onClick={onClick}
-            style={{
-              fontFamily: font, fontWeight: 600, fontSize: "13px", color: "#fff",
-              background: INK, border: "none", borderRadius: "7px", padding: "9px 18px", cursor: "pointer",
-            }}
-          >
+          <Button variant="primary" size="md" onClick={onClick} style={{ padding: "9px 18px" }}>
             {buttonLabel}
-          </button>
+          </Button>
         )}
       </div>
+    </div>
+  );
+}
+
+function NotFoundMessage({ text, backLabel, onBack }) {
+  return (
+    <div style={{ fontFamily: font, textAlign: "center", color: INK_SOFT, fontSize: SIZE.body, padding: "60px 0" }}>
+      {text}{" "}
+      <button onClick={onBack} style={{ fontFamily: font, color: INK, background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0 }}>
+        {backLabel}
+      </button>
     </div>
   );
 }
@@ -61,10 +116,17 @@ export default function App() {
   const [dirHandle, setDirHandle] = useState(null);
   const [pendingHandle, setPendingHandle] = useState(null);
   const [saveStatus, setSaveStatus] = useState("idle");
-  const [boards, setBoards] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [specs, setSpecs] = useState([]);
+  const [signals, setSignals] = useState([]);
+  const [insights, setInsights] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [initiatives, setInitiatives] = useState([]);
+  // Deletes happen immediately and report themselves here, with one chance to reverse — rather
+  // than interrupting with a confirm dialog before every one. See ui/Toast.jsx.
+  const [toast, setToast] = useState(null);
   const skipNextSaveRef = useRef(true);
   const route = useRoute();
-  const activeBoardId = route.boardId;
 
   // on mount: reuse a previously-granted folder silently if permission is still live,
   // otherwise ask for a click — showDirectoryPicker/requestPermission both require one
@@ -89,8 +151,13 @@ export default function App() {
     loadWorkspace(dirHandle)
       .then((record) => {
         if (cancelled) return;
-        bumpNextId(record.boards);
-        setBoards(record.boards);
+        bumpNextId(record.specs.map((s) => s.board));
+        setSections(ensureFixedSections(record.sections));
+        setSpecs(record.specs);
+        setSignals(record.signals);
+        setInsights(record.insights);
+        setActivities(record.activities);
+        setInitiatives(record.initiatives);
       })
       .catch((err) => {
         console.error("Failed to load the research folder:", err);
@@ -102,7 +169,7 @@ export default function App() {
     return () => { cancelled = true; };
   }, [phase, dirHandle]);
 
-  const workspace = useMemo(() => ({ boards }), [boards]);
+  const workspace = useMemo(() => ({ sections, specs, signals, insights, activities, initiatives }), [sections, specs, signals, insights, activities, initiatives]);
 
   // debounced autosave: skip the one save that would otherwise immediately re-write the
   // data we just loaded from disk
@@ -146,7 +213,12 @@ export default function App() {
     try {
       const handle = await pickFolder();
       skipNextSaveRef.current = true; // skip the redundant re-save right after this fresh load
-      setBoards([]);
+      setSections([]);
+      setSpecs([]);
+      setSignals([]);
+      setInsights([]);
+      setActivities([]);
+      setInitiatives([]);
       setDirHandle(handle);
       setPhase("loading");
       goToStart();
@@ -155,51 +227,364 @@ export default function App() {
     }
   };
 
-  const updateBoard = (id, patch) =>
-    setBoards((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch, updatedAt: Date.now() } : b)));
-  const renameBoard = (id, name) => updateBoard(id, { name });
-  const deleteBoard = (id) => {
-    setBoards((prev) => prev.filter((b) => b.id !== id));
-    if (activeBoardId === id) goToStart();
+  const showToast = (message, onUndo) => setToast({ id: Date.now(), message, onUndo });
+  const dismissToast = () => setToast(null);
+
+  const createSection = () => setSections((prev) => [...prev, blankSection()]);
+  // Product Knowledge and Standards are fixed — the Sidebar itself doesn't offer rename/delete
+  // for them, but these guard here too rather than trusting that alone.
+  const renameSection = (id, name) => {
+    if (isFixedSection(id)) return;
+    setSections((prev) => prev.map((s) => (s.id === id ? { ...s, name, updatedAt: Date.now() } : s)));
   };
-  const createBoard = () => {
-    const board = blankBoard();
-    setBoards((prev) => [board, ...prev]);
-    goToBoard(board.id);
+  const deleteSection = (id) => {
+    if (isFixedSection(id)) return;
+    const index = sections.findIndex((s) => s.id === id);
+    const section = sections[index];
+    if (!section) return;
+    setSections((prev) => prev.filter((s) => s.id !== id));
+    if (route.name === "doc" && route.sectionId === id) goToStart();
+    const count = section.documents.length;
+    showToast(
+      `Deleted "${section.name || "Untitled section"}"${count ? ` and ${count} document${count === 1 ? "" : "s"}` : ""}`,
+      () => setSections((prev) => insertAt(prev, index, section))
+    );
   };
-  // attach a card found in search onto another board as a live reference — never a copy,
-  // so edits to the source (or the source disappearing) show up wherever it's cited
-  const attachReference = (kind, sourceBoardId, sourceItemId, destBoardId) => {
-    const arrayKey = KIND_ARRAY_KEY[kind];
-    const card = { id: genId(), ref: { boardId: sourceBoardId, itemId: sourceItemId } };
-    if (destBoardId === "__new__") {
-      const board = { ...blankBoard(), [arrayKey]: [card] };
-      setBoards((prev) => [board, ...prev]);
-      goToBoard(board.id, card.id);
-    } else {
-      setBoards((prev) => prev.map((b) => (b.id === destBoardId ? { ...b, [arrayKey]: [...b[arrayKey], card], updatedAt: Date.now() } : b)));
-      goToBoard(destBoardId, card.id);
-    }
+  const createDocument = (sectionId) => {
+    const doc = blankDocument();
+    setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, documents: [...s.documents, doc], updatedAt: Date.now() } : s)));
+    goToDocument(sectionId, doc.id);
+  };
+  const updateDocument = (sectionId, docId, patch) =>
+    setSections((prev) => prev.map((s) => (
+      s.id === sectionId
+        ? { ...s, documents: s.documents.map((d) => (d.id === docId ? { ...d, ...patch, updatedAt: Date.now() } : d)) }
+        : s
+    )));
+  const deleteDocument = (sectionId, docId) => {
+    const section = sections.find((s) => s.id === sectionId);
+    const index = section?.documents.findIndex((d) => d.id === docId) ?? -1;
+    const doc = index >= 0 ? section.documents[index] : null;
+    if (!doc) return;
+    setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, documents: s.documents.filter((d) => d.id !== docId) } : s)));
+    if (route.name === "doc" && route.sectionId === sectionId && route.docId === docId) goToStart();
+    showToast(
+      `Deleted "${doc.title || "Untitled document"}"`,
+      () => setSections((prev) => prev.map((s) => (
+        s.id === sectionId ? { ...s, documents: insertAt(s.documents, index, doc) } : s
+      )))
+    );
   };
 
-  const activeBoard = activeBoardId ? boards.find((b) => b.id === activeBoardId) : null;
+  const isSpecRoute = route.name === "spec" || route.name === "specDesign" || route.name === "specPlan" || route.name === "specDiscovery";
+
+  const createSpec = (initiativeId = null) => {
+    const spec = blankSpec("Untitled spec", initiativeId);
+    spec.board = blankBoard(spec.id);
+    setSpecs((prev) => [...prev, spec]);
+    goToSpec(spec.id);
+  };
+  const updateSpec = (id, patch) =>
+    setSpecs((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: Date.now() } : s)));
+  const deleteSpec = (id) => {
+    const index = specs.findIndex((s) => s.id === id);
+    const spec = specs[index];
+    if (!spec) return;
+    setSpecs((prev) => prev.filter((s) => s.id !== id));
+    if (isSpecRoute && route.id === id) goToSpecs();
+    showToast(
+      `Deleted "${spec.title || "Untitled spec"}"`,
+      () => setSpecs((prev) => insertAt(prev, index, spec))
+    );
+  };
+
+  // An initiative is the layer above specs (see initiativeModel.js) — an epic to their tickets.
+  // A spec carries an optional `initiativeId`; "specs under this initiative" is a derived
+  // filter, never a stored list. Created blank and you land straight on its own page, same
+  // flow as createActivity/createSpec.
+  const createInitiative = () => {
+    const initiative = blankInitiative();
+    setInitiatives((prev) => [...prev, initiative]);
+    goToInitiative(initiative.id);
+  };
+  const updateInitiative = (id, patch) =>
+    setInitiatives((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch, updatedAt: Date.now() } : i)));
+  const deleteInitiative = (id) => {
+    const index = initiatives.findIndex((i) => i.id === id);
+    const initiative = initiatives[index];
+    if (!initiative) return;
+    // Detach its specs (clear their initiativeId) rather than deleting them — the specs still
+    // stand on their own. Undo re-assigns exactly the ones that were detached.
+    const detachedIds = specs.filter((s) => s.initiativeId === id).map((s) => s.id);
+
+    setInitiatives((prev) => prev.filter((i) => i.id !== id));
+    setSpecs((prev) => prev.map((s) => (s.initiativeId === id ? { ...s, initiativeId: null, updatedAt: Date.now() } : s)));
+    if (route.name === "initiative" && route.id === id) goToSpecs();
+
+    const kept = detachedIds.length ? ` — ${detachedIds.length} spec${detachedIds.length === 1 ? "" : "s"} kept` : "";
+    showToast(`Deleted "${initiative.title || "Untitled initiative"}"${kept}`, () => {
+      setInitiatives((prev) => insertAt(prev, index, initiative));
+      setSpecs((prev) => prev.map((s) => (detachedIds.includes(s.id) ? { ...s, initiativeId: id } : s)));
+    });
+  };
+  // attach a card found in search onto another spec's Discovery board as a live reference —
+  // never a copy, so edits to the source (or the source disappearing) show up wherever it's cited
+  const attachReference = (kind, sourceSpecId, sourceItemId, destSpecId) => {
+    const arrayKey = KIND_ARRAY_KEY[kind];
+    const card = { id: genId(), ref: { boardId: sourceSpecId, itemId: sourceItemId } };
+    setSpecs((prev) => prev.map((s) => (
+      s.id === destSpecId
+        ? { ...s, board: { ...s.board, [arrayKey]: [...s.board[arrayKey], card], updatedAt: Date.now() }, updatedAt: Date.now() }
+        : s
+    )));
+    goToSpecDiscovery(destSpecId, card.id);
+  };
+
+  // Signals and Activities are global, workspace-wide records (see signalModel.js) — created
+  // only from Research Repository, then linked (never copied) into any number of specs'
+  // Discovery boards. `signal` here already arrives as a complete object (Research Repository
+  // builds it off blankSignal() plus its form fields); an activity has no form at all — same
+  // flow as createSpec, it's created blank and you land straight on its own page to fill in.
+  const createSignal = (signal) => setSignals((prev) => [...prev, signal]);
+  const createActivity = () => {
+    const activity = blankActivity();
+    setActivities((prev) => [...prev, activity]);
+    goToActivity(activity.id);
+  };
+  const updateSignal = (id, patch) =>
+    setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: Date.now() } : s)));
+  const deleteSignal = (id) => {
+    const index = signals.findIndex((s) => s.id === id);
+    const signal = signals[index];
+    if (!signal) return;
+    // A signal can be linked into many boards, each at its own position and wired to its own
+    // insights. Undo has to put all of that back, so capture it before anything is removed.
+    const links = specs
+      .filter((s) => (s.board.signals || []).some((x) => x.id === id))
+      .map((s) => ({
+        specId: s.id,
+        index: s.board.signals.findIndex((x) => x.id === id),
+        connections: (s.board.connections || []).filter((c) => c.from === id || c.to === id),
+      }));
+
+    setSignals((prev) => prev.filter((s) => s.id !== id));
+    // strip the pointer (and any connections touching it) from every board it was linked into
+    setSpecs((prev) => prev.map((s) => (
+      (s.board.signals || []).some((x) => x.id === id)
+        ? {
+            ...s,
+            board: {
+              ...s.board,
+              signals: s.board.signals.filter((x) => x.id !== id),
+              connections: s.board.connections.filter((c) => c.from !== id && c.to !== id),
+              updatedAt: Date.now(),
+            },
+            updatedAt: Date.now(),
+          }
+        : s
+    )));
+
+    const where = links.length ? ` and unlinked it from ${links.length} spec${links.length === 1 ? "" : "s"}` : "";
+    showToast(`Deleted signal${where}`, () => {
+      setSignals((prev) => insertAt(prev, index, signal));
+      setSpecs((prev) => prev.map((s) => {
+        const link = links.find((l) => l.specId === s.id);
+        if (!link) return s;
+        return {
+          ...s,
+          board: {
+            ...s.board,
+            signals: insertAt(s.board.signals, link.index, { id }),
+            connections: [...s.board.connections, ...link.connections],
+            updatedAt: Date.now(),
+          },
+        };
+      }));
+    });
+  };
+  const updateActivity = (id, patch) =>
+    setActivities((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch, updatedAt: Date.now() } : a)));
+  const deleteActivity = (id) => {
+    const index = activities.findIndex((a) => a.id === id);
+    const activity = activities[index];
+    if (!activity) return;
+    // the signals about to be detached — undo re-points exactly these back at the activity
+    const detachedIds = signals
+      .filter((s) => s.source?.type === "activity" && s.source.activityId === id)
+      .map((s) => s.id);
+
+    setActivities((prev) => prev.filter((a) => a.id !== id));
+    // Detach rather than delete — the signals it collected still stand on their own, just with
+    // no source (there's no free-text fallback to preserve the activity's name into anymore —
+    // see signalModel.js — so this is the same "no source" state a signal never tied to an
+    // activity in the first place would have).
+    setSignals((prev) => prev.map((s) => (
+      s.source?.type === "activity" && s.source.activityId === id ? { ...s, source: null, updatedAt: Date.now() } : s
+    )));
+    if (route.name === "activity" && route.id === id) goToResearch();
+
+    const kept = detachedIds.length ? ` — ${detachedIds.length} signal${detachedIds.length === 1 ? "" : "s"} kept` : "";
+    showToast(`Deleted "${activity.name || "Untitled activity"}"${kept}`, () => {
+      setActivities((prev) => insertAt(prev, index, activity));
+      setSignals((prev) => prev.map((s) => (
+        detachedIds.includes(s.id) ? { ...s, source: { type: "activity", activityId: id } } : s
+      )));
+    });
+  };
+
+  // Insights are global, workspace-wide records too now (see insightModel.js) — created (or
+  // drawn out of signals) from Research Repository's discovery canvas, then linked into any
+  // number of specs' Discovery boards. Structurally identical to the signal handlers above;
+  // the one difference is what deletion means: a signal detaches from a deleted activity and
+  // survives, but an insight really is gone when deleted — there's no coarser record above it
+  // to fall back to, only the boards it was linked into (which just lose the pointer).
+  const createInsight = (insight) => setInsights((prev) => [...prev, insight]);
+  const updateInsight = (id, patch) =>
+    setInsights((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch, updatedAt: Date.now() } : i)));
+  const deleteInsight = (id) => {
+    const index = insights.findIndex((i) => i.id === id);
+    const insight = insights[index];
+    if (!insight) return;
+    const links = specs
+      .filter((s) => (s.board.insights || []).some((x) => x.id === id))
+      .map((s) => ({
+        specId: s.id,
+        index: s.board.insights.findIndex((x) => x.id === id),
+        connections: (s.board.connections || []).filter((c) => c.from === id || c.to === id),
+      }));
+
+    setInsights((prev) => prev.filter((i) => i.id !== id));
+    setSpecs((prev) => prev.map((s) => (
+      (s.board.insights || []).some((x) => x.id === id)
+        ? {
+            ...s,
+            board: {
+              ...s.board,
+              insights: s.board.insights.filter((x) => x.id !== id),
+              connections: s.board.connections.filter((c) => c.from !== id && c.to !== id),
+              updatedAt: Date.now(),
+            },
+            updatedAt: Date.now(),
+          }
+        : s
+    )));
+
+    const where = links.length ? ` and unlinked it from ${links.length} spec${links.length === 1 ? "" : "s"}` : "";
+    showToast(`Deleted insight${where}`, () => {
+      setInsights((prev) => insertAt(prev, index, insight));
+      setSpecs((prev) => prev.map((s) => {
+        const link = links.find((l) => l.specId === s.id);
+        if (!link) return s;
+        return {
+          ...s,
+          board: {
+            ...s.board,
+            insights: insertAt(s.board.insights, link.index, { id }),
+            connections: [...s.board.connections, ...link.connections],
+            updatedAt: Date.now(),
+          },
+        };
+      }));
+    });
+  };
+
+  // Attach an existing insight onto a spec's Discovery board from Research Repository — same
+  // shape as linkSignalToBoard above, and safe for the same reason (targets a spec that isn't
+  // currently mounted, or navigates straight into it afterward).
+  const linkInsightToBoard = (specId, insightId) => {
+    setSpecs((prev) => prev.map((s) => (
+      s.id === specId && !(s.board.insights || []).some((x) => x.id === insightId)
+        ? { ...s, board: { ...s.board, insights: [...s.board.insights, { id: insightId }], updatedAt: Date.now() }, updatedAt: Date.now() }
+        : s
+    )));
+    goToSpecDiscovery(specId, insightId);
+  };
+
+  // Attach an existing signal onto a spec's Discovery board from Research Repository (search
+  // isn't scoped to a spec, so there's no mounted Board to hand this off to) — same
+  // live-reference idea as attachReference above, and safe for the same reason: this either
+  // targets a spec that isn't currently mounted, or navigates straight into it afterward, so
+  // there's no local board state around yet to go stale. Linking/unlinking *from inside* an
+  // already-open Discovery board is Board.jsx's own local-state concern instead (see Board.jsx).
+  const linkSignalToBoard = (specId, signalId) => {
+    setSpecs((prev) => prev.map((s) => (
+      s.id === specId && !(s.board.signals || []).some((x) => x.id === signalId)
+        ? { ...s, board: { ...s.board, signals: [...s.board.signals, { id: signalId }], updatedAt: Date.now() }, updatedAt: Date.now() }
+        : s
+    )));
+    goToSpecDiscovery(specId, signalId);
+  };
+
+  const activeSection = route.name === "doc" ? sections.find((s) => s.id === route.sectionId) : null;
+  const activeDocument = activeSection ? activeSection.documents.find((d) => d.id === route.docId) : null;
+  const activeSpec = isSpecRoute ? specs.find((s) => s.id === route.id) : null;
+  const activeInitiative = route.name === "initiative" ? initiatives.find((i) => i.id === route.id) : null;
+  // The initiative a spec belongs to (if any) — its title threads into the spec's breadcrumb.
+  const specInitiative = activeSpec ? initiatives.find((i) => i.id === activeSpec.initiativeId) : null;
+  const activeActivity = route.name === "activity" ? activities.find((a) => a.id === route.id) : null;
+  const activeSpecTab = route.name === "specDesign" ? "design" : route.name === "specPlan" ? "plan" : route.name === "specDiscovery" ? "discovery" : "overview";
+  // Boards are never their own top-level thing anymore — this is the flat, board-shaped view
+  // every cross-spec reference (`resolveRef`) and the Research Repository search need, each
+  // one labeled with the spec that owns it since a board carries no name of its own.
+  const allBoards = useMemo(() => specs.map((s) => ({ ...s.board, specTitle: s.title })), [specs]);
+
+  // Which fixed sidebar entry reads as "active" — a spec doesn't have its own nav row, so it
+  // highlights the section it belongs under. An activity is reached through Research
+  // Repository the same way, so it highlights that instead. The Home landing matches neither,
+  // so nothing lights up there — it's not "inside" Research Repository or Specs.
+  const activeView = route.name === "doc" ? { type: "doc", sectionId: route.sectionId, docId: route.docId }
+    : (route.name === "specs" || isSpecRoute || route.name === "initiative") ? { type: "specs" }
+    : (route.name === "research" || route.name === "activity") ? { type: "research" }
+    : { type: "home" };
+
+  // Every trail is rooted in the folder the data actually lives in — everything below it is a
+  // path *within* that folder, so it belongs at the front. Clicking it re-opens the folder
+  // picker (the same thing "Change folder" does in the corner), because the place you're most
+  // likely to want to switch folders is while looking at which one you're in.
+  const folderCrumb = {
+    label: dirHandle?.name || "Research folder",
+    onClick: handleChangeFolder,
+    icon: FolderOpen,
+    title: "Switch to a different research folder",
+  };
+
+  // `null` (Home) means no breadcrumb bar at all — it's a standalone landing, not a page you
+  // drill into from somewhere else.
+  const breadcrumbs = route.name === "doc"
+    ? [folderCrumb, { label: activeSection ? (activeSection.name || "Untitled section") : "Section not found" }, { label: activeDocument ? (activeDocument.title || "Untitled document") : "Document not found" }]
+    : isSpecRoute
+    ? [
+        folderCrumb,
+        { label: "Specs", onClick: goToSpecs },
+        ...(specInitiative ? [{ label: specInitiative.title || "Untitled initiative", onClick: () => goToInitiative(specInitiative.id) }] : []),
+        { label: activeSpec ? (activeSpec.title || "Untitled spec") : "Spec not found" },
+      ]
+    : route.name === "initiative"
+    ? [folderCrumb, { label: "Specs", onClick: goToSpecs }, { label: activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found" }]
+    : route.name === "specs"
+    ? [folderCrumb, { label: "Specs" }]
+    : route.name === "activity"
+    ? [folderCrumb, { label: "Research Repository", onClick: goToResearch }, { label: activeActivity ? (activeActivity.name || "Untitled activity") : "Activity not found" }]
+    : route.name === "research"
+    ? [folderCrumb, { label: "Research Repository" }]
+    : null;
 
   if (phase === "unsupported") {
     return (
       <ConnectScreen
         title="Browser not supported"
-        message="Evidence Loop stores your research as files in a folder you pick, which needs the File System Access API — available in Chrome, Edge, and other Chromium-based browsers, but not Firefox or Safari."
+        message="Monk stores your research as files in a folder you pick, which needs the File System Access API — available in Chrome, Edge, and other Chromium-based browsers, but not Firefox or Safari."
       />
     );
   }
   if (phase === "checking") {
-    return <ConnectScreen title="Evidence Loop" message="Checking for a connected folder…" />;
+    return <ConnectScreen title="Monk" message="Checking for a connected folder…" />;
   }
   if (phase === "needsConnect") {
     return (
       <ConnectScreen
         title="Connect your research folder"
-        message="Pick a folder — ideally one inside your project's repo — where every board is saved as plain markdown files you can read, grep, and commit like any other file."
+        message="Pick a folder — ideally one inside your project's repo — where every spec is saved as plain markdown files you can read, grep, and commit like any other file."
         buttonLabel="Connect folder"
         onClick={handleConnect}
       />
@@ -216,34 +601,145 @@ export default function App() {
     );
   }
   if (phase === "loading") {
-    return <ConnectScreen title="Evidence Loop" message="Loading your research folder…" />;
+    return <ConnectScreen title="Monk" message="Loading your research folder…" />;
   }
 
   return (
     <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column" }}>
       <Header onGoHome={goToStart} saveStatus={saveStatus} onRetrySave={retrySave} onChangeFolder={handleChangeFolder} />
 
-      <div style={{ flex: 1, minHeight: 0, padding: activeBoard ? "12px" : 0, boxSizing: "border-box" }}>
-        {activeBoardId && !activeBoard ? (
-          <div style={{ fontFamily: font, textAlign: "center", color: INK_SOFT, fontSize: "13.5px", padding: "60px 0" }}>
-            Board not found.{" "}
-            <button onClick={goToStart} style={{ fontFamily: font, color: INK, background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0 }}>
-              Back to boards
-            </button>
+      <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
+        <Sidebar
+          sections={sections}
+          activeView={activeView}
+          onOpenResearch={goToResearch}
+          onOpenSpecs={goToSpecs}
+          onOpenDocument={goToDocument}
+          onCreateSection={createSection}
+          onRenameSection={renameSection}
+          onDeleteSection={deleteSection}
+          onCreateDocument={createDocument}
+          onDeleteDocument={deleteDocument}
+        />
+        <div style={{ flex: 1, minWidth: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* SpecPage builds its own header (breadcrumbs + left-aligned title + full-width tab
+              bar) rather than sitting under this generic bar — skip it there to avoid showing
+              the same breadcrumb trail twice. `breadcrumbs` is null on the Home landing, which
+              has no bar of its own either — it's a standalone page, not one you drill into. */}
+          {!((isSpecRoute && activeSpec) || (route.name === "activity" && activeActivity) || (route.name === "initiative" && activeInitiative)) && breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
+          <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+            {isSpecRoute ? (
+              !activeSpec ? (
+                <NotFoundMessage text="Spec not found." backLabel="Back to specs" onBack={goToSpecs} />
+              ) : (
+                <SpecPage
+                  key={activeSpec.id}
+                  spec={activeSpec}
+                  boards={allBoards}
+                  signals={signals}
+                  insights={insights}
+                  activities={activities}
+                  sections={sections}
+                  initiatives={initiatives}
+                  onCreateSignal={createSignal}
+                  onCreateInsight={createInsight}
+                  onChange={(patch) => updateSpec(activeSpec.id, patch)}
+                  activeTab={activeSpecTab}
+                  onSelectTab={(tab) => (
+                    tab === "design" ? goToSpecDesign(activeSpec.id) :
+                    tab === "plan" ? goToSpecPlan(activeSpec.id) :
+                    tab === "discovery" ? goToSpecDiscovery(activeSpec.id) :
+                    goToSpec(activeSpec.id)
+                  )}
+                  highlightCardId={route.cardId}
+                  onOpenBoard={(specId) => goToSpecDiscovery(specId)}
+                  onUpdateSignal={updateSignal}
+                  onUpdateInsight={updateInsight}
+                  onToast={showToast}
+                  breadcrumbs={breadcrumbs}
+                />
+              )
+            ) : route.name === "doc" ? (
+              activeDocument ? (
+                <DocumentPage
+                  key={activeDocument.id}
+                  document={activeDocument}
+                  onChange={(patch) => updateDocument(route.sectionId, activeDocument.id, patch)}
+                />
+              ) : (
+                <NotFoundMessage text="Document not found." backLabel="Back to research repository" onBack={goToResearch} />
+              )
+            ) : route.name === "specs" ? (
+              <SpecsPage
+                specs={specs}
+                initiatives={initiatives}
+                onCreate={createSpec}
+                onCreateInitiative={createInitiative}
+                onOpen={goToSpec}
+                onOpenInitiative={goToInitiative}
+                onDelete={deleteSpec}
+              />
+            ) : route.name === "initiative" ? (
+              !activeInitiative ? (
+                <NotFoundMessage text="Initiative not found." backLabel="Back to specs" onBack={goToSpecs} />
+              ) : (
+                <InitiativePage
+                  key={activeInitiative.id}
+                  initiative={activeInitiative}
+                  specs={specsForInitiative(specs, activeInitiative.id)}
+                  onChange={(patch) => updateInitiative(activeInitiative.id, patch)}
+                  onDelete={() => deleteInitiative(activeInitiative.id)}
+                  onOpenSpec={goToSpec}
+                  onCreateSpec={() => createSpec(activeInitiative.id)}
+                  onDetachSpec={(specId) => updateSpec(specId, { initiativeId: null })}
+                  breadcrumbs={breadcrumbs}
+                />
+              )
+            ) : route.name === "research" ? (
+              <ResearchRepositoryPage
+                boards={allBoards}
+                specs={specs}
+                signals={signals}
+                insights={insights}
+                activities={activities}
+                onOpen={goToSpecDiscovery}
+                onOpenActivity={goToActivity}
+                onAttach={attachReference}
+                onCreateSignal={createSignal}
+                onCreateActivity={createActivity}
+                onCreateInsight={createInsight}
+                onUpdateSignal={updateSignal}
+                onDeleteSignal={deleteSignal}
+                onLinkSignal={linkSignalToBoard}
+                onUpdateInsight={updateInsight}
+                onDeleteInsight={deleteInsight}
+                onLinkInsight={linkInsightToBoard}
+              />
+            ) : route.name === "activity" ? (
+              !activeActivity ? (
+                <NotFoundMessage text="Activity not found." backLabel="Back to research repository" onBack={goToResearch} />
+              ) : (
+                <ActivityPage
+                  key={activeActivity.id}
+                  activity={activeActivity}
+                  signals={signals}
+                  activities={activities}
+                  onChange={(patch) => updateActivity(activeActivity.id, patch)}
+                  onDelete={() => deleteActivity(activeActivity.id)}
+                  onCreateSignal={createSignal}
+                  onUpdateSignal={updateSignal}
+                  onDeleteSignal={deleteSignal}
+                  breadcrumbs={breadcrumbs}
+                />
+              )
+            ) : (
+              <Home onCreateSpec={createSpec} />
+            )}
           </div>
-        ) : activeBoard ? (
-          <Board
-            key={activeBoard.id}
-            board={activeBoard}
-            onChange={(patch) => updateBoard(activeBoard.id, patch)}
-            highlightCardId={route.cardId}
-            allBoards={boards}
-            onOpenBoard={goToBoard}
-          />
-        ) : (
-          <HomePage boards={boards} onCreate={createBoard} onOpen={goToBoard} onRename={renameBoard} onDelete={deleteBoard} onAttach={attachReference} />
-        )}
+        </div>
       </div>
+
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }

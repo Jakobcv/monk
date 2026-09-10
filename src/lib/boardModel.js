@@ -4,16 +4,20 @@
 let nextId = 1000;
 export const genId = () => nextId++;
 
-const genBoardId = () =>
+// Shared id generator for any top-level entity that needs a filesystem-safe, effectively-unique
+// id — boards, and (see documentModel.js) sections and documents too.
+export const genEntityId = () =>
   (typeof crypto !== "undefined" && crypto.randomUUID)
     ? crypto.randomUUID()
-    : `b_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    : `e_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-export function blankBoard(name = "Untitled board") {
+// A board is always owned by exactly one spec now — `id` is the owning spec's id (a ref's
+// `boardId` therefore means "which spec's board"), not a fresh id of its own. Pure canvas +
+// connections; no name/goal/status/etc. — that metadata lives on the owning spec instead.
+export function blankBoard(id) {
   const now = Date.now();
   return {
-    id: genBoardId(), name, createdAt: now, updatedAt: now,
-    goal: "", target: "", status: "Not started", impact: "Medium", method: "", author: "", description: "",
+    id, createdAt: now, updatedAt: now,
     signals: [], insights: [], actions: [], results: [], connections: [],
   };
 }
@@ -34,8 +38,11 @@ export function resolveRef(boards, kind, ref) {
 export function bumpNextId(boards) {
   let max = 999;
   for (const board of boards || []) {
-    for (const list of [board.signals, board.insights, board.actions, board.results, board.connections]) {
-      for (const item of list || []) if (item.id > max) max = item.id;
+    // board.signals/board.insights entries both carry a *global* entity's own (string) id now
+    // — a separate id space from this numeric counter, so they're excluded here (see
+    // signalModel.js / insightModel.js).
+    for (const list of [board.actions, board.results, board.connections]) {
+      for (const item of list || []) if (typeof item.id === "number" && item.id > max) max = item.id;
     }
   }
   nextId = max + 1;

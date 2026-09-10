@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Weight 800 is loaded for the Home wordmark — without it the browser faux-bolds 700. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* Every value below comes from --custom-properties injected at boot from lib/theme.js,
+   so this file never holds a hardcoded token of its own. See theme.js CSS_VARS. */
 
 * {
   box-sizing: border-box;
@@ -9,4 +13,372 @@ body,
 #root {
   height: 100%;
   margin: 0;
+}
+
+/* The page canvas, not quite white — reusing the same grey the Sidebar already sits on
+   (--bg-sidebar), rather than introducing a second "quiet grey" token. Every white card
+   (the generic .card, and now every board card too — see cardSurface in ui/cardStyles.js)
+   used to sit on an equally-white page, told apart only by a 1px border. This isn't the
+   "text on a tint" mistake the signal card's old background was: nothing renders text
+   directly against it — it only ever touches the *outside* of a card's border, giving a
+   second, independent cue for "this is a surface" alongside the border, at zero cost to
+   the legibility of anything drawn on top of it. */
+body {
+  background-color: var(--bg-sidebar);
+}
+
+/* ---------------------------------------------------------------------------
+   Motion. Anyone who asks their OS for less of it gets none of it — animation
+   in this app is never load-bearing, so removing it costs nothing.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Placeholders. Global, because several inputs carry no class of their own and
+   were falling through to the browser's default grey — which is *darker* than
+   the label above them, so the hint outweighed the structure. A placeholder is
+   the least permanent thing on screen and should look like it.
+   --------------------------------------------------------------------------- */
+::placeholder {
+  color: var(--ink-placeholder);
+  font-weight: 400;
+  opacity: 1; /* Firefox dims placeholders by default; we set our own value */
+}
+
+/* ---------------------------------------------------------------------------
+   Focus. Mouse users see nothing; keyboard users get a real, consistent ring
+   on every interactive element in the app — which previously had none at all.
+   --------------------------------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--accent-insight);
+  outline-offset: 1px;
+  border-radius: var(--radius-xs);
+}
+
+/* ---------------------------------------------------------------------------
+   Button
+   --------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease),
+    opacity var(--motion-fast) var(--ease),
+    transform var(--motion-instant) var(--ease);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.btn--sm {
+  font-size: var(--size-sm);
+  padding: 5px 10px;
+}
+.btn--md {
+  font-size: var(--size-ui);
+  padding: 8px 14px;
+}
+
+.btn--primary {
+  background: var(--ink);
+  color: #fff;
+}
+.btn--primary:hover:not(:disabled) {
+  background: #4b4842;
+}
+
+.btn--secondary {
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+.btn--secondary:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--ink-faint);
+}
+
+/* text-only; for tertiary actions that shouldn't compete with anything */
+.btn--subtle {
+  color: var(--ink-soft);
+  padding-left: 6px;
+  padding-right: 6px;
+}
+.btn--subtle:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--ink);
+}
+
+.btn--danger {
+  color: var(--danger);
+}
+.btn--danger:hover:not(:disabled) {
+  background: rgba(224, 62, 62, 0.08);
+}
+
+/* ---------------------------------------------------------------------------
+   Icon button — the bare square controls (delete ×, add +, reorder chevrons)
+   --------------------------------------------------------------------------- */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: none;
+  color: var(--ink-faint);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease),
+    opacity var(--motion-fast) var(--ease);
+}
+.icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--ink);
+}
+.icon-btn--danger:hover {
+  background: rgba(224, 62, 62, 0.08);
+  color: var(--danger);
+}
+.icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.icon-btn:disabled:hover {
+  background: none;
+  color: var(--ink-faint);
+}
+
+/* ---------------------------------------------------------------------------
+   Card — one definition, replacing the `.el-resultcard` block that was pasted
+   three separate times inside ResearchRepositoryPage alone.
+   --------------------------------------------------------------------------- */
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  transition:
+    border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease);
+}
+.card--interactive {
+  cursor: pointer;
+}
+.card--interactive:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------------------------------------------------------------------------
+   Field — inputs, selects and textareas
+   --------------------------------------------------------------------------- */
+.field {
+  font-family: var(--font);
+  font-size: var(--size-sm);
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  outline: none;
+  transition:
+    border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease);
+}
+.field:hover:not(:focus) {
+  border-color: var(--ink-faint);
+}
+.field:focus {
+  border-color: var(--accent-insight);
+  box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.12);
+}
+.field--ui {
+  font-size: var(--size-ui);
+  padding: 6px 9px;
+}
+/* a field that only reveals its edges on hover/focus — for inline editing that
+   shouldn't look like a form until you reach for it */
+.field--quiet {
+  border-color: transparent;
+  background: transparent;
+}
+.field--quiet:hover:not(:focus) {
+  border-color: var(--border);
+  background: #fff;
+}
+
+/* ---------------------------------------------------------------------------
+   Reveal-on-hover — controls that shouldn't add noise until you're on the row
+   (a card's delete, the board's reorder arrows and connector handles). Three
+   files had grown their own version of this; `:focus-within` is new, and means
+   a keyboard user can now actually reach controls that used to be
+   mouse-only-discoverable.
+   --------------------------------------------------------------------------- */
+.reveal-group .reveal {
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+.reveal-group:hover .reveal,
+.reveal-group:focus-within .reveal,
+.reveal:focus-visible {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Board-style card. Lives here rather than in Board.jsx because a signal card
+   now appears in two places — a spec's Discovery board and an Activity page —
+   and has to look identical in both. The accent tint itself comes from
+   ui/cardStyles.js, since it varies per card kind.
+   --------------------------------------------------------------------------- */
+.el-card {
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+  transition: box-shadow var(--motion-fast) var(--ease);
+}
+.el-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
+}
+
+/* A signal card's metadata controls stay invisible until you reach for them, so a card full of
+   editable fields still reads as content rather than as a form. Scoped to `.signal-card` (not
+   the board's `.el-node`) precisely so the Activity page gets the same behaviour. */
+.el-meta-input {
+  transition:
+    border-color var(--motion-fast) var(--ease),
+    background-color var(--motion-fast) var(--ease);
+}
+.signal-card:hover .el-meta-input {
+  border-color: var(--border);
+  background: #fff;
+}
+.el-meta-input:focus {
+  outline: none;
+  border-color: var(--accent-signal);
+  background: #fff;
+}
+.el-meta-input::placeholder {
+  color: var(--ink-placeholder);
+}
+
+/* "+ Link" / "+ Author" etc. — hidden until the card is hovered (.reveal/.reveal-group, same
+   pair as the corner delete), and a touch darker on their own hover so they read as clickable. */
+.signal-card .reveal:hover {
+  color: var(--ink-soft);
+}
+
+/* A clickable breadcrumb — including the first one, which names the connected folder and
+   re-opens the folder picker. */
+.crumb {
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease);
+}
+.crumb:hover {
+  background: var(--bg-hover);
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------------------
+   Popover — a floating surface anchored to whatever opened it. Positioned
+   `fixed` by its owner, so it can escape a scrolling container's clipping.
+   --------------------------------------------------------------------------- */
+.popover {
+  position: fixed;
+  z-index: 60;
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  padding: 8px;
+}
+
+/* ---------------------------------------------------------------------------
+   Toast — bottom-left, dark, small. Reports what happened and offers Undo.
+   --------------------------------------------------------------------------- */
+.toast {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 380px;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--font);
+  font-size: var(--size-ui);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  animation: toast-in var(--motion-base) var(--ease-entrance);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.toast__undo {
+  flex-shrink: 0;
+  font-family: var(--font);
+  font-size: var(--size-ui);
+  font-weight: 600;
+  color: #fff;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  opacity: 0.85;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+.toast__undo:hover {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Entrance — the one shared arrival animation
+   --------------------------------------------------------------------------- */
+@keyframes enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.enter-up {
+  animation: enter-up var(--motion-base) var(--ease-entrance);
 }
