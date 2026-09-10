@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { BookOpen, Layers, FileText, Plus, Trash2, Library, ShieldCheck } from "lucide-react";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_SIDEBAR, SIZE, WEIGHT, SPACE, RADIUS, MOTION } from "./lib/theme";
+import { font, INK_FAINT, BORDER, BG_SIDEBAR, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
 import { FIXED_SECTIONS, isFixedSection } from "./lib/documentModel";
 import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
@@ -11,13 +11,14 @@ const FIXED_SECTION_META = {
   "standards": { icon: ShieldCheck, tooltip: "Contracts agents build to — from the design system to accessibility." },
 };
 
-const navItemStyle = (active) => ({
+// Colour / background / hover / active-page all live in `.nav-item` (index.css) so :hover
+// works — this is just the layout. Add `className="nav-item"` alongside it.
+const navItemStyle = {
   display: "flex", alignItems: "center", gap: SPACE.base, width: "100%", textAlign: "left",
-  fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.ui, color: active ? INK : INK_SOFT,
-  background: active ? "#fff" : "none", border: "none", borderRadius: RADIUS.sm,
-  padding: "7px 8px", cursor: "pointer", textDecoration: "none", boxSizing: "border-box",
-  transition: `background-color ${MOTION.fast} ${MOTION.ease}, color ${MOTION.fast} ${MOTION.ease}`,
-});
+  fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.ui, border: "none",
+  borderRadius: RADIUS.sm, padding: "7px 8px", cursor: "pointer", textDecoration: "none",
+  boxSizing: "border-box",
+};
 
 const sectionLabelStyle = {
   flex: 1, fontFamily: font, fontWeight: WEIGHT.bold, fontSize: SIZE.micro, letterSpacing: "0.05em",
@@ -59,16 +60,18 @@ export default function Sidebar({ sections, activeView, researchHref, specsHref,
     }}>
       <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
         <a
+          className="nav-item"
           href={researchHref}
           aria-current={activeView.type === "research" ? "page" : undefined}
-          style={navItemStyle(activeView.type === "research")}
+          style={navItemStyle}
         >
           <BookOpen size={14} /> Research Repository
         </a>
         <a
+          className="nav-item"
           href={specsHref}
           aria-current={activeView.type === "specs" ? "page" : undefined}
-          style={navItemStyle(activeView.type === "specs")}
+          style={navItemStyle}
         >
           <Layers size={14} /> Specs
         </a>
@@ -121,9 +124,10 @@ export default function Sidebar({ sections, activeView, researchHref, specsHref,
                 s.documents.map((doc) => (
                   <div key={doc.id} className="reveal-group" style={{ display: "flex", alignItems: "center", gap: SPACE.xs }}>
                     <a
+                      className="nav-item"
                       href={docHref(s.id, doc.id)}
                       aria-current={activeView.type === "doc" && activeView.docId === doc.id ? "page" : undefined}
-                      style={{ ...navItemStyle(activeView.type === "doc" && activeView.docId === doc.id), flex: 1, minWidth: 0 }}
+                      style={{ ...navItemStyle, flex: 1, minWidth: 0 }}
                     >
                       <FileText size={13} style={{ flexShrink: 0 }} />
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

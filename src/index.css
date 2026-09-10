@@ -552,6 +552,33 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   Sidebar nav item (Research Repository / Specs / each document). Soft grey at
+   rest, a grey wash + full ink on hover, and the current page a raised white
+   pill. Layout comes from navItemStyle in Sidebar.jsx.
+   --------------------------------------------------------------------------- */
+.nav-item {
+  color: var(--ink-soft);
+  background: none;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease),
+    transform var(--motion-instant) var(--ease);
+}
+.nav-item:hover:not([aria-current="page"]) {
+  background: var(--bg-hover);
+  color: var(--ink);
+}
+.nav-item:active:not([aria-current="page"]) {
+  transform: translateY(0.5px);
+}
+.nav-item[aria-current="page"] {
+  color: var(--ink);
+  background: var(--bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* ---------------------------------------------------------------------------
    Spec tab bar. The active marker is a sliding bar rendered by SpecPage; each
    tab here is just its label — soft grey, lifting to full ink on hover or when
    selected.
