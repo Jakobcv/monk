@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
-import { INK_FAINT, BORDER, SPACE, METHOD_OPTIONS } from "./lib/theme";
-import { eyebrow, pageTitleInput } from "./ui/text";
+import { INK_FAINT, BORDER, SIZE, SPACE, METHOD_OPTIONS } from "./lib/theme";
+import { eyebrow, meta, pageTitleInput } from "./ui/text";
 import Breadcrumbs from "./Breadcrumbs";
 import SignalCard from "./SignalCard";
 import Button from "./ui/Button";
 import Field from "./ui/Field";
 import EmptyState from "./ui/EmptyState";
+import Modal from "./ui/Modal";
 import { blankSignal, signalsForActivity } from "./lib/signalModel";
 
 // `activity` only seeds local state on mount — the parent remounts this page (via
@@ -30,15 +31,17 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
 
   const linked = signalsForActivity(signals, activity.id);
 
-  // Anything not linked when the page opened is an arrival — it animates in and takes focus.
+  // Anything not linked when the page opened is an arrival — it animates in and takes focus
+  // once the create modal saves.
   const [presentOnMount] = useState(() => new Set(linked.map((s) => s.id)));
   const [focusId, setFocusId] = useState(null);
 
-  const addSignal = () => {
-    const sig = { ...blankSignal(), source: { type: "activity", activityId: activity.id } };
-    onCreateSignal(sig);
-    setFocusId(sig.id);
-  };
+  // Non-null while the create modal is open — the draft, built off blankSignal() (already
+  // pointed at this activity as its source) the moment it opens. Mirrors Research Repository.
+  const [newSignal, setNewSignal] = useState(null);
+  const openSignalForm = () => setNewSignal({ ...blankSignal(), source: { type: "activity", activityId: activity.id } });
+  const closeSignalForm = () => setNewSignal(null);
+  const saveSignalForm = () => { onCreateSignal(newSignal); setFocusId(newSignal.id); closeSignalForm(); };
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -80,7 +83,7 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
               <div style={eyebrow}>Linked signals ({linked.length})</div>
-              <Button onClick={addSignal}>
+              <Button onClick={openSignalForm}>
                 <Plus size={12} /> Add signal
               </Button>
             </div>
@@ -114,6 +117,27 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
           </Button>
         </div>
       </div>
+
+      {newSignal && (
+        // Cmd/Ctrl+Enter saves — plain Enter types into the observation. Modal owns Escape.
+        <Modal title="New signal" onClose={closeSignalForm}>
+          <div onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveSignalForm(); } }}>
+            <SignalCard
+              autoFocus
+              signal={newSignal}
+              activities={activities}
+              onChange={(patch) => setNewSignal((s) => ({ ...s, ...patch }))}
+            />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.base, marginTop: SPACE.lg }}>
+              <span style={{ ...meta, fontSize: SIZE.xs }}>⌘↵ to save · Esc to cancel</span>
+              <div style={{ display: "flex", gap: SPACE.base }}>
+                <Button onClick={closeSignalForm} style={{ padding: "6px 14px" }}>Cancel</Button>
+                <Button variant="primary" onClick={saveSignalForm} style={{ padding: "6px 14px" }}>Save</Button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
