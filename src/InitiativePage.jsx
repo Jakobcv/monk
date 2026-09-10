@@ -64,8 +64,10 @@ export default function InitiativePage({
           <div>
             <div style={{ ...eyebrow, marginBottom: SPACE.base }}>Description</div>
             {/* Freeform context shared by every spec under this initiative — it flows into
-                each one's "Start build" brief as an "## Initiative" section. */}
-            <CrepeEditor value={initiative.description} onChange={(description) => onChange({ description })} />
+                each one's "Start build" brief as an "## Initiative" section. A short blurb,
+                not a document, so it starts near-empty and grows with the text rather than
+                claiming the 60vh canvas DocumentPage wants. */}
+            <CrepeEditor value={initiative.description} onChange={(description) => onChange({ description })} minHeight="0" />
           </div>
 
           <div style={{ height: "1px", backgroundColor: BORDER }} />

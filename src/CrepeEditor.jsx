@@ -7,7 +7,10 @@ import "@milkdown/crepe/theme/classic.css";
 // SpecPage's Design/Plan tabs (no title, just this). `value` only seeds the editor on mount;
 // Crepe is uncontrolled after that like any other rich-text editor, so the parent should treat
 // `onChange` as the source of truth rather than feeding edited `value` back in.
-export default function CrepeEditor({ value, onChange }) {
+//
+// `minHeight` overrides the default 60vh writing canvas — pass a small value (e.g. "0") where
+// the editor holds a short blurb rather than a full document (the initiative description).
+export default function CrepeEditor({ value, onChange, minHeight }) {
   const editorRootRef = useRef(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -29,13 +32,17 @@ export default function CrepeEditor({ value, onChange }) {
            editor — override both so it reads as writing directly on our page background
            rather than a boxed-in card. */
         .el-doc-editor .milkdown { background: transparent; }
-        .el-doc-editor .milkdown .ProseMirror { padding: 8px 0; min-height: 60vh; }
+        .el-doc-editor .milkdown .ProseMirror { padding: 8px 0; min-height: var(--crepe-min-h, 60vh); }
         /* The block-edit drag/plus handles default to transitioning "all", which animates
            their top/left as they jump between blocks — reads as scooting around. Only
            opacity should animate; position should snap instantly. */
         .el-doc-editor .milkdown .milkdown-block-handle { transition: opacity 0.1s ease-in; }
       `}</style>
-      <div ref={editorRootRef} className="el-doc-editor" />
+      <div
+        ref={editorRootRef}
+        className="el-doc-editor"
+        style={minHeight != null ? { "--crepe-min-h": minHeight } : undefined}
+      />
     </>
   );
 }
