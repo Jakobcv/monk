@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { ChevronDown, FileOutput, Check } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_SIDEBAR, SIZE, WEIGHT, RADIUS, MOTION, SPEC_STATUS_OPTIONS, SPEC_STATUS_COLOR } from "./lib/theme";
 import { eyebrow, editArea, pageTitleInput } from "./ui/text";
@@ -16,12 +16,12 @@ const selectStyle = (color) => ({
   padding: "6px 26px 6px 9px", boxSizing: "border-box", width: "100%",
   fontFamily: font, fontWeight: WEIGHT.medium, fontSize: SIZE.ui, color: color || INK, cursor: "pointer",
 });
-const tabButtonStyle = (active) => ({
-  fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.ui, cursor: "pointer",
-  padding: "8px 2px", border: "none", borderBottom: `2px solid ${active ? INK : "transparent"}`,
-  background: "none", color: active ? INK : INK_SOFT,
-  transition: `color ${MOTION.fast} ${MOTION.ease}, border-color ${MOTION.fast} ${MOTION.ease}`,
-});
+// The active-tab marker is a single sliding bar (see the tablist below), not a per-tab
+// border — so a tab is just its label. Colour + hover live in .spec-tab (index.css).
+const tabLinkStyle = {
+  fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.ui,
+  padding: "8px 2px", textDecoration: "none",
+};
 
 // Discovery / Design / Plan mirror the shape of the work itself — research, then solution,
 // then execution — with Overview as the always-there summary tying them together.
@@ -136,6 +136,22 @@ export default function SpecPage({
     ));
   };
 
+  // The active-tab underline is one bar that slides/resizes between tabs rather than a
+  // border toggling per tab. Its geometry is measured from the active <a>; the first
+  // measurement is applied without a transition (via a double render before paint) so it
+  // doesn't slide in from the left on mount.
+  const tabRefs = useRef([]);
+  const [underline, setUnderline] = useState({ left: 0, width: 0 });
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = tabRefs.current[TABS.findIndex((t) => t.key === activeTab)];
+      if (el) setUnderline({ left: el.offsetLeft, width: el.offsetWidth });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [activeTab]);
+
   return (
     <div style={{ height: "100%", display: "flex" }}>
       <div style={{ flex: 1, minWidth: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -161,18 +177,29 @@ export default function SpecPage({
             </button>
           </div>
 
-          <div role="tablist" style={{ display: "flex", gap: "18px", borderBottom: `1px solid ${BORDER}`, marginTop: "18px" }}>
-            {TABS.map((t) => (
+          <div role="tablist" style={{ position: "relative", display: "flex", gap: "18px", borderBottom: `1px solid ${BORDER}`, marginTop: "18px" }}>
+            {TABS.map((t, i) => (
               <a
                 key={t.key}
+                ref={(el) => (tabRefs.current[i] = el)}
+                className="spec-tab"
                 href={tabHref(t.key)}
                 role="tab"
                 aria-selected={activeTab === t.key}
-                style={{ ...tabButtonStyle(activeTab === t.key), textDecoration: "none" }}
+                style={tabLinkStyle}
               >
                 {t.label}
               </a>
             ))}
+            <span
+              aria-hidden="true"
+              style={{
+                position: "absolute", left: 0, bottom: "-1px", height: "2px",
+                width: `${underline.width}px`, transform: `translateX(${underline.left}px)`,
+                backgroundColor: INK, borderRadius: "1px",
+                transition: `transform ${MOTION.base} ${MOTION.ease}, width ${MOTION.base} ${MOTION.ease}`,
+              }}
+            />
           </div>
         </div>
 

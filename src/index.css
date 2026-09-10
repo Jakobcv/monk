@@ -517,11 +517,10 @@ body {
 /* ---------------------------------------------------------------------------
    Prose field — the borderless long-form inputs on a spec (Problem, Goals,
    Non-goals). Reads as page text at rest; on hover a faint tint says
-   "editable"; on focus a left accent bar, a hairline and a soft ring make the
-   active field unmistakable. The bar and both rings are box-shadow, so
-   focusing changes nothing about layout. The -8px horizontal margin lets the
-   hover tint bleed past the text column while padding keeps the text itself
-   aligned with the label above it.
+   "editable"; on focus a hairline and a soft ring make the active field
+   unmistakable. Both rings are box-shadow, so focusing changes nothing about
+   layout. The -8px horizontal margin lets the hover tint bleed past the text
+   column while padding keeps the text itself aligned with the label above it.
    --------------------------------------------------------------------------- */
 .prose-field {
   font-family: var(--font);
@@ -548,7 +547,22 @@ body {
 .prose-field:focus {
   background: var(--bg);
   box-shadow:
-    inset 2px 0 0 var(--accent-insight),
     0 0 0 1px var(--border-strong),
     0 0 0 4px rgba(35, 131, 226, 0.12);
+}
+
+/* ---------------------------------------------------------------------------
+   Spec tab bar. The active marker is a sliding bar rendered by SpecPage; each
+   tab here is just its label — soft grey, lifting to full ink on hover or when
+   selected.
+   --------------------------------------------------------------------------- */
+.spec-tab {
+  color: var(--ink-soft);
+  transition: color var(--motion-fast) var(--ease);
+}
+.spec-tab:hover {
+  color: var(--ink);
+}
+.spec-tab[aria-selected="true"] {
+  color: var(--ink);
 }
