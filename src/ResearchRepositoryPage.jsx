@@ -10,6 +10,7 @@ import Button from "./ui/Button";
 import Card from "./ui/Card";
 import Field from "./ui/Field";
 import EmptyState from "./ui/EmptyState";
+import Modal from "./ui/Modal";
 
 // per-type: which array on a board holds these cards, and which of the card's fields to
 // search against (Action has three text fields, everything else has just `text`). Signal and
@@ -559,33 +560,28 @@ export default function ResearchRepositoryPage({
             </div>
 
             {newSignal && (
-              // Esc backs out, Cmd/Ctrl+Enter saves — the form is mostly a textarea, so plain
-              // Enter has to stay available for typing.
-              <div
-                className="enter-up"
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") { e.stopPropagation(); closeSignalForm(); }
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveSignalForm(); }
-                }}
-                style={{ marginBottom: "18px" }}
-              >
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", marginBottom: SPACE.md }}>
-                  <span style={{ ...meta, fontSize: SIZE.xs }}>Esc to cancel · ⌘↵ to save</span>
+              // Cmd/Ctrl+Enter saves — the form is mostly a textarea, so plain Enter has to
+              // stay available for typing. Modal owns Escape-to-close.
+              <Modal title="New signal" onClose={closeSignalForm}>
+                <div onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveSignalForm(); } }}>
+                  {/* The same tinted card it'll be once saved, so you're composing the thing
+                      itself rather than filling in a form that turns into it. No `onDelete`:
+                      there's nothing to delete yet. */}
+                  <SignalCard
+                    autoFocus
+                    signal={newSignal}
+                    activities={activities}
+                    onChange={(patch) => setNewSignal((s) => ({ ...s, ...patch }))}
+                  />
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.base, marginTop: SPACE.lg }}>
+                    <span style={{ ...meta, fontSize: SIZE.xs }}>⌘↵ to save · Esc to cancel</span>
+                    <div style={{ display: "flex", gap: SPACE.base }}>
+                      <Button onClick={closeSignalForm} style={{ padding: "6px 14px" }}>Cancel</Button>
+                      <Button variant="primary" onClick={saveSignalForm} style={{ padding: "6px 14px" }}>Save</Button>
+                    </div>
+                  </div>
                 </div>
-                {/* The same tinted card it'll be once saved, so you're composing the thing
-                    itself rather than filling in a form that turns into it. No `onDelete`:
-                    there's nothing to delete yet. */}
-                <SignalCard
-                  autoFocus
-                  signal={newSignal}
-                  activities={activities}
-                  onChange={(patch) => setNewSignal((s) => ({ ...s, ...patch }))}
-                />
-                <div style={{ display: "flex", gap: SPACE.base, marginTop: SPACE.lg }}>
-                  <Button variant="primary" onClick={saveSignalForm} style={{ padding: "6px 14px" }}>Save</Button>
-                  <Button onClick={closeSignalForm} style={{ padding: "6px 14px" }}>Cancel</Button>
-                </div>
-              </div>
+              </Modal>
             )}
 
             {sortedSignals.length === 0 ? (
@@ -608,28 +604,28 @@ export default function ResearchRepositoryPage({
             </div>
 
             {newInsight && (
-              <div
-                className="enter-up"
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") { e.stopPropagation(); closeInsightForm(); }
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveInsightForm(); }
-                }}
-                style={{ marginBottom: "18px" }}
+              <Modal
+                title={newInsight.sources?.length
+                  ? `New insight from ${newInsight.sources.length} signal${newInsight.sources.length === 1 ? "" : "s"}`
+                  : "New insight"}
+                onClose={closeInsightForm}
               >
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", marginBottom: SPACE.md }}>
-                  <span style={{ ...meta, fontSize: SIZE.xs }}>Esc to cancel · ⌘↵ to save</span>
+                <div onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveInsightForm(); } }}>
+                  <InsightCard
+                    autoFocus
+                    insight={newInsight}
+                    signals={signals}
+                    onChange={(patch) => setNewInsight((i) => ({ ...i, ...patch }))}
+                  />
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.base, marginTop: SPACE.lg }}>
+                    <span style={{ ...meta, fontSize: SIZE.xs }}>⌘↵ to save · Esc to cancel</span>
+                    <div style={{ display: "flex", gap: SPACE.base }}>
+                      <Button onClick={closeInsightForm} style={{ padding: "6px 14px" }}>Cancel</Button>
+                      <Button variant="primary" onClick={saveInsightForm} style={{ padding: "6px 14px" }}>Save</Button>
+                    </div>
+                  </div>
                 </div>
-                <InsightCard
-                  autoFocus
-                  insight={newInsight}
-                  signals={signals}
-                  onChange={(patch) => setNewInsight((i) => ({ ...i, ...patch }))}
-                />
-                <div style={{ display: "flex", gap: SPACE.base, marginTop: SPACE.lg }}>
-                  <Button variant="primary" onClick={saveInsightForm} style={{ padding: "6px 14px" }}>Save</Button>
-                  <Button onClick={closeInsightForm} style={{ padding: "6px 14px" }}>Cancel</Button>
-                </div>
-              </div>
+              </Modal>
             )}
 
             {sortedInsights.length === 0 ? (

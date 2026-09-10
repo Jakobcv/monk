@@ -617,3 +617,38 @@ body {
   transform: translateY(-50%) rotate(180deg);
   color: var(--ink-soft);
 }
+
+/* ---------------------------------------------------------------------------
+   Modal — a centred dialog over the blurred, dimmed page (see ui/Modal.jsx).
+   --------------------------------------------------------------------------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 8vh 20px 20px;
+  overflow-y: auto;
+  background: rgba(20, 19, 17, 0.28);
+  -webkit-backdrop-filter: blur(3px) saturate(0.92);
+  backdrop-filter: blur(3px) saturate(0.92);
+  animation: modal-fade var(--motion-base) var(--ease);
+}
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.modal-panel {
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  padding: 20px 22px 22px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
