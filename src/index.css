@@ -513,3 +513,42 @@ body {
   outline: 2px solid var(--accent-insight);
   outline-offset: 2px;
 }
+
+/* ---------------------------------------------------------------------------
+   Prose field — the borderless long-form inputs on a spec (Problem, Goals,
+   Non-goals). Reads as page text at rest; on hover a faint tint says
+   "editable"; on focus a left accent bar, a hairline and a soft ring make the
+   active field unmistakable. The bar and both rings are box-shadow, so
+   focusing changes nothing about layout. The -8px horizontal margin lets the
+   hover tint bleed past the text column while padding keeps the text itself
+   aligned with the label above it.
+   --------------------------------------------------------------------------- */
+.prose-field {
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: var(--size-body);
+  line-height: 1.5;
+  color: var(--ink);
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  margin: 0 -8px;
+  padding: 3px 8px;
+  width: calc(100% + 16px);
+  box-sizing: border-box;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease);
+}
+.prose-field:hover:not(:focus) {
+  background: var(--bg-hover);
+}
+.prose-field:focus {
+  background: var(--bg);
+  box-shadow:
+    inset 2px 0 0 var(--accent-insight),
+    0 0 0 1px var(--border-strong),
+    0 0 0 4px rgba(35, 131, 226, 0.12);
+}

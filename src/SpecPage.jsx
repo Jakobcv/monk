@@ -5,6 +5,7 @@ import { eyebrow, editArea, pageTitleInput } from "./ui/text";
 import { buildSpecBrief } from "./lib/buildBrief";
 import { useCopy } from "./lib/useCopy";
 import ChecklistEditor from "./ChecklistEditor";
+import AutoTextarea from "./ui/AutoTextarea";
 import CrepeEditor from "./CrepeEditor";
 import Board from "./Board";
 import Breadcrumbs from "./Breadcrumbs";
@@ -181,17 +182,17 @@ export default function SpecPage({
         <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
           <div hidden={activeTab !== "overview"} style={{ height: "100%", overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
             <div style={{ maxWidth: "760px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "22px" }}>
-              <div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <div style={eyebrow}>Problem</div>
-                <textarea rows={3} value={problem} onChange={(e) => setProblem(e.target.value)} placeholder="The problem this solves…" style={{ ...editArea, marginTop: "8px" }} />
+                <AutoTextarea className="prose-field" minRows={2} value={problem} onChange={(e) => setProblem(e.target.value)} placeholder="The problem this solves…" />
               </div>
-              <div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <div style={eyebrow}>Goals</div>
-                <textarea rows={3} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="Success looks like…" style={{ ...editArea, marginTop: "8px" }} />
+                <AutoTextarea className="prose-field" minRows={2} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="Success looks like…" />
               </div>
-              <div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <div style={eyebrow}>Non-goals</div>
-                <textarea rows={2} value={nonGoals} onChange={(e) => setNonGoals(e.target.value)} placeholder="Explicitly out of scope…" style={{ ...editArea, marginTop: "8px" }} />
+                <AutoTextarea className="prose-field" minRows={2} value={nonGoals} onChange={(e) => setNonGoals(e.target.value)} placeholder="Explicitly out of scope…" />
               </div>
 
               <div style={{ height: "1px", backgroundColor: BORDER }} />
