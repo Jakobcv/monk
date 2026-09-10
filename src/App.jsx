@@ -28,20 +28,37 @@ const SPECS_ROUTE = "#/specs";
 const SPEC_PREFIX = "#/spec/";
 const INITIATIVE_PREFIX = "#/initiative/";
 const ACTIVITY_PREFIX = "#/activity/";
-const goToStart = () => { window.location.hash = ""; };
-const goToDocument = (sectionId, docId) => {
-  window.location.hash = DOC_PREFIX + encodeURIComponent(sectionId) + "/" + encodeURIComponent(docId);
+
+// href builders — the single source for every route string. Nav renders these as real
+// `<a href>` (so Cmd/Ctrl/middle-click open a new tab); `goTo*` just assigns the same string
+// to window.location.hash for the after-an-action programmatic case.
+const hrefStart = () => "#";
+const hrefDocument = (sectionId, docId) => DOC_PREFIX + encodeURIComponent(sectionId) + "/" + encodeURIComponent(docId);
+const hrefSpecs = () => SPECS_ROUTE;
+const hrefSpec = (id) => SPEC_PREFIX + encodeURIComponent(id);
+const hrefSpecDesign = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/design";
+const hrefSpecPlan = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/plan";
+const hrefSpecDiscovery = (id, cardId) => SPEC_PREFIX + encodeURIComponent(id) + "/discovery" + (cardId != null ? "/" + encodeURIComponent(cardId) : "");
+const hrefInitiative = (id) => INITIATIVE_PREFIX + encodeURIComponent(id);
+const hrefActivity = (id) => ACTIVITY_PREFIX + encodeURIComponent(id);
+// Research Repository keeps its search query + kind filter in the URL so a filtered view is
+// linkable and survives a refresh.
+const hrefResearch = (q, kind) => {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  if (kind && kind !== "all") params.set("kind", kind);
+  const qs = params.toString();
+  return RESEARCH_ROUTE + (qs ? "?" + qs : "");
 };
+
+const goToStart = () => { window.location.hash = hrefStart(); };
+const goToDocument = (sectionId, docId) => { window.location.hash = hrefDocument(sectionId, docId); };
 const goToResearch = () => { window.location.hash = RESEARCH_ROUTE; };
-const goToSpecs = () => { window.location.hash = SPECS_ROUTE; };
-const goToSpec = (id) => { window.location.hash = SPEC_PREFIX + encodeURIComponent(id); };
-const goToSpecDesign = (id) => { window.location.hash = SPEC_PREFIX + encodeURIComponent(id) + "/design"; };
-const goToSpecPlan = (id) => { window.location.hash = SPEC_PREFIX + encodeURIComponent(id) + "/plan"; };
-const goToSpecDiscovery = (id, cardId) => {
-  window.location.hash = SPEC_PREFIX + encodeURIComponent(id) + "/discovery" + (cardId != null ? "/" + encodeURIComponent(cardId) : "");
-};
-const goToInitiative = (id) => { window.location.hash = INITIATIVE_PREFIX + encodeURIComponent(id); };
-const goToActivity = (id) => { window.location.hash = ACTIVITY_PREFIX + encodeURIComponent(id); };
+const goToSpecs = () => { window.location.hash = hrefSpecs(); };
+const goToSpec = (id) => { window.location.hash = hrefSpec(id); };
+const goToSpecDiscovery = (id, cardId) => { window.location.hash = hrefSpecDiscovery(id, cardId); };
+const goToInitiative = (id) => { window.location.hash = hrefInitiative(id); };
+const goToActivity = (id) => { window.location.hash = hrefActivity(id); };
 
 function useRoute() {
   const [hash, setHash] = useState(() => window.location.hash);
@@ -58,8 +75,9 @@ function useRoute() {
       docId: docIdRaw ? decodeURIComponent(docIdRaw) : null,
     };
   }
-  if (hash === RESEARCH_ROUTE) {
-    return { name: "research" };
+  if (hash === RESEARCH_ROUTE || hash.startsWith(RESEARCH_ROUTE + "?")) {
+    const params = new URLSearchParams(hash.slice(RESEARCH_ROUTE.length).replace(/^\?/, ""));
+    return { name: "research", q: params.get("q") || "", kind: params.get("kind") || "all" };
   }
   if (hash === SPECS_ROUTE) {
     return { name: "specs" };
@@ -99,13 +117,13 @@ function ConnectScreen({ title, message, buttonLabel, onClick }) {
   );
 }
 
-function NotFoundMessage({ text, backLabel, onBack }) {
+function NotFoundMessage({ text, backLabel, backHref }) {
   return (
     <div style={{ fontFamily: font, textAlign: "center", color: INK_SOFT, fontSize: SIZE.body, padding: "60px 0" }}>
       {text}{" "}
-      <button onClick={onBack} style={{ fontFamily: font, color: INK, background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0 }}>
+      <a href={backHref} style={{ fontFamily: font, color: INK, textDecoration: "underline" }}>
         {backLabel}
-      </button>
+      </a>
     </div>
   );
 }
@@ -555,19 +573,33 @@ export default function App() {
     : isSpecRoute
     ? [
         folderCrumb,
-        { label: "Specs", onClick: goToSpecs },
-        ...(specInitiative ? [{ label: specInitiative.title || "Untitled initiative", onClick: () => goToInitiative(specInitiative.id) }] : []),
+        { label: "Specs", href: hrefSpecs() },
+        ...(specInitiative ? [{ label: specInitiative.title || "Untitled initiative", href: hrefInitiative(specInitiative.id) }] : []),
         { label: activeSpec ? (activeSpec.title || "Untitled spec") : "Spec not found" },
       ]
     : route.name === "initiative"
-    ? [folderCrumb, { label: "Specs", onClick: goToSpecs }, { label: activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found" }]
+    ? [folderCrumb, { label: "Specs", href: hrefSpecs() }, { label: activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found" }]
     : route.name === "specs"
     ? [folderCrumb, { label: "Specs" }]
     : route.name === "activity"
-    ? [folderCrumb, { label: "Research Repository", onClick: goToResearch }, { label: activeActivity ? (activeActivity.name || "Untitled activity") : "Activity not found" }]
+    ? [folderCrumb, { label: "Research Repository", href: RESEARCH_ROUTE }, { label: activeActivity ? (activeActivity.name || "Untitled activity") : "Activity not found" }]
     : route.name === "research"
     ? [folderCrumb, { label: "Research Repository" }]
     : null;
+
+  // Keep the browser tab title current — otherwise every route reads "Monk" and the tab / a
+  // shared link / a history entry can't be told apart.
+  useEffect(() => {
+    const name =
+      route.name === "doc" ? (activeDocument ? (activeDocument.title || "Untitled document") : "Document not found")
+      : isSpecRoute ? (activeSpec ? (activeSpec.title || "Untitled spec") : "Spec not found")
+      : route.name === "initiative" ? (activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found")
+      : route.name === "activity" ? (activeActivity ? (activeActivity.name || "Untitled activity") : "Activity not found")
+      : route.name === "specs" ? "Specs"
+      : route.name === "research" ? "Research Repository"
+      : "";
+    document.title = name ? `${name} · Monk` : "Monk";
+  }, [route, isSpecRoute, activeDocument, activeSpec, activeInitiative, activeActivity]);
 
   if (phase === "unsupported") {
     return (
@@ -606,15 +638,16 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column" }}>
-      <Header onGoHome={goToStart} saveStatus={saveStatus} onRetrySave={retrySave} onChangeFolder={handleChangeFolder} />
+      <a className="skip-link" href="#main">Skip to content</a>
+      <Header saveStatus={saveStatus} onRetrySave={retrySave} onChangeFolder={handleChangeFolder} />
 
       <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
         <Sidebar
           sections={sections}
           activeView={activeView}
-          onOpenResearch={goToResearch}
-          onOpenSpecs={goToSpecs}
-          onOpenDocument={goToDocument}
+          researchHref={RESEARCH_ROUTE}
+          specsHref={hrefSpecs()}
+          docHref={hrefDocument}
           onCreateSection={createSection}
           onRenameSection={renameSection}
           onDeleteSection={deleteSection}
@@ -627,10 +660,10 @@ export default function App() {
               the same breadcrumb trail twice. `breadcrumbs` is null on the Home landing, which
               has no bar of its own either — it's a standalone page, not one you drill into. */}
           {!((isSpecRoute && activeSpec) || (route.name === "activity" && activeActivity) || (route.name === "initiative" && activeInitiative)) && breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
-          <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          <main id="main" tabIndex={-1} style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
             {isSpecRoute ? (
               !activeSpec ? (
-                <NotFoundMessage text="Spec not found." backLabel="Back to specs" onBack={goToSpecs} />
+                <NotFoundMessage text="Spec not found." backLabel="Back to specs" backHref={hrefSpecs()} />
               ) : (
                 <SpecPage
                   key={activeSpec.id}
@@ -645,11 +678,11 @@ export default function App() {
                   onCreateInsight={createInsight}
                   onChange={(patch) => updateSpec(activeSpec.id, patch)}
                   activeTab={activeSpecTab}
-                  onSelectTab={(tab) => (
-                    tab === "design" ? goToSpecDesign(activeSpec.id) :
-                    tab === "plan" ? goToSpecPlan(activeSpec.id) :
-                    tab === "discovery" ? goToSpecDiscovery(activeSpec.id) :
-                    goToSpec(activeSpec.id)
+                  tabHref={(tab) => (
+                    tab === "design" ? hrefSpecDesign(activeSpec.id) :
+                    tab === "plan" ? hrefSpecPlan(activeSpec.id) :
+                    tab === "discovery" ? hrefSpecDiscovery(activeSpec.id) :
+                    hrefSpec(activeSpec.id)
                   )}
                   highlightCardId={route.cardId}
                   onOpenBoard={(specId) => goToSpecDiscovery(specId)}
@@ -667,29 +700,29 @@ export default function App() {
                   onChange={(patch) => updateDocument(route.sectionId, activeDocument.id, patch)}
                 />
               ) : (
-                <NotFoundMessage text="Document not found." backLabel="Back to research repository" onBack={goToResearch} />
+                <NotFoundMessage text="Document not found." backLabel="Back to research repository" backHref={RESEARCH_ROUTE} />
               )
             ) : route.name === "specs" ? (
               <SpecsPage
                 specs={specs}
                 initiatives={initiatives}
+                specHref={hrefSpec}
+                initiativeHref={hrefInitiative}
                 onCreate={createSpec}
                 onCreateInitiative={createInitiative}
-                onOpen={goToSpec}
-                onOpenInitiative={goToInitiative}
                 onDelete={deleteSpec}
               />
             ) : route.name === "initiative" ? (
               !activeInitiative ? (
-                <NotFoundMessage text="Initiative not found." backLabel="Back to specs" onBack={goToSpecs} />
+                <NotFoundMessage text="Initiative not found." backLabel="Back to specs" backHref={hrefSpecs()} />
               ) : (
                 <InitiativePage
                   key={activeInitiative.id}
                   initiative={activeInitiative}
                   specs={specsForInitiative(specs, activeInitiative.id)}
+                  specHref={hrefSpec}
                   onChange={(patch) => updateInitiative(activeInitiative.id, patch)}
                   onDelete={() => deleteInitiative(activeInitiative.id)}
-                  onOpenSpec={goToSpec}
                   onCreateSpec={() => createSpec(activeInitiative.id)}
                   onDetachSpec={(specId) => updateSpec(specId, { initiativeId: null })}
                   breadcrumbs={breadcrumbs}
@@ -702,8 +735,11 @@ export default function App() {
                 signals={signals}
                 insights={insights}
                 activities={activities}
-                onOpen={goToSpecDiscovery}
-                onOpenActivity={goToActivity}
+                initialQuery={route.q}
+                initialKind={route.kind}
+                onNavigate={(q, kind) => window.history.replaceState(null, "", hrefResearch(q, kind))}
+                activityHref={hrefActivity}
+                specDiscoveryHref={hrefSpecDiscovery}
                 onAttach={attachReference}
                 onCreateSignal={createSignal}
                 onCreateActivity={createActivity}
@@ -717,7 +753,7 @@ export default function App() {
               />
             ) : route.name === "activity" ? (
               !activeActivity ? (
-                <NotFoundMessage text="Activity not found." backLabel="Back to research repository" onBack={goToResearch} />
+                <NotFoundMessage text="Activity not found." backLabel="Back to research repository" backHref={RESEARCH_ROUTE} />
               ) : (
                 <ActivityPage
                   key={activeActivity.id}
@@ -735,7 +771,7 @@ export default function App() {
             ) : (
               <Home onCreateSpec={createSpec} />
             )}
-          </div>
+          </main>
         </div>
       </div>
 

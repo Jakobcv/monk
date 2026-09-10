@@ -302,14 +302,42 @@ export default function Board({
     const b = boardRef.current.getBoundingClientRect();
     return { x: clientX - b.left, y: clientY - b.top };
   };
+
+  // Click / keyboard alternative to the drag-to-connect gesture. `connectFrom` holds the
+  // source node while you pick a target: a "Connect" button then shows on every valid target
+  // card (see renderConnectTarget). Escape or clicking the same handle again cancels.
+  const [connectFrom, setConnectFrom] = useState(null);
+  const dragMoved = useRef(false);
+  useEffect(() => {
+    if (!connectFrom) return;
+    const onKey = (e) => { if (e.key === "Escape") setConnectFrom(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [connectFrom]);
+
+  const beginConnect = (id, kind) => setConnectFrom((cur) => (cur && cur.from === id ? null : { from: id, kind }));
+  const completeConnect = (targetId) => {
+    if (!connectFrom) return;
+    const from = connectFrom.from;
+    setConnections((c) => {
+      const existing = c.find((x) => x.from === from && x.to === targetId);
+      if (existing) return c.filter((x) => x.id !== existing.id); // second pick on the same target toggles it off
+      return [...c, { id: genId(), from, to: targetId }];
+    });
+    setConnectFrom(null);
+  };
+  const removeConnection = (connId) => setConnections((c) => c.filter((x) => x.id !== connId));
+
   const startConnect = (id, kind) => (e) => {
     e.preventDefault(); e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
+    dragMoved.current = false;
     const p = boardPoint(e.clientX, e.clientY);
     setPending({ from: id, kind, x: p.x, y: p.y, over: null });
   };
   const moveConnect = (e) => {
     if (!pending) return;
+    dragMoved.current = true;
     const p = boardPoint(e.clientX, e.clientY);
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const targetEl = el && el.closest("[data-node-id]");
@@ -377,22 +405,63 @@ export default function Board({
     </button>
   );
 
-  const renderHandle = (id, kind, connected) => (
-    <div
-      className="el-handle reveal"
-      onPointerDown={startConnect(id, kind)}
-      onPointerMove={moveConnect}
-      onPointerUp={endConnect}
-      onPointerCancel={endConnect}
-      title="Drag to connect"
-      style={{
-        position: "absolute", right: "-6px", top: "50%", transform: "translateY(-50%)",
-        width: "12px", height: "12px", borderRadius: "50%",
-        backgroundColor: connected ? ACCENT[kind] : "#fff",
-        border: `2px solid ${ACCENT[kind]}`, cursor: "grab", zIndex: 3, touchAction: "none",
-      }}
-    />
-  );
+  // A tap (pointer down + up with no movement) or Enter/Space enters click-connect mode; an
+  // actual drag still works exactly as before. `dragMoved` tells the two apart on pointer-up.
+  const handlePointerUp = (id, kind) => () => {
+    if (dragMoved.current) { endConnect(); return; }
+    setPending(null);
+    beginConnect(id, kind);
+  };
+  const renderHandle = (id, kind, connected) => {
+    const arming = connectFrom && connectFrom.from === id;
+    return (
+      <button
+        type="button"
+        className="el-handle reveal"
+        onPointerDown={startConnect(id, kind)}
+        onPointerMove={moveConnect}
+        onPointerUp={handlePointerUp(id, kind)}
+        onPointerCancel={endConnect}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); beginConnect(id, kind); }
+        }}
+        aria-label={arming ? `Cancel connecting this ${kind}` : `Connect this ${kind} — press Enter, or drag`}
+        aria-pressed={arming ? true : undefined}
+        title={arming ? "Click a target card, or press Escape" : "Drag or click to connect"}
+        style={{
+          position: "absolute", right: "-6px", top: "50%", transform: "translateY(-50%)",
+          width: "12px", height: "12px", borderRadius: "50%", padding: 0,
+          backgroundColor: connected || arming ? ACCENT[kind] : "#fff",
+          border: `2px solid ${ACCENT[kind]}`, cursor: "grab", zIndex: 3, touchAction: "none",
+          boxShadow: arming ? `0 0 0 3px ${ACCENT[kind]}44` : "none",
+        }}
+      />
+    );
+  };
+
+  // Shown on every valid target card while a connect is armed (renderXxxCard passes its id +
+  // node-kind). Sits at the card's left edge, mirroring the source handle at the right edge.
+  const renderConnectTarget = (targetId, targetKind) => {
+    if (!connectFrom || ALLOWED[connectFrom.kind] !== targetKind) return null;
+    const already = connections.some((x) => x.from === connectFrom.from && x.to === targetId);
+    return (
+      <button
+        type="button"
+        onClick={() => completeConnect(targetId)}
+        aria-label={already ? "Disconnect from the armed source" : "Connect to the armed source"}
+        title={already ? "Click to disconnect" : "Click to connect"}
+        style={{
+          position: "absolute", left: "-9px", top: "-9px", zIndex: 5, whiteSpace: "nowrap",
+          fontFamily: font, fontSize: SIZE.micro, fontWeight: WEIGHT.semibold,
+          color: "#fff", background: already ? INK_FAINT : ACCENT[connectFrom.kind],
+          border: "none", borderRadius: RADIUS.xs, padding: "3px 6px", cursor: "pointer",
+          boxShadow: `0 1px 4px rgba(0,0,0,0.18)`,
+        }}
+      >
+        {already ? "Disconnect" : "Connect"}
+      </button>
+    );
+  };
 
   const targetStyle = (id) => {
     const isTarget = pending && pending.over === id;
@@ -471,6 +540,7 @@ export default function Board({
           />
         </div>
         {renderHandle(link.id, "insight", connections.some((c) => c.from === link.id))}
+        {renderConnectTarget(link.id, "insight")}
         {renderDelete(link.id, "insight")}
       </div>
     );
@@ -515,6 +585,7 @@ export default function Board({
           </div>
         )}
         {renderHandle(a.id, "action", connections.some((c) => c.from === a.id))}
+        {renderConnectTarget(a.id, "action")}
         {renderDelete(a.id, "action")}
       </div>
     );
@@ -550,6 +621,7 @@ export default function Board({
             <textarea className="el-edit" rows={2} autoFocus={focusId === r.id} value={r.text} onChange={(e) => patchResult(r.id, { text: e.target.value })} placeholder="What actually happened…" style={{ ...editArea, marginTop: "2px" }} />
           </div>
         )}
+        {renderConnectTarget(r.id, "result")}
         {renderDelete(r.id, "result")}
       </div>
     );
@@ -573,10 +645,14 @@ export default function Board({
         .el-card-pulse { animation: el-pulse 1s ${MOTION.ease} 2; }
         .el-signal-pick { transition: background-color ${MOTION.fast} ${MOTION.ease}; }
         .el-signal-pick:hover { background:${BG_HOVER}; }
+        /* While a connector drag is in flight, nothing on the board is selectable — a stray
+           text selection under the pointer is never what you meant. */
+        .el-dragging, .el-dragging * { user-select: none; -webkit-user-select: none; }
       `}</style>
 
       <div
         ref={boardRef}
+        className={pending ? "el-dragging" : undefined}
         // BG_SIDEBAR, not BG (white) — cards on this canvas are also BG-filled, so a white
         // canvas left them distinguished only by their 1px border + colored left edge. Same
         // fix already applied to the app's page background and, briefly, the discovery canvas;
@@ -604,14 +680,24 @@ export default function Board({
                 <g key={c.id}>
                   <path className="el-connector" d={d} fill="none" stroke={color} strokeWidth={strokeW} opacity={strokeOpacity} markerEnd="url(#cap)" />
                   <path d={d} fill="none" stroke="transparent" strokeWidth="16"
-                    style={{ pointerEvents: "stroke", cursor: "grab", touchAction: "none" }}
+                    role="button" tabIndex={0}
+                    aria-label="Connection — Enter or Delete to remove, or drag to reconnect"
+                    style={{ pointerEvents: "stroke", cursor: "pointer", touchAction: "none" }}
                     onMouseEnter={() => setHoverConnId(c.id)}
                     onMouseLeave={() => setHoverConnId((h) => (h === c.id ? null : h))}
+                    onFocus={() => setHoverConnId(c.id)}
+                    onBlur={() => setHoverConnId((h) => (h === c.id ? null : h))}
                     onPointerDown={startRewire(c)}
                     onPointerMove={moveConnect}
-                    onPointerUp={endConnect}
-                    onPointerCancel={endConnect}>
-                    <title>Drag to another card to reconnect, or drop on empty space to remove</title>
+                    onPointerUp={() => { if (!dragMoved.current) removeConnection(c.id); else endConnect(); }}
+                    onPointerCancel={endConnect}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " " || e.key === "Delete" || e.key === "Backspace") {
+                        e.preventDefault();
+                        removeConnection(c.id);
+                      }
+                    }}>
+                    <title>Click or press Delete to remove. Drag to another card to reconnect.</title>
                   </path>
                 </g>
               );

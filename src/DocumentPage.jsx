@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from "react";
-import { FileText } from "lucide-react";
-import { BORDER, SPACE, INK_SOFT } from "./lib/theme";
+import { FileText, Copy, Check } from "lucide-react";
+import { BORDER, SPACE, INK_SOFT, ACCENT } from "./lib/theme";
 import { pageTitleInput } from "./ui/text";
 import { documentToMarkdown } from "./lib/markdown";
+import { useCopy } from "./lib/useCopy";
 import CrepeEditor from "./CrepeEditor";
 
 // The `document` prop only seeds local state on mount — the parent remounts this component (via
 // `key={document.id}`) whenever the open document changes, same pattern as Board.jsx. Destructured
-// as `doc` so it doesn't shadow the global `window.document` (openRawMarkdown below doesn't
-// currently need it, but the shadowing footgun isn't worth leaving in place regardless).
+// as `doc` so it doesn't shadow the global `window.document`.
 export default function DocumentPage({ document: doc, onChange }) {
   const [title, setTitle] = useState(doc.title);
 
@@ -18,16 +18,19 @@ export default function DocumentPage({ document: doc, onChange }) {
     onChange({ title });
   }, [title]);
 
-  // Opens the exact bytes this document is saved to disk as (same `documentToMarkdown` call
-  // storage.js uses) in a new tab, as plain text. There's no way to do better than that from a
-  // browser: the File System Access API this app is built on deliberately never exposes a real
-  // OS path or a way to hand a file to the OS's default app or file explorer — those are
-  // security boundaries in the API itself, not a gap here. `{ ...doc, title }` rather than just
-  // `doc` so a title you're still mid-typing (local state, not yet flushed to the prop) shows up
-  // correctly rather than one keystroke stale.
+  // The exact bytes this document is saved to disk as (same `documentToMarkdown` call storage.js
+  // uses). `{ ...doc, title }` rather than just `doc` so a title you're still mid-typing (local
+  // state, not yet flushed to the prop) shows up correctly rather than one keystroke stale.
+  const rawMarkdown = () => documentToMarkdown({ ...doc, title });
+
+  const [copied, copyMd] = useCopy();
+
+  // Opens the raw markdown in a new tab. There's no way to do better from a browser: the File
+  // System Access API this app is built on deliberately never exposes a real OS path or a way
+  // to hand a file to the OS's default app — those are security boundaries in the API, not a
+  // gap here.
   const openRawMarkdown = () => {
-    const blob = new Blob([documentToMarkdown({ ...doc, title })], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(new Blob([rawMarkdown()], { type: "text/plain;charset=utf-8" }));
     window.open(url, "_blank");
     setTimeout(() => URL.revokeObjectURL(url), 30000);
   };
@@ -42,6 +45,14 @@ export default function DocumentPage({ document: doc, onChange }) {
             placeholder="Untitled document"
             style={{ ...pageTitleInput, flex: 1 }}
           />
+          <button
+            className="btn btn--sm btn--subtle"
+            onClick={() => copyMd(rawMarkdown())}
+            title="Copy this document's raw markdown to the clipboard"
+            style={{ flexShrink: 0, marginTop: "6px", color: copied ? ACCENT.action : INK_SOFT }}
+          >
+            {copied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy .md</>}
+          </button>
           <button
             className="btn btn--sm btn--subtle"
             onClick={openRawMarkdown}

@@ -6,18 +6,19 @@ import IconButton from "./ui/IconButton";
 import Card from "./ui/Card";
 import EmptyState from "./ui/EmptyState";
 
-function SpecCard({ spec, onOpen, onDelete }) {
+function SpecCard({ spec, href, onDelete }) {
   return (
     <Card
+      as="a"
+      href={href}
       interactive
       className="reveal-group enter-up"
-      onClick={() => onOpen(spec.id)}
       style={{ position: "relative", textAlign: "left", padding: "14px 16px" }}
     >
       <IconButton
         className="reveal"
         danger
-        onClick={(e) => { e.stopPropagation(); onDelete(spec.id); }}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(spec.id); }}
         title="Delete spec"
         style={{ position: "absolute", top: SPACE.base, right: SPACE.base }}
       >
@@ -56,10 +57,10 @@ function SpecCard({ spec, onOpen, onDelete }) {
   );
 }
 
-function SpecGrid({ specs, onOpen, onDelete }) {
+function SpecGrid({ specs, specHref, onDelete }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "14px" }}>
-      {specs.map((s) => <SpecCard key={s.id} spec={s} onOpen={onOpen} onDelete={onDelete} />)}
+      {specs.map((s) => <SpecCard key={s.id} spec={s} href={specHref(s.id)} onDelete={onDelete} />)}
     </div>
   );
 }
@@ -68,7 +69,7 @@ function SpecGrid({ specs, onOpen, onDelete }) {
 // Renaming happens on the entity's own page, not inline here. The page groups specs under
 // their initiative (an epic to their tickets — see initiativeModel.js), with a final
 // "Not in an initiative" group for loose ones. A spec's initiative is set from its own sidebar.
-export default function SpecsPage({ specs, initiatives, onCreate, onCreateInitiative, onOpen, onOpenInitiative, onDelete }) {
+export default function SpecsPage({ specs, initiatives, specHref, initiativeHref, onCreate, onCreateInitiative, onDelete }) {
   const byRecency = (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0);
   const sortedInitiatives = [...(initiatives || [])].sort(byRecency);
   const loose = [...specs].filter((s) => !s.initiativeId).sort(byRecency);
@@ -97,12 +98,12 @@ export default function SpecsPage({ specs, initiatives, onCreate, onCreateInitia
               const members = [...specs].filter((s) => s.initiativeId === ini.id).sort(byRecency);
               return (
                 <div key={ini.id}>
-                  <button
-                    onClick={() => onOpenInitiative(ini.id)}
+                  <a
+                    href={initiativeHref(ini.id)}
                     className="crumb"
                     style={{
                       display: "flex", alignItems: "center", gap: SPACE.sm, marginBottom: SPACE.lg,
-                      background: "none", border: "none", cursor: "pointer", padding: "2px 4px", marginLeft: "-4px",
+                      padding: "2px 4px", marginLeft: "-4px", textDecoration: "none",
                       fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK,
                     }}
                   >
@@ -111,11 +112,11 @@ export default function SpecsPage({ specs, initiatives, onCreate, onCreateInitia
                     <span style={{ ...meta, fontWeight: WEIGHT.normal }}>
                       {members.length} spec{members.length === 1 ? "" : "s"} · {ini.status}
                     </span>
-                  </button>
+                  </a>
                   {members.length === 0 ? (
                     <EmptyState compact>Nothing in this initiative yet.</EmptyState>
                   ) : (
-                    <SpecGrid specs={members} onOpen={onOpen} onDelete={onDelete} />
+                    <SpecGrid specs={members} specHref={specHref} onDelete={onDelete} />
                   )}
                 </div>
               );
@@ -126,7 +127,7 @@ export default function SpecsPage({ specs, initiatives, onCreate, onCreateInitia
                 {sortedInitiatives.length > 0 && (
                   <div style={{ ...eyebrow, marginBottom: SPACE.lg }}>Not in an initiative</div>
                 )}
-                <SpecGrid specs={loose} onOpen={onOpen} onDelete={onDelete} />
+                <SpecGrid specs={loose} specHref={specHref} onDelete={onDelete} />
               </div>
             )}
           </div>

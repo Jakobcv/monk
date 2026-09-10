@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Search as SearchIcon, X, Link2, ArrowLeft, Star, Plus, Lightbulb } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, ACCENT, ACTIVITY, DANGER, CITED, SIZE, WEIGHT, SPACE, RADIUS, withAlpha } from "./lib/theme";
 import { blankSignal, signalsForActivity, isSignalUnlinked } from "./lib/signalModel";
@@ -71,15 +71,24 @@ function highlight(text, query) {
 // `boards` are board-shaped objects, each carrying `specTitle` (a board has no name of its own
 // — see App.jsx).
 export default function ResearchRepositoryPage({
-  boards, specs, signals, insights, activities, onOpen, onOpenActivity, onAttach,
+  boards, specs, signals, insights, activities, onAttach,
+  initialQuery = "", initialKind = "all", onNavigate,
+  specDiscoveryHref, activityHref,
   onCreateSignal, onCreateActivity, onCreateInsight,
   onUpdateSignal, onDeleteSignal, onLinkSignal,
   onUpdateInsight, onDeleteInsight, onLinkInsight,
 }) {
-  const [query, setQuery] = useState("");
-  const [activeKind, setActiveKind] = useState("all");
-  const [activated, setActivated] = useState(false);
+  // Seeded from the URL (see App.jsx's hrefResearch / useRoute) so a filtered view is
+  // linkable and survives a refresh; changes are mirrored back with replaceState.
+  const [query, setQuery] = useState(initialQuery);
+  const [activeKind, setActiveKind] = useState(initialKind || "all");
+  const [activated, setActivated] = useState(!!initialQuery || (initialKind && initialKind !== "all"));
   const [attachOpenKey, setAttachOpenKey] = useState(null);
+
+  useEffect(() => {
+    onNavigate?.(query.trim(), activeKind);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, activeKind]);
   // Non-null while its create form is open — the draft itself, built off blankSignal()/
   // blankInsight() the moment the form opens so it always starts with fresh id/timestamps. An
   // activity has no form here at all — creating one (see the button below) jumps straight to
@@ -161,9 +170,9 @@ export default function ResearchRepositoryPage({
         metaExtra={
           <>
             {linkedBoards.map((b) => (
-              <Button key={b.id} variant="subtle" onClick={() => onOpen(b.id, sig.id)}>
+              <a key={b.id} className="btn btn--sm btn--subtle" href={specDiscoveryHref(b.id, sig.id)} style={{ textDecoration: "none" }}>
                 Open in {b.specTitle || "Untitled spec"}
-              </Button>
+              </a>
             ))}
             {attachOpenKey === m.key ? (
               <Field
@@ -205,9 +214,9 @@ export default function ResearchRepositoryPage({
         metaExtra={
           <>
             {linkedBoards.map((b) => (
-              <Button key={b.id} variant="subtle" onClick={() => onOpen(b.id, ins.id)}>
+              <a key={b.id} className="btn btn--sm btn--subtle" href={specDiscoveryHref(b.id, ins.id)} style={{ textDecoration: "none" }}>
                 Open in {b.specTitle || "Untitled spec"}
-              </Button>
+              </a>
             ))}
             {attachOpenKey === m.key ? (
               <Field
@@ -239,7 +248,7 @@ export default function ResearchRepositoryPage({
     if (!act) return null;
     const linked = signalsForActivity(signals, act.id);
     return (
-      <Card key={m.key} interactive onClick={() => onOpenActivity(act.id)} style={{ padding: "10px 14px" }}>
+      <Card key={m.key} as="a" href={activityHref(act.id)} interactive style={{ padding: "10px 14px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.sm, flexWrap: "wrap" }}>
           <Dot color={ACTIVITY} />
           <span style={{ ...meta, fontWeight: WEIGHT.semibold, color: ACTIVITY }}>Activity</span>
@@ -484,9 +493,10 @@ export default function ResearchRepositoryPage({
                   m.kind === "activity" ? renderActivityRow(m) : (
                   <Card
                     key={m.key}
+                    as="a"
+                    href={specDiscoveryHref(m.boardId, m.cardId)}
                     interactive
                     className="reveal-group"
-                    onClick={() => onOpen(m.boardId, m.cardId)}
                     style={{ padding: "10px 14px" }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.sm }}>
@@ -503,7 +513,7 @@ export default function ResearchRepositoryPage({
                       {highlight(m.text, q)}
                     </div>
                     {ATTACHABLE_KINDS.has(m.kind) && (
-                      <div onClick={(e) => e.stopPropagation()} style={{ marginTop: SPACE.base }}>
+                      <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ marginTop: SPACE.base }}>
                         {attachOpenKey === m.key ? (
                           <Field
                             as="select" autoFocus defaultValue=""
@@ -642,7 +652,7 @@ export default function ResearchRepositoryPage({
                 {sortedActivities.map((a) => {
                   const linked = signalsForActivity(signals, a.id);
                   return (
-                    <Card key={a.id} interactive onClick={() => onOpenActivity(a.id)} style={{ padding: "10px 14px" }}>
+                    <Card key={a.id} as="a" href={activityHref(a.id)} interactive style={{ padding: "10px 14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.sm, flexWrap: "wrap" }}>
                         <Dot color={ACTIVITY} />
                         <span style={{ ...meta, fontWeight: WEIGHT.semibold, color: ACTIVITY }}>Activity</span>

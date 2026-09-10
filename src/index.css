@@ -15,6 +15,39 @@ body,
   margin: 0;
 }
 
+/* No 300ms double-tap-zoom delay on anything you click or drag. Scoped to interactive
+   elements rather than the whole document so scroll containers keep their default behaviour. */
+button,
+a,
+[role="button"],
+.card--interactive,
+input[type="checkbox"],
+input[type="radio"] {
+  touch-action: manipulation;
+}
+
+/* Keyboard users land on the content, not 30 tabs of sidebar. Off-screen until focused. */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 200;
+  padding: 8px 14px;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: var(--size-ui);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-150%);
+  transition: transform var(--motion-fast) var(--ease);
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 /* The page canvas, not quite white — reusing the same grey the Sidebar already sits on
    (--bg-sidebar), rather than introducing a second "quiet grey" token. Every white card
    (the generic .card, and now every board card too — see cardSurface in ui/cardStyles.js)
@@ -321,8 +354,8 @@ body {
    --------------------------------------------------------------------------- */
 .toast {
   position: fixed;
-  left: 20px;
-  bottom: 20px;
+  left: calc(20px + env(safe-area-inset-left));
+  bottom: calc(20px + env(safe-area-inset-bottom));
   z-index: 100;
   display: flex;
   align-items: center;

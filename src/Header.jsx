@@ -4,15 +4,15 @@ import Button from "./ui/Button";
 
 // One header, identical everywhere — the home page and every board share it rather than
 // each route rendering its own top bar. The brand doubles as the way back home.
-export default function Header({ onGoHome, saveStatus, onRetrySave, onChangeFolder }) {
+export default function Header({ saveStatus, onRetrySave, onChangeFolder }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
       padding: `10px ${SPACE.xl}`, borderBottom: `1px solid ${BORDER}`, flexShrink: 0,
     }}>
-      <Button variant="subtle" onClick={onGoHome} style={{ fontSize: SIZE.md, color: INK, marginLeft: "-6px" }}>
+      <a href="#" className="btn btn--sm btn--subtle" style={{ fontSize: SIZE.md, color: INK, marginLeft: "-6px", textDecoration: "none" }}>
         Monk
-      </Button>
+      </a>
 
       <div style={{ display: "flex", alignItems: "center", gap: SPACE.xl }}>
         <Button variant="subtle" onClick={onChangeFolder} title="Switch to a different research folder">

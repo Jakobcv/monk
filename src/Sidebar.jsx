@@ -15,7 +15,7 @@ const navItemStyle = (active) => ({
   display: "flex", alignItems: "center", gap: SPACE.base, width: "100%", textAlign: "left",
   fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.ui, color: active ? INK : INK_SOFT,
   background: active ? "#fff" : "none", border: "none", borderRadius: RADIUS.sm,
-  padding: "7px 8px", cursor: "pointer",
+  padding: "7px 8px", cursor: "pointer", textDecoration: "none", boxSizing: "border-box",
   transition: `background-color ${MOTION.fast} ${MOTION.ease}, color ${MOTION.fast} ${MOTION.ease}`,
 });
 
@@ -34,7 +34,7 @@ const sectionLabelStyle = {
 // Product Knowledge and Standards ARE `sections` entries (freeform documents, exactly like a
 // user-created section) — they just can't be renamed or deleted, and always sort first, because
 // what belongs in them is a matter of purpose, not user choice (see documentModel.js).
-export default function Sidebar({ sections, activeView, onOpenResearch, onOpenSpecs, onOpenDocument, onCreateSection, onRenameSection, onDeleteSection, onCreateDocument, onDeleteDocument }) {
+export default function Sidebar({ sections, activeView, researchHref, specsHref, docHref, onCreateSection, onRenameSection, onDeleteSection, onCreateDocument, onDeleteDocument }) {
   const [editingSectionId, setEditingSectionId] = useState(null);
   const [draftName, setDraftName] = useState("");
 
@@ -58,12 +58,20 @@ export default function Sidebar({ sections, activeView, onOpenResearch, onOpenSp
       display: "flex", flexDirection: "column", gap: "14px",
     }}>
       <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
-        <button onClick={onOpenResearch} style={navItemStyle(activeView.type === "research")}>
+        <a
+          href={researchHref}
+          aria-current={activeView.type === "research" ? "page" : undefined}
+          style={navItemStyle(activeView.type === "research")}
+        >
           <BookOpen size={14} /> Research Repository
-        </button>
-        <button onClick={onOpenSpecs} style={navItemStyle(activeView.type === "specs")}>
+        </a>
+        <a
+          href={specsHref}
+          aria-current={activeView.type === "specs" ? "page" : undefined}
+          style={navItemStyle(activeView.type === "specs")}
+        >
           <Layers size={14} /> Specs
-        </button>
+        </a>
       </div>
 
       <div style={{ height: "1px", backgroundColor: BORDER }} />
@@ -112,15 +120,16 @@ export default function Sidebar({ sections, activeView, onOpenResearch, onOpenSp
               ) : (
                 s.documents.map((doc) => (
                   <div key={doc.id} className="reveal-group" style={{ display: "flex", alignItems: "center", gap: SPACE.xs }}>
-                    <button
-                      onClick={() => onOpenDocument(s.id, doc.id)}
+                    <a
+                      href={docHref(s.id, doc.id)}
+                      aria-current={activeView.type === "doc" && activeView.docId === doc.id ? "page" : undefined}
                       style={{ ...navItemStyle(activeView.type === "doc" && activeView.docId === doc.id), flex: 1, minWidth: 0 }}
                     >
                       <FileText size={13} style={{ flexShrink: 0 }} />
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {doc.title || "Untitled document"}
                       </span>
-                    </button>
+                    </a>
                     <IconButton
                       className="reveal" danger
                       onClick={() => onDeleteDocument(s.id, doc.id)}

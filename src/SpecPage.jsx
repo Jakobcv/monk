@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, FileOutput } from "lucide-react";
+import { ChevronDown, FileOutput, Check } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_SIDEBAR, SIZE, WEIGHT, RADIUS, MOTION, SPEC_STATUS_OPTIONS, SPEC_STATUS_COLOR } from "./lib/theme";
 import { eyebrow, editArea, pageTitleInput } from "./ui/text";
 import { buildSpecBrief } from "./lib/buildBrief";
+import { useCopy } from "./lib/useCopy";
 import ChecklistEditor from "./ChecklistEditor";
 import CrepeEditor from "./CrepeEditor";
 import Board from "./Board";
@@ -97,7 +98,7 @@ function SpecSidebar({ status, onStatusChange, owner, onOwnerChange, initiativeI
 // (maxWidth 760px); Board is a full-width canvas that manages its own internal scrolling and
 // wants to fill whatever height it's given, not sit inside a taller scrollable page.
 export default function SpecPage({
-  spec, boards, signals, insights, activities, sections, initiatives, onChange, activeTab, onSelectTab, onOpenBoard,
+  spec, boards, signals, insights, activities, sections, initiatives, onChange, activeTab, tabHref, onOpenBoard,
   onUpdateSignal, onCreateSignal, onUpdateInsight, onCreateInsight, onToast, highlightCardId, breadcrumbs,
 }) {
   const [title, setTitle] = useState(spec.title);
@@ -122,20 +123,16 @@ export default function SpecPage({
 
   // Assembles Standards + Product Knowledge + (if the spec is under an initiative) that
   // initiative's shared context + this spec's own content into one hand-off document (see
-  // lib/buildBrief.js) and opens it as plain text in a new tab — same "can't launch a real
-  // editor from a browser sandbox" constraint DocumentPage's "View .md" already works within,
-  // so the same workaround: a Blob URL, not a real file path.
+  // lib/buildBrief.js) and copies it to the clipboard, ready to paste into an agent. If the
+  // clipboard write is refused, useCopy falls back to opening it in a new tab.
+  const [briefCopied, copyBrief] = useCopy();
   const startBuild = () => {
     const initiative = initiativeId ? (initiatives || []).find((i) => i.id === initiativeId) : null;
-    const brief = buildSpecBrief(
+    copyBrief(buildSpecBrief(
       { title, problem, goals, nonGoals, openQuestions, acceptanceCriteria, design, plan },
       sections,
       initiative
-    );
-    const blob = new Blob([brief], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    ));
   };
 
   return (
@@ -154,18 +151,26 @@ export default function SpecPage({
             <button
               className="btn btn--sm btn--subtle"
               onClick={startBuild}
-              title="Assemble Standards, Product Knowledge, and this spec into one hand-off document for an agent"
-              style={{ flexShrink: 0, marginTop: "10px", color: INK_SOFT }}
+              title="Copy the build brief (Standards, Product Knowledge, and this spec) to the clipboard for an agent"
+              style={{ flexShrink: 0, marginTop: "10px", color: briefCopied ? SPEC_STATUS_COLOR.shipped : INK_SOFT }}
             >
-              <FileOutput size={13} /> Start build
+              {briefCopied
+                ? <><Check size={13} /> Brief copied</>
+                : <><FileOutput size={13} /> Start build</>}
             </button>
           </div>
 
-          <div style={{ display: "flex", gap: "18px", borderBottom: `1px solid ${BORDER}`, marginTop: "18px" }}>
+          <div role="tablist" style={{ display: "flex", gap: "18px", borderBottom: `1px solid ${BORDER}`, marginTop: "18px" }}>
             {TABS.map((t) => (
-              <button key={t.key} onClick={() => onSelectTab(t.key)} style={tabButtonStyle(activeTab === t.key)}>
+              <a
+                key={t.key}
+                href={tabHref(t.key)}
+                role="tab"
+                aria-selected={activeTab === t.key}
+                style={{ ...tabButtonStyle(activeTab === t.key), textDecoration: "none" }}
+              >
                 {t.label}
-              </button>
+              </a>
             ))}
           </div>
         </div>

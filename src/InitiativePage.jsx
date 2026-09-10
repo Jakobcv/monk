@@ -21,7 +21,7 @@ import EmptyState from "./ui/EmptyState";
 // also settable from the signal itself. Here you either create a spec already in the
 // initiative ("New spec" below) or detach one that's in it.
 export default function InitiativePage({
-  initiative, specs, onChange, onDelete, onOpenSpec, onCreateSpec, onDetachSpec, breadcrumbs,
+  initiative, specs, specHref, onChange, onDelete, onCreateSpec, onDetachSpec, breadcrumbs,
 }) {
   const [title, setTitle] = useState(initiative.title);
   const [status, setStatus] = useState(initiative.status);
@@ -84,14 +84,15 @@ export default function InitiativePage({
                 {[...specs].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).map((s) => (
                   <Card
                     key={s.id}
+                    as="a"
+                    href={specHref(s.id)}
                     interactive
                     className="reveal-group"
-                    onClick={() => onOpenSpec(s.id)}
                     style={{ position: "relative", textAlign: "left", padding: "12px 14px" }}
                   >
                     <IconButton
                       className="reveal"
-                      onClick={(e) => { e.stopPropagation(); onDetachSpec(s.id); }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDetachSpec(s.id); }}
                       title="Remove from this initiative (keeps the spec)"
                       style={{ position: "absolute", top: SPACE.sm, right: SPACE.sm }}
                     >
