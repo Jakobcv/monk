@@ -4,7 +4,7 @@ import { BORDER, SPACE, INK_SOFT, ACCENT } from "./lib/theme";
 import { pageTitleInput } from "./ui/text";
 import { documentToMarkdown } from "./lib/markdown";
 import { useCopy } from "./lib/useCopy";
-import CrepeEditor from "./CrepeEditor";
+import MarkdownEditor from "./MarkdownEditor";
 
 // The `document` prop only seeds local state on mount — the parent remounts this component (via
 // `key={document.id}`) whenever the open document changes, same pattern as Board.jsx. Destructured
@@ -63,7 +63,7 @@ export default function DocumentPage({ document: doc, onChange }) {
           </button>
         </div>
         <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: "18px" }} />
-        <CrepeEditor value={doc.body} onChange={(body) => onChange({ body })} />
+        <MarkdownEditor value={doc.body} onChange={(body) => onChange({ body })} placeholder="Write the document in Markdown…" />
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { font, INK, INK_SOFT, INK_FAINT, BORDER, SPACE, SIZE, WEIGHT, SPEC_STATU
 import { eyebrow, pageTitleInput, meta } from "./ui/text";
 import { INITIATIVE_STATUS_OPTIONS } from "./lib/initiativeModel";
 import Breadcrumbs from "./Breadcrumbs";
-import CrepeEditor from "./CrepeEditor";
+import MarkdownEditor from "./MarkdownEditor";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
 import IconButton from "./ui/IconButton";
@@ -65,9 +65,13 @@ export default function InitiativePage({
             <div style={{ ...eyebrow, marginBottom: SPACE.base }}>Description</div>
             {/* Freeform context shared by every spec under this initiative — it flows into
                 each one's "Start build" brief as an "## Initiative" section. A short blurb,
-                not a document, so it starts near-empty and grows with the text rather than
-                claiming the 60vh canvas DocumentPage wants. */}
-            <CrepeEditor value={initiative.description} onChange={(description) => onChange({ description })} minHeight="0" />
+                not a document, so it starts near-empty and grows with the text. */}
+            <MarkdownEditor
+              value={initiative.description}
+              onChange={(description) => onChange({ description })}
+              minHeight="0"
+              placeholder="Context every spec in this initiative should carry…"
+            />
           </div>
 
           <div style={{ height: "1px", backgroundColor: BORDER }} />

@@ -6,7 +6,7 @@ import { buildSpecBrief } from "./lib/buildBrief";
 import { useCopy } from "./lib/useCopy";
 import ChecklistEditor from "./ChecklistEditor";
 import AutoTextarea from "./ui/AutoTextarea";
-import CrepeEditor from "./CrepeEditor";
+import MarkdownEditor from "./MarkdownEditor";
 import Board from "./Board";
 import Breadcrumbs from "./Breadcrumbs";
 
@@ -248,13 +248,13 @@ export default function SpecPage({
 
           <div hidden={activeTab !== "design"} style={{ height: "100%", overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
             <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-              <CrepeEditor value={spec.design} onChange={setDesign} />
+              <MarkdownEditor value={spec.design} onChange={setDesign} placeholder="Design notes in Markdown…" />
             </div>
           </div>
 
           <div hidden={activeTab !== "plan"} style={{ height: "100%", overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
             <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-              <CrepeEditor value={spec.plan} onChange={setPlan} />
+              <MarkdownEditor value={spec.plan} onChange={setPlan} placeholder="The plan, in Markdown…" />
             </div>
           </div>
         </div>
