@@ -1,5 +1,5 @@
 import { useState, useRef, useLayoutEffect, useEffect, useReducer, useMemo, useCallback } from "react";
-import { Plus, ChevronUp, ChevronDown, ArrowUpRight } from "lucide-react";
+import { Plus, Link2, ChevronUp, ChevronDown, ArrowUpRight } from "lucide-react";
 import { genId, resolveRef } from "./lib/boardModel";
 import { blankSignal } from "./lib/signalModel";
 import { blankInsight } from "./lib/insightModel";
@@ -11,7 +11,6 @@ import { cardSurface } from "./ui/cardStyles";
 import SignalCardBody from "./SignalCardBody";
 import InsightCardBody from "./InsightCardBody";
 import IconButton from "./ui/IconButton";
-import Button from "./ui/Button";
 
 const ALLOWED = { signal: "insight", insight: "action", action: "result" };
 
@@ -21,23 +20,33 @@ const orderBtnStyle = (disabled) => ({
   opacity: disabled ? 0.3 : 1, cursor: disabled ? "default" : "pointer",
 });
 
-function ColumnHeader({ kind, title, count, onAdd, addProps }) {
+// `+` always creates a new card directly. Signal/Insight columns also pass `onConnect` — a
+// second, quieter icon button that opens the link-an-existing picker (Action/Result have
+// nothing to link to, so they get the `+` alone).
+function ColumnHeader({ kind, title, count, onAdd, addProps, onConnect, connectProps }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.xs }}>
       <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: ACCENT[kind], flexShrink: 0 }} />
       <span style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.sm, color: INK }}>{title}</span>
       <span style={{ fontFamily: font, fontWeight: WEIGHT.normal, fontSize: SIZE.sm, color: INK_FAINT }}>{count}</span>
-      <IconButton onClick={onAdd} title={`Add ${title.toLowerCase()}`} style={{ marginLeft: "auto", color: INK_SOFT }} {...addProps}>
-        <Plus size={13} />
-      </IconButton>
+      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "2px" }}>
+        {onConnect && (
+          <IconButton onClick={onConnect} title={`Link an existing ${title.toLowerCase()}`} style={{ color: INK_SOFT }} {...connectProps}>
+            <Link2 size={13} />
+          </IconButton>
+        )}
+        <IconButton onClick={onAdd} title={`New ${title.toLowerCase()}`} style={{ color: INK_SOFT }} {...addProps}>
+          <Plus size={13} />
+        </IconButton>
+      </div>
     </div>
   );
 }
 
-function Column({ kind, title, count, children, last, onAdd, addProps }) {
+function Column({ kind, title, count, children, last, onAdd, addProps, onConnect, connectProps }) {
   return (
     <div style={{ height: "100%", minHeight: 0, overflowY: "auto", borderRight: last ? "none" : `1px solid ${BORDER}`, padding: "18px 26px", display: "flex", flexDirection: "column", gap: "10px", minWidth: 0 }}>
-      <ColumnHeader kind={kind} title={title} count={count} onAdd={onAdd} addProps={addProps} />
+      <ColumnHeader kind={kind} title={title} count={count} onAdd={onAdd} addProps={addProps} onConnect={onConnect} connectProps={connectProps} />
       {children}
     </div>
   );
@@ -179,14 +188,14 @@ export default function Board({
   const [pickerPos, setPickerPos] = useState(null);
   const [signalQuery, setSignalQuery] = useState("");
   const pickerRef = useRef(null);
-  const addSignalBtnRef = useRef(null);
+  const connectSignalBtnRef = useRef(null);
   const closePicker = useCallback(() => { setSignalPickerOpen(false); setSignalQuery(""); }, []);
   useDismiss(signalPickerOpen, pickerRef, closePicker);
 
   const PICKER_WIDTH = 260;
   const toggleSignalPicker = () => {
     if (signalPickerOpen) { closePicker(); return; }
-    const r = addSignalBtnRef.current?.getBoundingClientRect();
+    const r = connectSignalBtnRef.current?.getBoundingClientRect();
     if (r) {
       setPickerPos({
         top: Math.round(r.bottom + 6),
@@ -225,13 +234,13 @@ export default function Board({
   const [insightPickerPos, setInsightPickerPos] = useState(null);
   const [insightQuery, setInsightQuery] = useState("");
   const insightPickerRef = useRef(null);
-  const addInsightBtnRef = useRef(null);
+  const connectInsightBtnRef = useRef(null);
   const closeInsightPicker = useCallback(() => { setInsightPickerOpen(false); setInsightQuery(""); }, []);
   useDismiss(insightPickerOpen, insightPickerRef, closeInsightPicker);
 
   const toggleInsightPicker = () => {
     if (insightPickerOpen) { closeInsightPicker(); return; }
-    const r = addInsightBtnRef.current?.getBoundingClientRect();
+    const r = connectInsightBtnRef.current?.getBoundingClientRect();
     if (r) {
       setInsightPickerPos({
         top: Math.round(r.bottom + 6),
@@ -721,8 +730,9 @@ export default function Board({
               created from Research Repository. */}
           <Column
             kind="signal" title="Signal" count={signalLinks.length}
-            onAdd={toggleSignalPicker}
-            addProps={{ "data-dismiss-ignore": true, ref: addSignalBtnRef }}
+            onAdd={createAndLinkSignal}
+            onConnect={toggleSignalPicker}
+            connectProps={{ "data-dismiss-ignore": true, ref: connectSignalBtnRef }}
           >
             {signalPickerOpen && pickerPos && (
               <div
@@ -730,14 +740,6 @@ export default function Board({
                 className="popover enter-up"
                 style={{ top: pickerPos.top, left: pickerPos.left, width: PICKER_WIDTH }}
               >
-                <Button
-                  className="el-signal-pick"
-                  fullWidth
-                  onClick={createAndLinkSignal}
-                  style={{ justifyContent: "flex-start", color: ACCENT.signal, marginBottom: SPACE.md }}
-                >
-                  <Plus size={13} /> Create new signal
-                </Button>
                 <input
                   autoFocus
                   className="field"
@@ -748,7 +750,7 @@ export default function Board({
                 />
                 {linkableSignals.length === 0 ? (
                   <div style={{ fontFamily: font, fontSize: SIZE.sm, color: INK_FAINT, padding: "4px 2px" }}>
-                    No matching signals.
+                    {signalQuery.trim() ? "No matching signals." : "No other signals to link — use + to create one."}
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs, maxHeight: "160px", overflowY: "auto" }}>
@@ -775,8 +777,9 @@ export default function Board({
               discovery canvas instead. */}
           <Column
             kind="insight" title="Insight" count={insightLinks.length}
-            onAdd={toggleInsightPicker}
-            addProps={{ "data-dismiss-ignore": true, ref: addInsightBtnRef }}
+            onAdd={createAndLinkInsight}
+            onConnect={toggleInsightPicker}
+            connectProps={{ "data-dismiss-ignore": true, ref: connectInsightBtnRef }}
           >
             {insightPickerOpen && insightPickerPos && (
               <div
@@ -784,14 +787,6 @@ export default function Board({
                 className="popover enter-up"
                 style={{ top: insightPickerPos.top, left: insightPickerPos.left, width: PICKER_WIDTH }}
               >
-                <Button
-                  className="el-signal-pick"
-                  fullWidth
-                  onClick={createAndLinkInsight}
-                  style={{ justifyContent: "flex-start", color: ACCENT.insight, marginBottom: SPACE.md }}
-                >
-                  <Plus size={13} /> Create new insight
-                </Button>
                 <input
                   autoFocus
                   className="field"
@@ -802,7 +797,7 @@ export default function Board({
                 />
                 {linkableInsights.length === 0 ? (
                   <div style={{ fontFamily: font, fontSize: SIZE.sm, color: INK_FAINT, padding: "4px 2px" }}>
-                    No matching insights.
+                    {insightQuery.trim() ? "No matching insights." : "No other insights to link — use + to create one."}
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs, maxHeight: "160px", overflowY: "auto" }}>
