@@ -415,3 +415,101 @@ body {
 .enter-up {
   animation: enter-up var(--motion-base) var(--ease-entrance);
 }
+
+/* ---------------------------------------------------------------------------
+   Checklist rows — Spec's Open questions and Acceptance criteria. A deliberate
+   checkbox: an 18px box centred in a 26px hit target (the native input is
+   stretched invisibly over the whole 26px). New rows drop in from just above;
+   removed rows fade up and out before they're unmounted (timings mirror
+   ENTER_MS / EXIT_MS in ChecklistEditor.jsx).
+   --------------------------------------------------------------------------- */
+.cl-row--enter {
+  animation: cl-row-in var(--motion-base) var(--ease-entrance);
+}
+.cl-row--exit {
+  animation: cl-row-out var(--motion-fast) var(--ease-exit) forwards;
+  pointer-events: none;
+}
+@keyframes cl-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes cl-row-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.cl-check {
+  flex-shrink: 0;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+}
+.cl-check input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.cl-check__box {
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: #fff;
+  color: #fff;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease),
+    transform var(--motion-instant) var(--ease);
+}
+.cl-check__box svg {
+  opacity: 0;
+  transform: scale(0.5);
+  transition:
+    opacity var(--motion-fast) var(--ease),
+    transform var(--motion-fast) var(--ease-entrance);
+}
+.cl-check:hover input:not(:checked) + .cl-check__box {
+  border-color: var(--ink-faint);
+  background: var(--bg-hover);
+}
+.cl-check input:checked + .cl-check__box {
+  background: var(--accent-insight);
+  border-color: var(--accent-insight);
+}
+.cl-check input:checked + .cl-check__box svg {
+  opacity: 1;
+  transform: scale(1);
+}
+.cl-check input:active + .cl-check__box {
+  transform: scale(0.9);
+}
+.cl-check input:focus-visible {
+  outline: none;
+}
+.cl-check input:focus-visible + .cl-check__box {
+  outline: 2px solid var(--accent-insight);
+  outline-offset: 2px;
+}
