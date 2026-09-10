@@ -9,8 +9,17 @@ export default function AutoTextarea({ value, minRows = 2, style, ...rest }) {
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    const fit = () => {
+      el.style.height = "auto";
+      const h = el.scrollHeight;
+      // 0 means it's in a hidden container (e.g. an inactive spec tab) — leave the row
+      // count alone and re-fit once it's actually shown (the observer below).
+      if (h > 0) el.style.height = `${h}px`;
+    };
+    fit();
+    const io = new IntersectionObserver((entries) => { if (entries[0].isIntersecting) fit(); });
+    io.observe(el);
+    return () => io.disconnect();
   }, [value]);
   return (
     <textarea

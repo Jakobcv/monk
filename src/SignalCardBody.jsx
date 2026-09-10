@@ -3,6 +3,7 @@ import { Plus, Link2, X } from "lucide-react";
 import { SIZE, SPACE } from "./lib/theme";
 import { editArea, meta } from "./ui/text";
 import { metaInputStyle } from "./ui/cardStyles";
+import AutoTextarea from "./ui/AutoTextarea";
 
 // The editable innards of a signal card, shared by the Discovery board, the Activity page and
 // Research Repository (via SignalCard.jsx), so a signal looks and behaves the same wherever you
@@ -54,8 +55,8 @@ export default function SignalCardBody({ signal, activities, onChange, autoFocus
 
   return (
     <>
-      <textarea
-        className="el-edit" rows={3} autoFocus={autoFocus}
+      <AutoTextarea
+        className="el-edit" minRows={2} autoFocus={autoFocus}
         value={signal.text}
         onChange={(e) => onChange({ text: e.target.value })}
         placeholder="What you observed…"

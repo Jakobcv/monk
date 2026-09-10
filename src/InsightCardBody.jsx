@@ -1,5 +1,6 @@
 import { SIZE, SPACE, BG_HOVER, RADIUS } from "./lib/theme";
 import { editArea, meta } from "./ui/text";
+import AutoTextarea from "./ui/AutoTextarea";
 
 // The editable innards of an insight card, shared by a spec's Discovery board and Research
 // Repository — mirrors SignalCardBody's role for Signal, now that Insight has been promoted to
@@ -25,8 +26,8 @@ export default function InsightCardBody({ insight, signals, onChange, autoFocus 
 
   return (
     <>
-      <textarea
-        className="el-edit" rows={3} autoFocus={autoFocus}
+      <AutoTextarea
+        className="el-edit" minRows={2} autoFocus={autoFocus}
         value={insight.text}
         onChange={(e) => onChange({ text: e.target.value })}
         placeholder="The insight…"
