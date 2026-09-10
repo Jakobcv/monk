@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { ChevronDown, FileOutput, Check } from "lucide-react";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_SIDEBAR, SIZE, WEIGHT, RADIUS, MOTION, SPEC_STATUS_OPTIONS, SPEC_STATUS_COLOR } from "./lib/theme";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_SIDEBAR, SIZE, WEIGHT, MOTION, SPEC_STATUS_OPTIONS, SPEC_STATUS_COLOR } from "./lib/theme";
 import { eyebrow, editArea, pageTitleInput } from "./ui/text";
 import { buildSpecBrief } from "./lib/buildBrief";
 import { useCopy } from "./lib/useCopy";
@@ -10,12 +10,6 @@ import CrepeEditor from "./CrepeEditor";
 import Board from "./Board";
 import Breadcrumbs from "./Breadcrumbs";
 
-const selectStyle = (color) => ({
-  appearance: "none", WebkitAppearance: "none", MozAppearance: "none",
-  border: `1px solid ${BORDER}`, background: "#fff", borderRadius: RADIUS.sm,
-  padding: "6px 26px 6px 9px", boxSizing: "border-box", width: "100%",
-  fontFamily: font, fontWeight: WEIGHT.medium, fontSize: SIZE.ui, color: color || INK, cursor: "pointer",
-});
 // The active-tab marker is a single sliding bar (see the tablist below), not a per-tab
 // border — so a tab is just its label. Colour + hover live in .spec-tab (index.css).
 const tabLinkStyle = {
@@ -47,11 +41,11 @@ function SpecSidebar({ status, onStatusChange, owner, onOwnerChange, initiativeI
     }}>
       <div>
         <div style={eyebrow}>Status</div>
-        <div style={{ position: "relative", marginTop: "8px" }}>
-          <select value={status} onChange={(e) => onStatusChange(e.target.value)} style={selectStyle(SPEC_STATUS_COLOR[status])}>
+        <div className="spec-select-wrap">
+          <select className="spec-select" style={{ color: SPEC_STATUS_COLOR[status] }} value={status} onChange={(e) => onStatusChange(e.target.value)}>
             {SPEC_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
-          <ChevronDown size={12} style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", color: INK_FAINT, pointerEvents: "none" }} />
+          <ChevronDown size={12} className="spec-select-chevron" />
         </div>
       </div>
 
@@ -59,18 +53,19 @@ function SpecSidebar({ status, onStatusChange, owner, onOwnerChange, initiativeI
 
       <div>
         <div style={eyebrow}>Initiative</div>
-        <div style={{ position: "relative", marginTop: "8px" }}>
+        <div className="spec-select-wrap">
           <select
+            className="spec-select"
+            style={{ color: initiativeId ? INK : INK_FAINT }}
             value={initiativeId || ""}
             onChange={(e) => onInitiativeChange(e.target.value || null)}
-            style={selectStyle(initiativeId ? INK : INK_FAINT)}
           >
             <option value="">None</option>
             {(initiatives || []).map((i) => (
               <option key={i.id} value={i.id}>{i.title || "Untitled initiative"}</option>
             ))}
           </select>
-          <ChevronDown size={12} style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", color: INK_FAINT, pointerEvents: "none" }} />
+          <ChevronDown size={12} className="spec-select-chevron" />
         </div>
       </div>
 

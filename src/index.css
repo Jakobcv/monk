@@ -566,3 +566,54 @@ body {
 .spec-tab[aria-selected="true"] {
   color: var(--ink);
 }
+
+/* ---------------------------------------------------------------------------
+   Spec sidebar selects (Status, Initiative). Same border / hover / focus-ring
+   language as .field, plus the chevron rotates while the control is focused —
+   the closest proxy there is to a native <select>'s open state.
+   --------------------------------------------------------------------------- */
+.spec-select-wrap {
+  position: relative;
+  margin-top: 8px;
+}
+.spec-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 26px 6px 9px;
+  font-family: var(--font);
+  font-weight: 500;
+  font-size: var(--size-ui);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  outline: none;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease);
+}
+.spec-select:hover:not(:focus) {
+  border-color: var(--ink-faint);
+}
+.spec-select:focus {
+  border-color: var(--accent-insight);
+  box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.12);
+}
+.spec-select-chevron {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-faint);
+  pointer-events: none;
+  transition:
+    transform var(--motion-base) var(--ease),
+    color var(--motion-fast) var(--ease);
+}
+.spec-select:focus ~ .spec-select-chevron {
+  transform: translateY(-50%) rotate(180deg);
+  color: var(--ink-soft);
+}
