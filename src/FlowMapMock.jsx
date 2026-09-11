@@ -1,6 +1,6 @@
 import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import { Plus, X } from "lucide-react";
-import { font, INK, INK_SOFT, BORDER, BG, BG_SIDEBAR, SIZE, WEIGHT, RADIUS, MOTION } from "./lib/theme";
+import { font, INK, INK_SOFT, BORDER, BG, BG_SIDEBAR, DANGER, SIZE, WEIGHT, RADIUS, MOTION } from "./lib/theme";
 import { editArea } from "./ui/text";
 import { cornerBadge } from "./ui/cardStyles";
 import AutoTextarea from "./ui/AutoTextarea";
@@ -20,6 +20,10 @@ import IconButton from "./ui/IconButton";
 //   3. Focus on demand, not colour-coding. At rest every line is one quiet grey. Hovering a step
 //      (or a use case) brings its whole path forward in ink and dims the rest.
 // Loop-backs are dashed. A label sits on its connector's longest straight run.
+//
+// Connecting and rewiring work like the Discovery board: drag from a step's handle onto another
+// step (or tap the handle, then click a step); drag an existing connector to move its arrow end,
+// or release it off any step to remove it.
 
 const TIERS = ["Primary", "Secondary", "Tertiary"];
 const HEADER_W = 220;
@@ -215,13 +219,30 @@ export default function FlowMapMock() {
     const moved = drag.moved || Math.hypot(e.clientX - o.x, e.clientY - o.y) > 4;
     setDrag({ ...drag, ...gridPoint(e), over: moved ? cardUnder(e, drag.from) : null, moved });
   };
+  // Dragging an existing connector moves its arrow end, keeping its source and label — the
+  // Discovery board's rewire. Released off any step it's removed (the preview turns red to say
+  // so). A tap without movement still selects it, to label or remove.
+  const startRewire = (l) => (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* synthetic pointer */ }
+    dragOrigin.current = { x: e.clientX, y: e.clientY };
+    setDrag({ from: l.from, rewireId: l.id, ...gridPoint(e), over: null, moved: false });
+  };
   const endDrag = () => {
     if (!drag) return;
-    if (!drag.moved) setConnectFrom(drag.from);
-    else if (drag.over && !m.links.some((l) => l.from === drag.from && l.to === drag.over)) {
-      set("links", (ls) => [...ls, { id: nid("l"), from: drag.from, to: drag.over, label: "" }]);
-    }
+    const { from, over, moved, rewireId } = drag;
     setDrag(null);
+    if (rewireId) {
+      if (!moved) { setConnectFrom(null); setSelLink((s) => (s === rewireId ? null : rewireId)); return; }
+      if (!over) { set("links", (ls) => ls.filter((l) => l.id !== rewireId)); setSelLink(null); return; }
+      if (!m.links.some((l) => l.id !== rewireId && l.from === from && l.to === over)) patch("links", rewireId, { to: over });
+      return;
+    }
+    if (!moved) setConnectFrom(from);
+    else if (over && !m.links.some((l) => l.from === from && l.to === over)) {
+      set("links", (ls) => [...ls, { id: nid("l"), from, to: over, label: "" }]);
+    }
   };
 
   const finishConnect = (to) => {
@@ -459,28 +480,40 @@ export default function FlowMapMock() {
               <g key={l.id}>
                 <path
                   className="fm-link" d={d} fill="none"
-                  stroke={lit ? INK : LINE} strokeWidth={lit ? 2 : 1.5} opacity={on ? 1 : 0.15}
+                  // Hidden while its own end is being dragged — the preview stands in for it.
+                  stroke={lit ? INK : LINE} strokeWidth={lit ? 2 : 1.5} opacity={drag?.rewireId === l.id ? 0 : on ? 1 : 0.15}
                   strokeDasharray={back ? "5 4" : undefined} markerEnd="url(#fm-cap)"
                 />
                 <path
-                  d={d} fill="none" stroke="transparent" strokeWidth="14" style={{ pointerEvents: "stroke", cursor: "pointer" }}
-                  onClick={(e) => { e.stopPropagation(); setConnectFrom(null); setSelLink(selLink === l.id ? null : l.id); }}
+                  d={d} fill="none" stroke="transparent" strokeWidth="14"
+                  role="button" tabIndex={0}
+                  aria-label="Connection — Enter to label, Delete to remove, or drag it to another step"
+                  style={{ pointerEvents: "stroke", cursor: drag?.rewireId === l.id ? "grabbing" : "grab", touchAction: "none", outline: "none" }}
+                  onPointerDown={startRewire(l)} onPointerMove={moveDrag} onPointerUp={endDrag}
+                  onPointerCancel={() => setDrag(null)}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelLink(l.id); }
+                    if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); set("links", (ls) => ls.filter((x) => x.id !== l.id)); setSelLink(null); }
+                  }}
                 >
-                  <title>Click to label or remove</title>
+                  <title>Click to label or remove · drag to reconnect</title>
                 </path>
               </g>
             );
           })}
-          {/* Drag preview: dashed while free, solid with an arrowhead once it snaps onto a step. */}
+          {/* Drag preview: dashed while free, solid with an arrowhead once it snaps onto a step.
+              Red while a dragged connector is over empty space — releasing there removes it. */}
           {drag?.moved && layout.cards?.[drag.from] && (() => {
             const s = layout.cards[drag.from];
             const t = drag.over && layout.cards[drag.over];
+            const deleting = drag.rewireId && !t;
             const x2 = t ? t.left : drag.x, y2 = t ? t.cy : drag.y;
             const mx = (s.right + x2) / 2;
             const d = roundedPath([{ x: s.right, y: s.cy }, { x: mx, y: s.cy }, { x: mx, y: y2 }, { x: x2, y: y2 }]);
             return (
-              <path d={d} fill="none" stroke={INK} strokeWidth={t ? 2 : 1.5} strokeDasharray={t ? undefined : "4 4"}
-                markerEnd={t ? "url(#fm-cap)" : undefined} opacity={t ? 1 : 0.7} style={{ pointerEvents: "none" }} />
+              <path d={d} fill="none" stroke={deleting ? DANGER : INK} strokeWidth={t ? 2 : 1.5} strokeDasharray={t ? undefined : "4 4"}
+                markerEnd={t ? "url(#fm-cap)" : undefined} opacity={t ? 1 : deleting ? 0.85 : 0.7} style={{ pointerEvents: "none" }} />
             );
           })()}
         </svg>
@@ -489,7 +522,7 @@ export default function FlowMapMock() {
         <div style={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none" }}>
           {routes.map(({ link: l, at }) => {
             const sel = selLink === l.id;
-            if ((!l.label && !sel) || !at) return null;
+            if ((!l.label && !sel) || !at || drag?.rewireId === l.id) return null;
             return (
               <div key={l.id} style={{ position: "absolute", left: at.x, top: at.y, transform: "translate(-50%, -50%)", display: "flex", alignItems: "center", gap: "2px", pointerEvents: "auto", opacity: linkOn(l.id) ? 1 : 0.25, transition: fade }}>
                 <input
