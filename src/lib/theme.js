@@ -120,7 +120,10 @@ export const MOTION = {
   ease: "cubic-bezier(0.2, 0, 0.2, 1)",
   // entrances get a touch more character without overshooting
   entrance: "cubic-bezier(0.16, 1, 0.3, 1)",
-  exit: "cubic-bezier(0.4, 0, 1, 1)",
+  // Exits decelerate too. This was cubic-bezier(0.4, 0, 1, 1) — an ease-*in*, which accelerates
+  // the element away and pulls the eye toward something that's leaving. An exit should be
+  // quicker and smaller than its enter, not sharper.
+  exit: "cubic-bezier(0.3, 0, 0.4, 1)",
 };
 
 // ---------------------------------------------------------------------------

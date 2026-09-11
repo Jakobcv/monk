@@ -15,6 +15,14 @@ body,
   margin: 0;
 }
 
+/* macOS renders text heavier than intended by default. Applied once at the root so every
+   surface matches — per-element smoothing is how you get a heading that's crisper than the
+   body text under it. Other platforms ignore both properties. */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 /* No 300ms double-tap-zoom delay on anything you click or drag. Scoped to interactive
    elements rather than the whole document so scroll containers keep their default behaviour. */
 button,

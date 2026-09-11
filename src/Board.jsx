@@ -28,7 +28,9 @@ function ColumnHeader({ kind, title, count, onAdd, addProps, onConnect, connectP
     <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.xs }}>
       <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: ACCENT[kind], flexShrink: 0 }} />
       <span style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.sm, color: INK }}>{title}</span>
-      <span style={{ fontFamily: font, fontWeight: WEIGHT.normal, fontSize: SIZE.sm, color: INK_FAINT }}>{count}</span>
+      {/* tabular-nums: this count changes as cards are added, linked and unlinked, and
+          proportional digits shift the buttons beside it on every change. */}
+      <span style={{ fontFamily: font, fontWeight: WEIGHT.normal, fontSize: SIZE.sm, color: INK_FAINT, fontVariantNumeric: "tabular-nums" }}>{count}</span>
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "2px" }}>
         {onConnect && (
           <IconButton onClick={onConnect} title={`Link an existing ${title.toLowerCase()}`} style={{ color: INK_SOFT }} {...connectProps}>
