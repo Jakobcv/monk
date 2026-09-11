@@ -1,4 +1,15 @@
-import { font, INK_SOFT, ACCENT, BG, WEIGHT, RADIUS, withAlpha } from "../lib/theme";
+import { font, INK_SOFT, ACCENT, BG, BORDER_STRONG, WEIGHT, RADIUS, withAlpha } from "../lib/theme";
+
+// The small round control hanging off a card's top corner — the Discovery board's unlink/delete,
+// and SignalCard's delete and select box elsewhere. One definition, so a signal card's corners
+// look the same wherever it appears. Pair with `.icon-btn` (the 26px `--hit` target — capped by
+// the 12px grid gap between cards) and add the side: `{ ...cornerBadge, right: "-7px" }`.
+export const cornerBadge = {
+  position: "absolute", top: "-7px", width: "16px", height: "16px", borderRadius: "50%",
+  border: `1px solid ${BORDER_STRONG}`, background: "#fff", color: INK_SOFT,
+  display: "flex", alignItems: "center", justifyContent: "center", padding: 0, zIndex: 4,
+  cursor: "pointer", "--hit": "26px",
+};
 
 // A board card's surface. Previously a low-alpha wash of the kind's accent — but at 12% alpha
 // over white that computes to roughly a 1.10:1 luminance difference, below what's perceptible

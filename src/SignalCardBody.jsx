@@ -57,6 +57,15 @@ export default function SignalCardBody({ signal, activities, onChange, autoFocus
 
       {showRow && (
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: SPACE.lg, rowGap: SPACE.xs, marginTop: SPACE.base }}>
+          {/* Date leads, activity follows. */}
+          {!activityId && (
+            <input
+              className="el-meta-input" type="date" value={dateValue}
+              onChange={(e) => onChange({ date: e.target.value ? new Date(e.target.value).getTime() : Date.now() })}
+              style={{ ...metaInputStyle, ...compactField }}
+            />
+          )}
+
           {showActivityIcon && (
             <a
               className="icon-btn"
@@ -91,14 +100,6 @@ export default function SignalCardBody({ signal, activities, onChange, autoFocus
             ) : (
               <AddField label="Activity" onClick={() => setPicking(true)} />
             )
-          )}
-
-          {!activityId && (
-            <input
-              className="el-meta-input" type="date" value={dateValue}
-              onChange={(e) => onChange({ date: e.target.value ? new Date(e.target.value).getTime() : Date.now() })}
-              style={{ ...metaInputStyle, ...compactField }}
-            />
           )}
 
           {after}

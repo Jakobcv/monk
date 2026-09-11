@@ -1,13 +1,13 @@
 import { useState, useRef, useLayoutEffect, useEffect, useReducer, useMemo, useCallback } from "react";
-import { Plus, Link2, ChevronUp, ChevronDown, ArrowUpRight } from "lucide-react";
+import { Plus, Link2, ChevronUp, ChevronDown, ArrowUpRight, X } from "lucide-react";
 import { genId, resolveRef } from "./lib/boardModel";
 import { blankSignal } from "./lib/signalModel";
 import { blankInsight } from "./lib/insightModel";
 import { insertAt } from "./lib/arrays";
 import { useDismiss } from "./lib/useDismiss";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, BG_SIDEBAR, BG_HOVER, ACCENT, SIZE, WEIGHT, SPACE, RADIUS, MOTION } from "./lib/theme";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_SIDEBAR, BG_HOVER, ACCENT, SIZE, WEIGHT, SPACE, RADIUS, MOTION } from "./lib/theme";
 import { eyebrow, editArea } from "./ui/text";
-import { cardSurface } from "./ui/cardStyles";
+import { cardSurface, cornerBadge } from "./ui/cardStyles";
 import SignalCardBody from "./SignalCardBody";
 import InsightCardBody from "./InsightCardBody";
 import IconButton from "./ui/IconButton";
@@ -414,18 +414,14 @@ export default function Board({
   );
 
   const renderDelete = (id, kind) => (
-    <button
+    <IconButton
       className="el-del reveal"
       onClick={() => deleteCard(id, kind)}
       title={kind === "signal" || kind === "insight" ? "Unlink from this board" : "Delete card"}
-      style={{
-        position: "absolute", top: "-7px", right: "-7px", width: "16px", height: "16px", borderRadius: "50%",
-        border: `1px solid ${BORDER_STRONG}`, background: "#fff", color: INK_SOFT, cursor: "pointer",
-        fontSize: SIZE.xs, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4, padding: 0,
-      }}
+      style={{ ...cornerBadge, right: "-7px" }}
     >
-      ×
-    </button>
+      <X size={12} />
+    </IconButton>
   );
 
   // A tap (pointer down + up with no movement) or Enter/Space enters click-connect mode; an
