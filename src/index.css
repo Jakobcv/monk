@@ -212,19 +212,16 @@ body {
    three separate times inside ResearchRepositoryPage alone.
    --------------------------------------------------------------------------- */
 .card {
-  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg);
-  transition:
-    border-color var(--motion-fast) var(--ease),
-    box-shadow var(--motion-fast) var(--ease);
+  box-shadow: var(--edge-raised);
+  transition: box-shadow var(--motion-fast) var(--ease);
 }
 .card--interactive {
   cursor: pointer;
 }
 .card--interactive:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--edge-lifted);
 }
 
 /* ---------------------------------------------------------------------------
@@ -347,9 +344,8 @@ body {
   position: fixed;
   z-index: 60;
   background: #fff;
-  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-pop);
+  box-shadow: var(--edge-float);
   padding: 8px;
 }
 
@@ -793,9 +789,8 @@ a.recent-row:hover {
 }
 .modal-panel {
   background: var(--bg);
-  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-pop);
+  box-shadow: var(--edge-float);
   padding: 20px 22px 22px;
   max-width: 100%;
   box-sizing: border-box;

@@ -84,6 +84,27 @@ export const SHADOW = {
   panel: "-6px 0 12px rgba(0,0,0,0.04)", // falls left, into the page (spec sidebar)
 };
 
+// An enclosing surface's edge, drawn as a shadow ring rather than a border. Three reasons it
+// beats `border: 1px solid BORDER` for anything box-shaped:
+//
+//   - It costs no layout. A surface can gain or lose its edge, or change its weight on hover,
+//     without nudging a single pixel of what's inside it.
+//   - Alpha composites correctly on anything. BORDER is an opaque #E9E9E7 picked against
+//     white, so it reads slightly wrong on the sidebar tint or on a card inside a card; a
+//     black-at-6% ring darkens whatever is actually behind it.
+//   - The ring and the lift are one property, so they can't drift out of step — the old .card
+//     animated border-color and box-shadow separately to do one thing.
+//
+// Each step keeps the same 1px ring and only changes how far the surface sits off the page.
+// Borders that are *dividers* rather than edges (a rule under the header, a 1px spacer between
+// sections) stay as borders — a ring around a line means nothing.
+export const EDGE = {
+  flat: "0 0 0 1px rgba(0,0,0,0.06)",
+  raised: "0 0 0 1px rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04)",
+  lifted: "0 0 0 1px rgba(0,0,0,0.08), 0 2px 4px -1px rgba(0,0,0,0.06), 0 8px 16px -4px rgba(0,0,0,0.06)",
+  float: "0 0 0 1px rgba(0,0,0,0.08), 0 4px 8px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.12)",
+};
+
 // ---------------------------------------------------------------------------
 // Motion — this is a document tool, so motion is functional, not expressive:
 // fast, small, and mostly opacity/transform. Nothing bounces, nothing waits on
@@ -132,6 +153,8 @@ export const CSS_VARS = `:root{
   --radius-xs:${RADIUS.xs}; --radius-sm:${RADIUS.sm}; --radius-md:${RADIUS.md};
   --radius-lg:${RADIUS.lg}; --radius-pill:${RADIUS.pill};
   --shadow-sm:${SHADOW.sm}; --shadow-md:${SHADOW.md}; --shadow-pop:${SHADOW.pop}; --shadow-panel:${SHADOW.panel};
+  --edge-flat:${EDGE.flat}; --edge-raised:${EDGE.raised};
+  --edge-lifted:${EDGE.lifted}; --edge-float:${EDGE.float};
   --motion-instant:${MOTION.instant}; --motion-fast:${MOTION.fast};
   --motion-base:${MOTION.base}; --motion-slow:${MOTION.slow};
   --ease:${MOTION.ease}; --ease-entrance:${MOTION.entrance}; --ease-exit:${MOTION.exit};
