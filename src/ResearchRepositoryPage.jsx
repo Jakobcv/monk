@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Search as SearchIcon, X, Link2, ArrowLeft, Star, Plus, Lightbulb, ArrowUpRight } from "lucide-react";
+import { Search as SearchIcon, X, Link2, ArrowLeft, Star, Plus, Lightbulb } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, ACCENT, ACTIVITY, DANGER, CITED, SIZE, WEIGHT, SPACE, RADIUS, withAlpha } from "./lib/theme";
 import { blankSignal, signalsForActivity, isSignalUnlinked } from "./lib/signalModel";
 import { blankInsight } from "./lib/insightModel";
@@ -180,13 +180,9 @@ export default function ResearchRepositoryPage({
         onToggleSelect={selectable ? () => toggleSignalSelected(sig.id) : undefined}
         metaExtra={
           <>
-            {/* Meta-sized, like the card's own date and "+ Activity", so this row reads as one
-                quiet line of metadata — the same as the card on a Discovery board. */}
-            {linkedBoards.map((b) => (
-              <a key={b.id} className="btn btn--subtle" href={specDiscoveryHref(b.id, sig.id)} style={{ ...cardMetaAction, textDecoration: "none" }}>
-                <ArrowUpRight size={12} /> {b.specTitle || "Untitled spec"}
-              </a>
-            ))}
+            {/* Only the attach action — which specs a signal is already in isn't shown here; the
+                repository is about the signal itself. `linkedBoards` still keeps those specs out
+                of the picker. Meta-sized, like the card's own date and "+ Activity". */}
             {attachOpenKey === m.key ? (
               <Field
                 as="select" autoFocus defaultValue=""
