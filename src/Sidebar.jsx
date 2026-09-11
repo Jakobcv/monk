@@ -61,14 +61,6 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
       <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
         <a
           className="nav-item"
-          href={dashboardHref}
-          aria-current={activeView.type === "dashboard" ? "page" : undefined}
-          style={navItemStyle}
-        >
-          <ChartNoAxesColumn size={16} /> Dashboard
-        </a>
-        <a
-          className="nav-item"
           href={researchHref}
           aria-current={activeView.type === "research" ? "page" : undefined}
           style={navItemStyle}
@@ -82,6 +74,14 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
           style={navItemStyle}
         >
           <Layers size={16} /> Specs
+        </a>
+        <a
+          className="nav-item"
+          href={dashboardHref}
+          aria-current={activeView.type === "dashboard" ? "page" : undefined}
+          style={navItemStyle}
+        >
+          <ChartNoAxesColumn size={16} /> Dashboard
         </a>
       </div>
 
