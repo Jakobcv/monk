@@ -222,17 +222,14 @@ export default function ResearchRepositoryPage({
         onDelete={() => onDeleteInsight(ins.id)}
         metaExtra={
           <>
-            {linkedBoards.map((b) => (
-              <a key={b.id} className="btn btn--sm btn--subtle" href={specDiscoveryHref(b.id, ins.id)} style={{ textDecoration: "none" }}>
-                Open in {b.specTitle || "Untitled spec"}
-              </a>
-            ))}
+            {/* Same as a signal row: only the attach action, meta-sized — which specs the insight
+                is already in isn't shown; `linkedBoards` just keeps those out of the picker. */}
             {attachOpenKey === m.key ? (
               <Field
                 as="select" autoFocus defaultValue=""
                 onChange={(e) => { if (e.target.value) handleAttach(m, e.target.value); }}
                 onBlur={() => setAttachOpenKey(null)}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: "pointer", fontSize: meta.fontSize }}
               >
                 <option value="" disabled>Attach to…</option>
                 {specs.filter((s) => !linkedBoards.some((b) => b.id === s.id)).map((s) => (
@@ -240,8 +237,8 @@ export default function ResearchRepositoryPage({
                 ))}
               </Field>
             ) : (
-              <Button className="reveal" variant="subtle" onClick={() => setAttachOpenKey(m.key)}>
-                <Link2 size={16} /> Attach to spec
+              <Button className="reveal" variant="subtle" onClick={() => setAttachOpenKey(m.key)} style={cardMetaAction}>
+                <Link2 size={12} /> Attach to spec
               </Button>
             )}
           </>
