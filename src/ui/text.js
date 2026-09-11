@@ -15,6 +15,23 @@ export const eyebrow = {
   color: INK_SOFT,
 };
 
+// The brand wordmark. Lowercase "monk", set at medium weight and opened up — it serves the
+// crescent rather than competing with it (see Home's MoonMark). One definition because the
+// header and the start page had drifted into three different decisions: "Monk" vs "monk",
+// 600 vs 500, and no tracking vs +0.07em.
+//
+// marginRight cancels the trailing letterspace, which otherwise pads the box on the right and
+// leaves the glyphs sitting a hair left of wherever you centred it.
+export const wordmark = (size) => ({
+  fontFamily: font,
+  fontWeight: WEIGHT.medium,
+  fontSize: size,
+  letterSpacing: "0.07em",
+  marginRight: "-0.07em",
+  lineHeight: LEADING.tight,
+  color: INK,
+});
+
 // A borderless textarea/input that inherits the page rather than looking like a form control —
 // used for the long-form fields on a spec and for card bodies on the board.
 export const editArea = {

@@ -459,7 +459,8 @@ body {
 .moon-mark {
   overflow: visible;
 }
-.moon-mark circle {
+.moon-mark__disc,
+.moon-mark__cut {
   transform-box: fill-box;
   transform-origin: center;
 }

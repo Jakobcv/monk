@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Plus } from "lucide-react";
 import {
-  font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, SIZE, WEIGHT, LEADING, SPACE, BRAND,
+  font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, SIZE, SPACE, BRAND,
 } from "./lib/theme";
-import { eyebrow, meta } from "./ui/text";
+import { eyebrow, meta, wordmark } from "./ui/text";
 import { recentlyTouched, relativeTime } from "./lib/dashboardMetrics";
 
 const KIND_COLOR = {
@@ -14,29 +14,55 @@ const KIND_COLOR = {
   initiative: ACCENT.action,
 };
 
-// Two circles: the gradient disc, and a disc painted in the page background sitting on top of
-// it. At rest the second one bites a crescent out of the first; on load it drops in from above
-// (see .moon-mark in index.css) so the mark reads as a full moon first and then waxes.
+// A gradient disc with a second disc subtracted out of it. At rest the subtraction leaves a
+// crescent; on load the cut circle drops in from above (see .moon-mark in index.css) so the
+// mark reads as a full moon first and then waxes.
 //
-// Geometry: disc r=34 at (50,50), cutout r=31 offset 19 units up-and-right — which leaves a
-// crescent 34 + 19 − 31 = 22 units thick at its widest, opening toward the upper right, the
-// same way the brand mark does.
+// The subtraction is a <mask>, not a circle painted in the page colour. That was the earlier
+// approach and it quietly required the mark to sit on --bg — it would have shown a white bite
+// on any tinted surface. A mask composites properly on anything.
+//
+// Geometry: disc r=34 at (50,50), cut r=29 at (62.2, 39.5). The horns are shorter than the
+// thinner crescent this replaced, which is most of why it survives being rendered at 16–24px.
+//
+// The filter is the rest of it: blur, then drive alpha hard through a threshold. Sharp cusps
+// come back rounded, because a blurred point never reaches the threshold but a blurred edge
+// does. stdDeviation 1.6 rounds the tips while leaving the arcs crisp — at 2.6 the horns start
+// reading as clipped stubs.
 //
 // The viewBox is offset rather than starting at 0,0. A crescent's ink sits low and to the left
-// of the disc it was cut from — its centroid lands near (39, 59) in this 100-unit box — so a
-// geometrically centred box leaves the shape looking like it drifted down-left. Moving the
-// window takes out about two thirds of that, the usual optical correction.
+// of the disc it was cut from, so a geometrically centred box leaves the shape looking like it
+// drifted down-left. Moving the window takes out about two thirds of that.
 function MoonMark({ size = 104 }) {
+  const uid = useId().replace(/:/g, "");
+  const grad = `moon-grad-${uid}`, mask = `moon-mask-${uid}`, round = `moon-round-${uid}`;
   return (
     <svg className="moon-mark" width={size} height={size} viewBox="-8 5 100 100" role="img" aria-label="Monk">
       <defs>
-        <linearGradient id="moon-gradient" x1="15%" y1="0%" x2="85%" y2="100%">
+        <linearGradient id={grad} x1="15%" y1="0%" x2="85%" y2="100%">
           <stop offset="0%" stopColor={BRAND.from} />
           <stop offset="100%" stopColor={BRAND.to} />
         </linearGradient>
+        <mask id={mask}>
+          <circle cx="50" cy="50" r="34" fill="#fff" />
+          <circle className="moon-mark__cut" cx="62.2" cy="39.5" r="29" fill="#000" />
+        </mask>
+        <filter id={round} x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b" />
+          <feColorMatrix
+            in="b"
+            type="matrix"
+            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 28 -13"
+          />
+        </filter>
       </defs>
-      <circle className="moon-mark__disc" cx="50" cy="50" r="34" fill="url(#moon-gradient)" />
-      <circle className="moon-mark__cut" cx="64.5" cy="37.5" r="31" fill="var(--bg)" />
+      {/* The entrance rides on a wrapping group so it transforms the already-masked result —
+          scaling the masked circle itself would slide it against a mask that stays put. */}
+      <g className="moon-mark__disc">
+        <g filter={`url(#${round})`}>
+          <circle cx="50" cy="50" r="34" fill={`url(#${grad})`} mask={`url(#${mask})`} />
+        </g>
+      </g>
     </svg>
   );
 }
@@ -72,18 +98,12 @@ export default function Home({ signals = [], insights = [], activities = [], spe
       <div style={{ maxWidth: "560px", margin: "0 auto" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <MoonMark />
-          {/* Set to serve the mark rather than compete with it. At bold the wordmark was both
-              heavier and darker than the moon — whose gradient averages to a mid-grey — so the
-              type won a stack it was meant to support. Medium weight evens that out. The open
-              tracking answers the void the crescent is built around; at −0.015em the word was
-              dense and closed, the opposite instinct to the mark above it. The negative right
-              margin drops the trailing letterspace so the glyphs, not the box, sit centred. */}
+          {/* Shared with the header — see `wordmark` in ui/text.js. The negative top margin
+              closes the gap the crescent leaves below its own ink inside the SVG box. */}
           <h1
             className="enter-up"
             style={{
-              fontFamily: font, fontWeight: WEIGHT.medium, fontSize: "28px",
-              letterSpacing: "0.07em", margin: "-6px -0.07em 0 0", lineHeight: LEADING.tight,
-              color: INK,
+              ...wordmark("28px"), marginTop: "-6px", marginBottom: 0, marginLeft: 0,
               animationDelay: "980ms", animationFillMode: "backwards",
             }}
           >
