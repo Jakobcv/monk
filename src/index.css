@@ -131,6 +131,26 @@ body {
 .btn:active:not(:disabled) {
   transform: translateY(0.5px);
 }
+
+/* An icon beside text should carry the text's optical weight. lucide writes stroke-width as a
+   presentation attribute, which CSS outranks, so this is set by context rather than on ~40
+   call sites where it would drift.
+
+   The usual guidance (1.5 beside regular text, 2 beside semibold) assumes icons drawn at their
+   24px grid. Ours render at 9-15px, and stroke-width is in viewBox units — effective px =
+   value x size/24 — so the same number lands much lighter. Measured against Inter's real stems:
+
+     beside meta 400 @11px   stem 1.00px   icon@11 stroke 2 -> 0.92px   92%, fine
+     beside body 400 @13.5   stem 1.38px   icon@13 stroke 2 -> 1.08px   78%, slightly light
+     inside .btn 600 @12px   stem 1.63px   icon@12 stroke 2 -> 1.00px   61%, clearly light
+
+   The correction therefore runs the opposite way to the guidance: these are too light, not too
+   heavy, and only the button case is off by enough to be worth touching. 2.5 brings a 12px
+   icon to 1.25px and a 14px icon to 1.46px, against a 1.63px stem — still a shade lighter than
+   the text, which is what you want, since an icon carries more total ink than a single stem. */
+.btn svg {
+  stroke-width: 2.5;
+}
 .btn:disabled {
   cursor: not-allowed;
   opacity: 0.45;
