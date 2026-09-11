@@ -28,7 +28,7 @@ export default function EmptyState({ compact = false, icon: Icon, children, styl
       }}
       {...rest}
     >
-      {Icon && <Icon size={22} strokeWidth={1.5} style={{ color: BORDER_STRONG }} />}
+      {Icon && <Icon size={24} strokeWidth={1.5} style={{ color: BORDER_STRONG }} />}
       <div>{children}</div>
     </div>
   );

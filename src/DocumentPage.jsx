@@ -115,7 +115,7 @@ export default function DocumentPage({ document: doc, onChange }) {
               title="Copy this document's raw markdown to the clipboard"
               style={{ flexShrink: 0, marginTop: "6px", color: copied ? ACCENT.action : INK_SOFT }}
             >
-              <SwapIcon active={copied} activeIcon={Check} inactiveIcon={Copy} size={13} />
+              <SwapIcon active={copied} activeIcon={Check} inactiveIcon={Copy} size={16} />
               {copied ? "Copied" : "Copy .md"}
             </button>
             <button
@@ -124,7 +124,7 @@ export default function DocumentPage({ document: doc, onChange }) {
               title="Open this document's raw markdown file in a new tab"
               style={{ flexShrink: 0, marginTop: "6px", color: INK_SOFT }}
             >
-              <FileText size={13} /> View .md
+              <FileText size={16} /> View .md
             </button>
           </div>
           <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: "18px" }} />

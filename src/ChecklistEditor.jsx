@@ -96,14 +96,14 @@ export default function ChecklistEditor({ label, items, onChange }) {
               {/* Bounded by the text input 8px to its left and the next row 4px below — a
                   square 40px target would cover both. */}
               <IconButton onClick={() => remove(id)} title="Remove" danger style={{ flexShrink: 0, "--hit-w": "34px", "--hit-h": "28px" }}>
-                <X size={13} />
+                <X size={16} />
               </IconButton>
             </div>
           );
         })}
       </div>
       <Button variant="subtle" onClick={add} style={{ marginTop: SPACE.md, marginLeft: "-6px" }}>
-        <Plus size={12} /> Add
+        <Plus size={16} /> Add
       </Button>
     </div>
   );

@@ -19,7 +19,7 @@ export default function Header({ saveStatus, onRetrySave, onChangeFolder }) {
 
       <div style={{ display: "flex", alignItems: "center", gap: SPACE.xl }}>
         <Button variant="subtle" onClick={onChangeFolder} title="Switch to a different research folder">
-          <FolderOpen size={14} /> Change folder
+          <FolderOpen size={16} /> Change folder
         </Button>
         <div style={{ display: "flex", alignItems: "center", gap: SPACE.md }}>
           <span style={{

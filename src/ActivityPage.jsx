@@ -84,7 +84,7 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
               <div style={eyebrow}>Linked signals ({linked.length})</div>
               <Button onClick={openSignalForm}>
-                <Plus size={12} /> Add signal
+                <Plus size={16} /> Add signal
               </Button>
             </div>
 
@@ -113,7 +113,7 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
           <div style={{ height: "1px", backgroundColor: BORDER }} />
 
           <Button variant="danger" onClick={onDelete} style={{ alignSelf: "flex-start" }}>
-            <Trash2 size={13} /> Delete activity
+            <Trash2 size={16} /> Delete activity
           </Button>
         </div>
       </div>

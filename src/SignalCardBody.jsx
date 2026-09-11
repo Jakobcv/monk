@@ -82,11 +82,11 @@ export default function SignalCardBody({ signal, activities, onChange, autoFocus
               title="Remove activity"
               style={{
                 display: "inline-flex", alignItems: "center", justifyContent: "center",
-                width: "14px", height: "14px", color: metaInputStyle.color,
+                width: "20px", height: "20px", color: metaInputStyle.color,
                 background: "none", border: "none", cursor: "pointer", padding: 0,
               }}
             >
-              <X size={10} />
+              <X size={16} />
             </button>
           </span>
         ) : (
@@ -153,7 +153,7 @@ function AddField({ label, onClick }) {
         background: "none", border: "none", cursor: "pointer", padding: "1px 4px", margin: "-1px -4px",
       }}
     >
-      <Plus size={9} /> {label}
+      <Plus size={11} /> {label}
     </button>
   );
 }

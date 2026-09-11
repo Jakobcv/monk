@@ -35,12 +35,12 @@ export default function InsightCard({
           title={deleteTitle}
           style={{
             position: "absolute", top: "-7px", right: "-7px",
-            width: "16px", height: "16px", borderRadius: "50%",
+            width: "22px", height: "22px", borderRadius: "50%",
             border: `1px solid ${BORDER_STRONG}`, background: "#fff",
-            "--hit": "24px", // same corner geometry as SignalCard — capped by the 12px grid gap
+            "--hit": "26px", // same corner geometry as SignalCard — capped by the 12px grid gap
           }}
         >
-          <Trash2 size={9} />
+          <Trash2 size={16} />
         </IconButton>
       )}
     </div>

@@ -270,7 +270,7 @@ export default function DashboardPage({ signals = [], insights = [], activities 
             )}
             {onCreateSpec && (
               <Button variant="primary" size="md" onClick={onCreateSpec}>
-                <Plus size={14} /> New spec
+                <Plus size={16} /> New spec
               </Button>
             )}
           </div>

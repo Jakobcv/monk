@@ -60,7 +60,7 @@ export default function Modal({ title, onClose, children, width = 620 }) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
           <span style={eyebrow}>{title}</span>
           <button className="icon-btn" onClick={onClose} title="Close" aria-label="Close">
-            <X size={15} />
+            <X size={16} />
           </button>
         </div>
         {children}

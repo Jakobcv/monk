@@ -4,7 +4,7 @@
 // live in index.css, since inline styles can't express them.
 //
 // Icons are passed as children, matching how every call site already wrote them:
-//   <Button variant="primary"><Plus size={14} /> New spec</Button>
+//   <Button variant="primary"><Plus size={16} /> New spec</Button>
 const cx = (...parts) => parts.filter(Boolean).join(" ");
 
 export default function Button({

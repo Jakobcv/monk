@@ -134,7 +134,7 @@ export default function Home({ signals = [], insights = [], activities = [], spe
             <div style={{ ...eyebrow, fontSize: SIZE.xs, letterSpacing: "0.07em" }}>Recently touched</div>
             {onCreateSpec && (
               <button className="btn btn--sm btn--subtle" onClick={onCreateSpec} style={{ color: INK_SOFT, marginRight: "-6px" }}>
-                <Plus size={12} /> New spec
+                <Plus size={16} /> New spec
               </button>
             )}
           </div>

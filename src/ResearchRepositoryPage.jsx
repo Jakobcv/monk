@@ -189,7 +189,7 @@ export default function ResearchRepositoryPage({
               </Field>
             ) : (
               <Button className="reveal" variant="subtle" onClick={() => setAttachOpenKey(m.key)}>
-                <Link2 size={11} /> Attach to spec
+                <Link2 size={16} /> Attach to spec
               </Button>
             )}
           </>
@@ -233,7 +233,7 @@ export default function ResearchRepositoryPage({
               </Field>
             ) : (
               <Button className="reveal" variant="subtle" onClick={() => setAttachOpenKey(m.key)}>
-                <Link2 size={11} /> Attach to spec
+                <Link2 size={16} /> Attach to spec
               </Button>
             )}
           </>
@@ -395,11 +395,11 @@ export default function ResearchRepositoryPage({
             onClick={backToRecent}
             style={{ visibility: activated ? "visible" : "hidden", color: INK, fontSize: SIZE.ui, marginLeft: "-6px" }}
           >
-            <ArrowLeft size={14} /> Back
+            <ArrowLeft size={16} /> Back
           </Button>
         </div>
         <div style={{ position: "relative", marginBottom: "14px" }}>
-          <SearchIcon size={15} style={{ position: "absolute", left: SPACE.lg, top: "50%", transform: "translateY(-50%)", color: INK_FAINT, pointerEvents: "none" }} />
+          <SearchIcon size={16} style={{ position: "absolute", left: SPACE.lg, top: "50%", transform: "translateY(-50%)", color: INK_FAINT, pointerEvents: "none" }} />
           <Field
             value={query}
             onChange={(e) => { setQuery(e.target.value); setActivated(true); }}
@@ -416,7 +416,7 @@ export default function ResearchRepositoryPage({
               // comfortable target while leaving most of the field clickable for the caret.
               style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", "--hit": "32px" }}
             >
-              <X size={14} />
+              <X size={16} />
             </button>
           )}
         </div>
@@ -427,7 +427,7 @@ export default function ResearchRepositoryPage({
             top-level button; clicking it jumps straight to a blank activity page. */}
         <div style={{ display: "flex", gap: SPACE.base, marginBottom: "18px" }}>
           <Button onClick={onCreateActivity} style={{ color: INK, padding: "7px 12px" }}>
-            <Plus size={13} /> New activity
+            <Plus size={16} /> New activity
           </Button>
         </div>
 
@@ -531,7 +531,7 @@ export default function ResearchRepositoryPage({
                           </Field>
                         ) : (
                           <Button className="reveal" onClick={() => setAttachOpenKey(m.key)}>
-                            <Link2 size={11} /> Attach to spec
+                            <Link2 size={16} /> Attach to spec
                           </Button>
                         )}
                       </div>
@@ -556,7 +556,7 @@ export default function ResearchRepositoryPage({
                   </Button>
                 )}
                 <Button onClick={openSignalForm}>
-                  <Plus size={12} /> Add signal
+                  <Plus size={16} /> Add signal
                 </Button>
               </div>
             </div>
@@ -601,7 +601,7 @@ export default function ResearchRepositoryPage({
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
               <h1 style={pageHeading}>Insights</h1>
               <Button onClick={openInsightForm}>
-                <Plus size={12} /> Add insight
+                <Plus size={16} /> Add insight
               </Button>
             </div>
 

@@ -26,7 +26,7 @@ function SpecCard({ spec, idx = 0, href, onDelete }) {
         // the card's own edge and never reaches the next one.
         style={{ position: "absolute", top: SPACE.base, right: SPACE.base, "--hit": "36px" }}
       >
-        <Trash2 size={12} />
+        <Trash2 size={16} />
       </IconButton>
 
       <div style={{
@@ -86,10 +86,10 @@ export default function SpecsPage({ specs, initiatives, specHref, initiativeHref
           <h1 style={pageHeading}>Specs</h1>
           <div style={{ display: "flex", gap: SPACE.base }}>
             <Button size="md" onClick={onCreateInitiative}>
-              <FolderGit2 size={14} /> New initiative
+              <FolderGit2 size={16} /> New initiative
             </Button>
             <Button variant="primary" size="md" onClick={() => onCreate()}>
-              <Plus size={14} /> New spec
+              <Plus size={16} /> New spec
             </Button>
           </div>
         </div>
@@ -111,7 +111,7 @@ export default function SpecsPage({ specs, initiatives, specHref, initiativeHref
                       fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK,
                     }}
                   >
-                    <FolderGit2 size={15} style={{ color: INK_FAINT }} />
+                    <FolderGit2 size={16} style={{ color: INK_FAINT }} />
                     {ini.title || "Untitled initiative"}
                     <span style={{ ...meta, fontWeight: WEIGHT.normal }}>
                       {members.length} spec{members.length === 1 ? "" : "s"} · {ini.status}

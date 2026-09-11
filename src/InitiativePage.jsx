@@ -80,7 +80,7 @@ export default function InitiativePage({
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
               <div style={eyebrow}>Specs in this initiative ({specs.length})</div>
               <Button onClick={onCreateSpec}>
-                <Plus size={12} /> New spec
+                <Plus size={16} /> New spec
               </Button>
             </div>
 
@@ -105,7 +105,7 @@ export default function InitiativePage({
                       // neighbouring cards' buttons would meet in the middle.
                       style={{ position: "absolute", top: SPACE.sm, right: SPACE.sm, "--hit": "34px" }}
                     >
-                      <X size={12} />
+                      <X size={16} />
                     </IconButton>
                     <div style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.body, color: INK, marginBottom: SPACE.sm, paddingRight: SPACE.xl, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {s.title || "Untitled spec"}
@@ -125,7 +125,7 @@ export default function InitiativePage({
           <div style={{ height: "1px", backgroundColor: BORDER }} />
 
           <Button variant="danger" onClick={onDelete} style={{ alignSelf: "flex-start" }}>
-            <Trash2 size={13} /> Delete initiative
+            <Trash2 size={16} /> Delete initiative
           </Button>
         </div>
       </div>

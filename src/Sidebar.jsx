@@ -65,7 +65,7 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
           aria-current={activeView.type === "dashboard" ? "page" : undefined}
           style={navItemStyle}
         >
-          <ChartNoAxesColumn size={14} /> Dashboard
+          <ChartNoAxesColumn size={16} /> Dashboard
         </a>
         <a
           className="nav-item"
@@ -73,7 +73,7 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
           aria-current={activeView.type === "research" ? "page" : undefined}
           style={navItemStyle}
         >
-          <BookOpen size={14} /> Research Repository
+          <BookOpen size={16} /> Research Repository
         </a>
         <a
           className="nav-item"
@@ -81,7 +81,7 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
           aria-current={activeView.type === "specs" ? "page" : undefined}
           style={navItemStyle}
         >
-          <Layers size={14} /> Specs
+          <Layers size={16} /> Specs
         </a>
       </div>
 
@@ -118,12 +118,12 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
                 )}
                 {/* This pair sits 4px apart — 25px centre to centre — so the targets cap just
                     under that. Height is free; the section label above is not interactive. */}
-                <IconButton onClick={() => onCreateDocument(s.id)} title="New document in this section" style={{ "--hit-w": "24px", "--hit-h": "28px" }}>
-                  <Plus size={12} />
+                <IconButton onClick={() => onCreateDocument(s.id)} title="New document in this section" style={{ "--hit-w": "28px", "--hit-h": "28px" }}>
+                  <Plus size={16} />
                 </IconButton>
                 {!fixed && (
-                  <IconButton className="reveal" danger onClick={() => onDeleteSection(s.id)} title="Delete section" style={{ "--hit-w": "24px", "--hit-h": "28px" }}>
-                    <Trash2 size={12} />
+                  <IconButton className="reveal" danger onClick={() => onDeleteSection(s.id)} title="Delete section" style={{ "--hit-w": "28px", "--hit-h": "28px" }}>
+                    <Trash2 size={16} />
                   </IconButton>
                 )}
               </div>
@@ -139,7 +139,7 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
                       aria-current={activeView.type === "doc" && activeView.docId === doc.id ? "page" : undefined}
                       style={{ ...navItemStyle, flex: 1, minWidth: 0 }}
                     >
-                      <FileText size={13} style={{ flexShrink: 0 }} />
+                      <FileText size={16} style={{ flexShrink: 0 }} />
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {doc.title || "Untitled document"}
                       </span>
@@ -150,9 +150,9 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
                       title="Delete document"
                       // The document link sits 2px to the left and fills the row, so width is
                       // capped hard to keep this off it. Rows are ~31px tall with no gap.
-                      style={{ flexShrink: 0, "--hit-w": "24px", "--hit-h": "30px" }}
+                      style={{ flexShrink: 0, "--hit-w": "26px", "--hit-h": "30px" }}
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={16} />
                     </IconButton>
                   </div>
                 ))
@@ -163,7 +163,7 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
       </div>
 
       <Button fullWidth onClick={onCreateSection}>
-        <Plus size={13} /> New section
+        <Plus size={16} /> New section
       </Button>
     </div>
   );

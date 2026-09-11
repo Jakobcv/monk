@@ -52,14 +52,14 @@ export default function SignalCard({
           className={selected ? undefined : "reveal"}
           style={{
             position: "absolute", top: "-7px", left: "-7px",
-            width: "16px", height: "16px", borderRadius: "4px",
+            width: "22px", height: "22px", borderRadius: "6px",
             border: `1px solid ${selected ? ACCENT.signal : BORDER_STRONG}`,
             background: selected ? ACCENT.signal : "#fff",
             color: "#fff", cursor: "pointer", padding: 0,
             display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4,
           }}
         >
-          {selected && <Check size={10} strokeWidth={3} />}
+          {selected && <Check size={16} strokeWidth={3} />}
         </button>
       )}
 
@@ -70,15 +70,15 @@ export default function SignalCard({
           title={deleteTitle}
           style={{
             position: "absolute", top: "-7px", right: "-7px",
-            width: "16px", height: "16px", borderRadius: "50%",
+            width: "22px", height: "22px", borderRadius: "50%",
             border: `1px solid ${BORDER_STRONG}`, background: "#fff",
             // Hangs 7px off the card corner, and the grid leaves 12px between cards — so the
             // neighbour's edge is only ~13px from this button's centre. 24px is the largest
             // target that doesn't reach onto the card next door.
-            "--hit": "24px",
+            "--hit": "26px",
           }}
         >
-          <Trash2 size={9} />
+          <Trash2 size={16} />
         </IconButton>
       )}
     </div>

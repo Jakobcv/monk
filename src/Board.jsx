@@ -15,7 +15,7 @@ import IconButton from "./ui/IconButton";
 const ALLOWED = { signal: "insight", insight: "action", action: "result" };
 
 const orderBtnStyle = (disabled) => ({
-  width: "16px", height: "16px", borderRadius: RADIUS.xs, border: `1px solid ${BORDER}`, background: "#fff",
+  width: "20px", height: "20px", borderRadius: RADIUS.xs, border: `1px solid ${BORDER}`, background: "#fff",
   display: "flex", alignItems: "center", justifyContent: "center", color: INK_SOFT, padding: 0,
   opacity: disabled ? 0.3 : 1, cursor: disabled ? "default" : "pointer",
 });
@@ -31,17 +31,17 @@ function ColumnHeader({ kind, title, count, onAdd, addProps, onConnect, connectP
       {/* tabular-nums: this count changes as cards are added, linked and unlinked, and
           proportional digits shift the buttons beside it on every change. */}
       <span style={{ fontFamily: font, fontWeight: WEIGHT.normal, fontSize: SIZE.sm, color: INK_FAINT, fontVariantNumeric: "tabular-nums" }}>{count}</span>
-      {/* --hit-w is capped to the 2px gap between this pair: 21px buttons 2px apart are 23px
+      {/* --hit-w is capped to the 2px gap between this pair: 24px buttons 2px apart are 26px
           centre to centre, so anything wider would put one button's target on top of the
           other's. Vertically the header row is clear, so height takes what it can. */}
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "2px" }}>
         {onConnect && (
-          <IconButton onClick={onConnect} title={`Link an existing ${title.toLowerCase()}`} style={{ color: INK_SOFT, "--hit-w": "22px", "--hit-h": "30px" }} {...connectProps}>
-            <Link2 size={13} />
+          <IconButton onClick={onConnect} title={`Link an existing ${title.toLowerCase()}`} style={{ color: INK_SOFT, "--hit-w": "26px", "--hit-h": "30px" }} {...connectProps}>
+            <Link2 size={16} />
           </IconButton>
         )}
-        <IconButton onClick={onAdd} title={`New ${title.toLowerCase()}`} style={{ color: INK_SOFT, "--hit-w": "22px", "--hit-h": "30px" }} {...addProps}>
-          <Plus size={13} />
+        <IconButton onClick={onAdd} title={`New ${title.toLowerCase()}`} style={{ color: INK_SOFT, "--hit-w": "26px", "--hit-h": "30px" }} {...addProps}>
+          <Plus size={16} />
         </IconButton>
       </div>
     </div>
@@ -407,9 +407,9 @@ export default function Board({
   };
 
   const renderOrder = (id, idx, length, onMove) => (
-    <div className="el-order reveal" style={{ position: "absolute", left: "-22px", top: "50%", transform: "translateY(-50%)", display: "flex", flexDirection: "column", gap: "2px", zIndex: 4 }}>
-      <button disabled={idx === 0} onClick={() => onMove(id, -1)} title="Move up" style={orderBtnStyle(idx === 0)}><ChevronUp size={11} /></button>
-      <button disabled={idx === length - 1} onClick={() => onMove(id, 1)} title="Move down" style={orderBtnStyle(idx === length - 1)}><ChevronDown size={11} /></button>
+    <div className="el-order reveal" style={{ position: "absolute", left: "-24px", top: "50%", transform: "translateY(-50%)", display: "flex", flexDirection: "column", gap: "2px", zIndex: 4 }}>
+      <button disabled={idx === 0} onClick={() => onMove(id, -1)} title="Move up" style={orderBtnStyle(idx === 0)}><ChevronUp size={16} /></button>
+      <button disabled={idx === length - 1} onClick={() => onMove(id, 1)} title="Move down" style={orderBtnStyle(idx === length - 1)}><ChevronDown size={16} /></button>
     </div>
   );
 

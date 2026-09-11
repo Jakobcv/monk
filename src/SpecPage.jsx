@@ -167,7 +167,7 @@ export default function SpecPage({
               title="Copy the build brief (Standards, Product Knowledge, and this spec) to the clipboard for an agent"
               style={{ flexShrink: 0, marginTop: "10px", color: briefCopied ? SPEC_STATUS_COLOR.shipped : INK_SOFT }}
             >
-              <SwapIcon active={briefCopied} activeIcon={Check} inactiveIcon={FileOutput} size={13} />
+              <SwapIcon active={briefCopied} activeIcon={Check} inactiveIcon={FileOutput} size={16} />
               {briefCopied ? "Brief copied" : "Start build"}
             </button>
           </div>
