@@ -25,6 +25,7 @@ import InitiativePage from "./InitiativePage";
 import ActivityPage from "./ActivityPage";
 import DesignTab from "./DesignTab";
 import FlowMapMock from "./FlowMapMock";
+import Board from "./Board";
 import { SAMPLE_DESIGN_MD } from "./lib/sampleDesign";
 
 const DOC_PREFIX = "#/doc/";
@@ -117,6 +118,9 @@ function useRoute() {
   }
   if (hash === "#/flow-preview") {
     return { name: "flowPreview" };
+  }
+  if (hash === "#/board-preview") {
+    return { name: "boardPreview" };
   }
   return { name: "home" };
 }
@@ -611,6 +615,27 @@ export default function App() {
   // The real Design tab on sample content, framed in a stand-in spec header so it reads in
   // context — the sandboxed preview can't open a workspace folder. Every edit's serialized
   // design.md lands on window.__designMd for inspection.
+  // The real Discovery board on sample data — the sandboxed preview can't open a workspace
+  // folder, and the board shares its connect/rewire gestures with the flow map (src/canvas), so
+  // this is where those get exercised. Picks the sample spec with the most connections.
+  if (import.meta.env.DEV && route.name === "boardPreview") {
+    const mock = mockWorkspace(1);
+    const spec = [...mock.specs].sort((a, b) => b.board.connections.length - a.board.connections.length)[0];
+    return (
+      <div style={{ fontFamily: font, height: "100dvh", padding: "12px", boxSizing: "border-box", background: "var(--bg)" }}>
+        <Board
+          board={spec.board}
+          onChange={(b) => { window.__board = b; }}
+          allBoards={mock.specs.map((s) => ({ ...s.board, specTitle: s.title }))}
+          onOpenBoard={() => {}}
+          signals={mock.signals} insights={mock.insights} activities={mock.activities}
+          onUpdateSignal={() => {}} onCreateSignal={() => {}} onUpdateInsight={() => {}} onCreateInsight={() => {}}
+          onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
+        />
+      </div>
+    );
+  }
+
   // Flow map exploration — a spec's use cases as rows, named stages as columns. Framed as the
   // page it would be: reached from the Design tab, full-width like Discovery.
   if (import.meta.env.DEV && route.name === "flowPreview") {

@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect, useEffect, useReducer, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Plus, Link2, ChevronUp, ChevronDown, ArrowUpRight, X } from "lucide-react";
 import { genId, resolveRef } from "./lib/boardModel";
 import { blankSignal } from "./lib/signalModel";
@@ -11,6 +11,8 @@ import { cardSurface, cornerBadge } from "./ui/cardStyles";
 import SignalCardBody from "./SignalCardBody";
 import InsightCardBody from "./InsightCardBody";
 import IconButton from "./ui/IconButton";
+import { useConnectGesture } from "./canvas/useConnectGesture";
+import { useRects } from "./canvas/useRects";
 
 const ALLOWED = { signal: "insight", insight: "action", action: "result" };
 
@@ -96,8 +98,7 @@ export default function Board({
   }, [boardState]);
 
   const boardRef = useRef(null);
-  const els = useRef({});
-  const setRef = (id) => (el) => { if (el) els.current[id] = el; else delete els.current[id]; };
+  const { setRef, rects: pos, els } = useRects(boardRef);
 
   // deep link from search: scroll the matched card into view and pulse it briefly
   const [pulseId, setPulseId] = useState(null);
@@ -109,11 +110,8 @@ export default function Board({
     setPulseId(highlightCardId);
     const t = setTimeout(() => setPulseId(null), 2000);
     return () => clearTimeout(t);
-  }, [highlightCardId]);
+  }, [highlightCardId, els]);
 
-  const [pos, setPos] = useState({});
-  const [, force] = useReducer((x) => x + 1, 0);
-  const [pending, setPending] = useState(null); // { from, kind, x, y, over, rewireId? }
   const [hoverId, setHoverId] = useState(null);
   const [focusedId, setFocusedId] = useState(null);
   const [hoverConnId, setHoverConnId] = useState(null);
@@ -150,20 +148,6 @@ export default function Board({
       if (!e.currentTarget.contains(e.relatedTarget)) setFocusedId((f) => (f === id ? null : f));
     },
   });
-
-  const measure = () => {
-    const board = boardRef.current;
-    if (!board) return;
-    const b = board.getBoundingClientRect();
-    const next = {};
-    for (const id in els.current) {
-      const r = els.current[id].getBoundingClientRect();
-      next[id] = { left: r.left - b.left, right: r.right - b.left, top: r.top - b.top, bottom: r.bottom - b.top, cy: r.top - b.top + r.height / 2 };
-    }
-    setPos((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
-  };
-  useLayoutEffect(measure);
-  useEffect(() => { window.addEventListener("resize", force); return () => window.removeEventListener("resize", force); }, []);
 
   const kindOf = (id) => {
     if (signalLinks.some((x) => x.id === id)) return "signal";
@@ -309,7 +293,6 @@ export default function Board({
 
     setList((p) => p.filter((x) => x.id !== id));
     setConnections((c) => c.filter((x) => x.from !== id && x.to !== id));
-    delete els.current[id];
 
     const wires = severed.length ? ` and ${severed.length} connection${severed.length === 1 ? "" : "s"}` : "";
     onToast?.(
@@ -321,85 +304,32 @@ export default function Board({
     );
   };
 
-  const boardPoint = (clientX, clientY) => {
-    const b = boardRef.current.getBoundingClientRect();
-    return { x: clientX - b.left, y: clientY - b.top };
-  };
-
-  // Click / keyboard alternative to the drag-to-connect gesture. `connectFrom` holds the
-  // source node while you pick a target: a "Connect" button then shows on every valid target
-  // card (see renderConnectTarget). Escape or clicking the same handle again cancels.
-  const [connectFrom, setConnectFrom] = useState(null);
-  const dragMoved = useRef(false);
-  useEffect(() => {
-    if (!connectFrom) return;
-    const onKey = (e) => { if (e.key === "Escape") setConnectFrom(null); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [connectFrom]);
-
-  const beginConnect = (id, kind) => setConnectFrom((cur) => (cur && cur.from === id ? null : { from: id, kind }));
-  const completeConnect = (targetId) => {
-    if (!connectFrom) return;
-    const from = connectFrom.from;
-    setConnections((c) => {
-      const existing = c.find((x) => x.from === from && x.to === targetId);
-      if (existing) return c.filter((x) => x.id !== existing.id); // second pick on the same target toggles it off
-      return [...c, { id: genId(), from, to: targetId }];
-    });
-    setConnectFrom(null);
-  };
   const removeConnection = (connId) => setConnections((c) => c.filter((x) => x.id !== connId));
 
-  const startConnect = (id, kind) => (e) => {
-    e.preventDefault(); e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    dragMoved.current = false;
-    const p = boardPoint(e.clientX, e.clientY);
-    setPending({ from: id, kind, x: p.x, y: p.y, over: null });
-  };
-  const moveConnect = (e) => {
-    if (!pending) return;
-    dragMoved.current = true;
-    const p = boardPoint(e.clientX, e.clientY);
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const targetEl = el && el.closest("[data-node-id]");
-    let over = null;
-    if (targetEl && targetEl.getAttribute("data-node-kind") === ALLOWED[pending.kind]) {
-      // Action/Result ids are still numeric (genId()); Signal/Insight ids are global string
-      // UUIDs now (see signalModel.js/insightModel.js). A DOM attribute is always a string, so
-      // this re-numifies it only when the id actually is one — blindly calling Number() on a
-      // UUID string produces NaN, which silently broke every drag onto a signal or insight
-      // target (the connection got created, just pointing at nothing `pos`/state could resolve).
-      const raw = targetEl.getAttribute("data-node-id");
-      const asNumber = Number(raw);
-      over = Number.isNaN(asNumber) ? raw : asNumber;
-    }
-    setPending((prev) => (prev ? { ...prev, x: p.x, y: p.y, over } : prev));
-  };
-  const endConnect = () => {
-    if (!pending) return;
-    const { from, over, rewireId } = pending;
-    if (rewireId != null) {
-      // dragged an existing connector: drop on a valid card to retarget it, drop on nothing to delete it
-      setConnections((c) => {
-        const rest = c.filter((x) => x.id !== rewireId);
-        if (over == null) return rest;
-        if (rest.some((x) => x.from === from && x.to === over)) return rest; // would duplicate, just drop the dragged one
-        return [...rest, { id: rewireId, from, to: over }];
-      });
-    } else if (over != null) {
-      setConnections((c) => (c.some((x) => x.from === from && x.to === over) ? c : [...c, { id: genId(), from, to: over }]));
-    }
-    setPending(null);
-  };
-
-  const startRewire = (c) => (e) => {
-    e.preventDefault(); e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    const p = boardPoint(e.clientX, e.clientY);
-    setPending({ from: c.from, kind: kindOf(c.from), x: p.x, y: p.y, over: null, rewireId: c.id });
-  };
+  // The connect / rewire gestures come from the shared canvas engine (src/canvas/
+  // useConnectGesture) — the same one a spec's flow map uses. What's specific to this board is
+  // only its rules:
+  //   - a signal connects to an insight, an insight to an action, an action to a result (ALLOWED)
+  //   - in click-connect mode, picking a target that's already connected toggles it off
+  //   - a connector dragged onto a card that already has that connection is dropped, not duplicated;
+  //     dragged onto nothing, it's removed
+  //   - tapping a connector removes it
+  const { pending, connectFrom, completeConnect, handleProps, linkProps } = useConnectGesture({
+    containerRef: boardRef,
+    canTarget: (from, to) => ALLOWED[kindOf(from)] === kindOf(to),
+    onConnect: (from, to, via) => setConnections((c) => {
+      const existing = c.find((x) => x.from === from && x.to === to);
+      if (existing) return via === "click" ? c.filter((x) => x.id !== existing.id) : c;
+      return [...c, { id: genId(), from, to }];
+    }),
+    onRewire: (id, from, to) => setConnections((c) => {
+      const rest = c.filter((x) => x.id !== id);
+      if (to == null) return rest;
+      if (rest.some((x) => x.from === from && x.to === to)) return rest;
+      return [...rest, { id, from, to }];
+    }),
+    onTapLink: removeConnection,
+  });
 
   const pathFor = (sx, sy, tx, ty) => {
     const off = Math.max(40, Math.abs(tx - sx) / 2);
@@ -425,25 +355,14 @@ export default function Board({
   );
 
   // A tap (pointer down + up with no movement) or Enter/Space enters click-connect mode; an
-  // actual drag still works exactly as before. `dragMoved` tells the two apart on pointer-up.
-  const handlePointerUp = (id, kind) => () => {
-    if (dragMoved.current) { endConnect(); return; }
-    setPending(null);
-    beginConnect(id, kind);
-  };
+  // actual drag connects directly. Both come from useConnectGesture's handleProps.
   const renderHandle = (id, kind, connected) => {
-    const arming = connectFrom && connectFrom.from === id;
+    const arming = connectFrom === id;
     return (
       <button
         type="button"
         className="el-handle reveal"
-        onPointerDown={startConnect(id, kind)}
-        onPointerMove={moveConnect}
-        onPointerUp={handlePointerUp(id, kind)}
-        onPointerCancel={endConnect}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); beginConnect(id, kind); }
-        }}
+        {...handleProps(id)}
         aria-label={arming ? `Cancel connecting this ${kind}` : `Connect this ${kind} — press Enter, or drag`}
         aria-pressed={arming ? true : undefined}
         title={arming ? "Click a target card, or press Escape" : "Drag or click to connect"}
@@ -461,8 +380,8 @@ export default function Board({
   // Shown on every valid target card while a connect is armed (renderXxxCard passes its id +
   // node-kind). Sits at the card's left edge, mirroring the source handle at the right edge.
   const renderConnectTarget = (targetId, targetKind) => {
-    if (!connectFrom || ALLOWED[connectFrom.kind] !== targetKind) return null;
-    const already = connections.some((x) => x.from === connectFrom.from && x.to === targetId);
+    if (connectFrom == null || ALLOWED[kindOf(connectFrom)] !== targetKind) return null;
+    const already = connections.some((x) => x.from === connectFrom && x.to === targetId);
     return (
       <button
         type="button"
@@ -472,7 +391,7 @@ export default function Board({
         style={{
           position: "absolute", left: "-9px", top: "-9px", zIndex: 5, whiteSpace: "nowrap",
           fontFamily: font, fontSize: SIZE.micro, fontWeight: WEIGHT.semibold,
-          color: "#fff", background: already ? INK_FAINT : ACCENT[connectFrom.kind],
+          color: "#fff", background: already ? INK_FAINT : ACCENT[kindOf(connectFrom)],
           border: "none", borderRadius: RADIUS.xs, padding: "3px 6px", cursor: "pointer",
           boxShadow: `0 1px 4px rgba(0,0,0,0.18)`,
         }}
@@ -485,7 +404,7 @@ export default function Board({
   const targetStyle = (id) => {
     const isTarget = pending && pending.over === id;
     if (!isTarget) return {};
-    const c = ACCENT[pending.kind];
+    const c = ACCENT[kindOf(pending.from)];
     return { outline: `2px solid ${c}`, outlineOffset: "2px", boxShadow: `0 4px 14px ${c}33` };
   };
 
@@ -706,10 +625,7 @@ export default function Board({
                     onMouseLeave={() => setHoverConnId((h) => (h === c.id ? null : h))}
                     onFocus={() => setHoverConnId(c.id)}
                     onBlur={() => setHoverConnId((h) => (h === c.id ? null : h))}
-                    onPointerDown={startRewire(c)}
-                    onPointerMove={moveConnect}
-                    onPointerUp={() => { if (!dragMoved.current) removeConnection(c.id); else endConnect(); }}
-                    onPointerCancel={endConnect}
+                    {...linkProps(c)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " " || e.key === "Delete" || e.key === "Backspace") {
                         e.preventDefault();
@@ -724,7 +640,7 @@ export default function Board({
             {pending && pos[pending.from] && (() => {
               const snap = pending.over != null && pos[pending.over];
               const isDeleteIntent = pending.rewireId != null && !snap;
-              const c = isDeleteIntent ? "#D64545" : ACCENT[pending.kind];
+              const c = isDeleteIntent ? "#D64545" : ACCENT[kindOf(pending.from)];
               const tx = snap ? pos[pending.over].left : pending.x;
               const ty = snap ? pos[pending.over].cy : pending.y;
               return (
