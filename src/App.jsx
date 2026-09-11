@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { FolderOpen } from "lucide-react";
 import { loadWorkspace, saveWorkspace } from "./lib/storage";
-import { blankBoard, bumpNextId, genId, KIND_ARRAY_KEY } from "./lib/boardModel";
+import { blankBoard, bumpNextId } from "./lib/boardModel";
 import { blankSection, blankDocument, ensureFixedSections, isFixedSection } from "./lib/documentModel";
 import { blankSpec } from "./lib/specModel";
 import { blankActivity } from "./lib/signalModel";
@@ -363,19 +363,6 @@ export default function App() {
       setSpecs((prev) => prev.map((s) => (detachedIds.includes(s.id) ? { ...s, initiativeId: id } : s)));
     });
   };
-  // attach a card found in search onto another spec's Discovery board as a live reference —
-  // never a copy, so edits to the source (or the source disappearing) show up wherever it's cited
-  const attachReference = (kind, sourceSpecId, sourceItemId, destSpecId) => {
-    const arrayKey = KIND_ARRAY_KEY[kind];
-    const card = { id: genId(), ref: { boardId: sourceSpecId, itemId: sourceItemId } };
-    setSpecs((prev) => prev.map((s) => (
-      s.id === destSpecId
-        ? { ...s, board: { ...s.board, [arrayKey]: [...s.board[arrayKey], card], updatedAt: Date.now() }, updatedAt: Date.now() }
-        : s
-    )));
-    goToSpecDiscovery(destSpecId, card.id);
-  };
-
   // Signals and Activities are global, workspace-wide records (see signalModel.js) — created
   // only from Research Repository, then linked (never copied) into any number of specs'
   // Discovery boards. `signal` here already arrives as a complete object (Research Repository
@@ -522,33 +509,6 @@ export default function App() {
         };
       }));
     });
-  };
-
-  // Attach an existing insight onto a spec's Discovery board from Research Repository — same
-  // shape as linkSignalToBoard above, and safe for the same reason (targets a spec that isn't
-  // currently mounted, or navigates straight into it afterward).
-  const linkInsightToBoard = (specId, insightId) => {
-    setSpecs((prev) => prev.map((s) => (
-      s.id === specId && !(s.board.insights || []).some((x) => x.id === insightId)
-        ? { ...s, board: { ...s.board, insights: [...s.board.insights, { id: insightId }], updatedAt: Date.now() }, updatedAt: Date.now() }
-        : s
-    )));
-    goToSpecDiscovery(specId, insightId);
-  };
-
-  // Attach an existing signal onto a spec's Discovery board from Research Repository (search
-  // isn't scoped to a spec, so there's no mounted Board to hand this off to) — same
-  // live-reference idea as attachReference above, and safe for the same reason: this either
-  // targets a spec that isn't currently mounted, or navigates straight into it afterward, so
-  // there's no local board state around yet to go stale. Linking/unlinking *from inside* an
-  // already-open Discovery board is Board.jsx's own local-state concern instead (see Board.jsx).
-  const linkSignalToBoard = (specId, signalId) => {
-    setSpecs((prev) => prev.map((s) => (
-      s.id === specId && !(s.board.signals || []).some((x) => x.id === signalId)
-        ? { ...s, board: { ...s.board, signals: [...s.board.signals, { id: signalId }], updatedAt: Date.now() }, updatedAt: Date.now() }
-        : s
-    )));
-    goToSpecDiscovery(specId, signalId);
   };
 
   const activeSection = route.name === "doc" ? sections.find((s) => s.id === route.sectionId) : null;
@@ -817,16 +777,13 @@ export default function App() {
                 onNavigate={(q, kind) => window.history.replaceState(null, "", hrefResearch(q, kind))}
                 activityHref={hrefActivity}
                 specDiscoveryHref={hrefSpecDiscovery}
-                onAttach={attachReference}
                 onCreateSignal={createSignal}
                 onCreateActivity={createActivity}
                 onCreateInsight={createInsight}
                 onUpdateSignal={updateSignal}
                 onDeleteSignal={deleteSignal}
-                onLinkSignal={linkSignalToBoard}
                 onUpdateInsight={updateInsight}
                 onDeleteInsight={deleteInsight}
-                onLinkInsight={linkInsightToBoard}
               />
             ) : route.name === "activity" ? (
               !activeActivity ? (

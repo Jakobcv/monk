@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Search as SearchIcon, X, Link2, ArrowLeft, Star, Plus, Lightbulb } from "lucide-react";
+import { Search as SearchIcon, X, ArrowLeft, Star, Plus, Lightbulb } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, ACCENT, ACTIVITY, DANGER, CITED, SIZE, WEIGHT, SPACE, RADIUS, withAlpha } from "./lib/theme";
 import { blankSignal, signalsForActivity, isSignalUnlinked } from "./lib/signalModel";
 import { blankInsight } from "./lib/insightModel";
@@ -21,10 +21,6 @@ const TYPE_DEFS = [
   { kind: "action", label: "Action", arrayKey: "actions", fields: (x) => [x.ifWe, x.then, x.expected] },
   { kind: "result", label: "Result", arrayKey: "results", fields: (x) => [x.text] },
 ];
-// Signal and Insight attach to a spec via `onLinkSignal`/`onLinkInsight` (there's no source
-// board/card to point at — just the record's own global id) rather than `onAttach`, but show
-// the same affordance.
-const ATTACHABLE_KINDS = new Set([...TYPE_DEFS.map((d) => d.kind), "signal", "insight"]);
 const RECENT_LIMIT = 20;
 
 // The filter row's pills: same shape six times over, differing only in which color carries the
@@ -73,19 +69,18 @@ function highlight(text, query) {
 // `boards` are board-shaped objects, each carrying `specTitle` (a board has no name of its own
 // — see App.jsx).
 export default function ResearchRepositoryPage({
-  boards, signals, insights, activities, onAttach,
+  boards, signals, insights, activities,
   initialQuery = "", initialKind = "all", onNavigate,
   specDiscoveryHref, activityHref,
   onCreateSignal, onCreateActivity, onCreateInsight,
-  onUpdateSignal, onDeleteSignal, onLinkSignal,
-  onUpdateInsight, onDeleteInsight, onLinkInsight,
+  onUpdateSignal, onDeleteSignal,
+  onUpdateInsight, onDeleteInsight,
 }) {
   // Seeded from the URL (see App.jsx's hrefResearch / useRoute) so a filtered view is
   // linkable and survives a refresh; changes are mirrored back with replaceState.
   const [query, setQuery] = useState(initialQuery);
   const [activeKind, setActiveKind] = useState(initialKind || "all");
   const [activated, setActivated] = useState(!!initialQuery || (initialKind && initialKind !== "all"));
-  const [attachOpenKey, setAttachOpenKey] = useState(null);
 
   useEffect(() => {
     onNavigate?.(query.trim(), activeKind);
@@ -121,13 +116,6 @@ export default function ResearchRepositoryPage({
   const formInsightFromSelection = () => {
     setNewInsight(blankInsight([...selectedSignalIds]));
     setSelectedSignalIds(new Set());
-  };
-
-  const handleAttach = (m, destSpecId) => {
-    if (m.kind === "signal") onLinkSignal(destSpecId, m.signalId);
-    else if (m.kind === "insight") onLinkInsight(destSpecId, m.insightId);
-    else onAttach(m.kind, m.boardId, m.cardId, destSpecId);
-    setAttachOpenKey(null);
   };
 
   const backToRecent = () => {
@@ -444,7 +432,6 @@ export default function ResearchRepositoryPage({
                     as="a"
                     href={specDiscoveryHref(m.boardId, m.cardId)}
                     interactive
-                    className="reveal-group"
                     style={{ padding: "10px 14px" }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.sm }}>
@@ -460,27 +447,6 @@ export default function ResearchRepositoryPage({
                     <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK, lineHeight: 1.5 }}>
                       {highlight(m.text, q)}
                     </div>
-                    {ATTACHABLE_KINDS.has(m.kind) && (
-                      <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ marginTop: SPACE.base }}>
-                        {attachOpenKey === m.key ? (
-                          <Field
-                            as="select" autoFocus defaultValue=""
-                            onChange={(e) => { if (e.target.value) handleAttach(m, e.target.value); }}
-                            onBlur={() => setAttachOpenKey(null)}
-                            style={{ cursor: "pointer" }}
-                          >
-                            <option value="" disabled>Attach to…</option>
-                            {boards.filter((b) => b.id !== m.boardId).map((b) => (
-                              <option key={b.id} value={b.id}>{b.specTitle || "Untitled spec"}</option>
-                            ))}
-                          </Field>
-                        ) : (
-                          <Button className="reveal" onClick={() => setAttachOpenKey(m.key)}>
-                            <Link2 size={16} /> Attach to spec
-                          </Button>
-                        )}
-                      </div>
-                    )}
                   </Card>
                   )
                 ))}
