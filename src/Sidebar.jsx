@@ -54,7 +54,7 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
 
   return (
     <div style={{
-      width: "230px", flexShrink: 0, height: "100%", overflowY: "auto", boxSizing: "border-box",
+      width: "230px", flexShrink: 0, height: "100%", overflowY: "auto", overflowX: "hidden", boxSizing: "border-box",
       backgroundColor: BG_SIDEBAR, borderRight: `1px solid ${BORDER}`, padding: "14px 10px",
       display: "flex", flexDirection: "column", gap: "14px",
     }}>
@@ -87,7 +87,9 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
 
       <div style={{ height: "1px", backgroundColor: BORDER }} />
 
-      <div style={{ display: "flex", flexDirection: "column", gap: SPACE.lg, flex: 1, minHeight: 0, overflowY: "auto" }}>
+      {/* overflowX hidden: the invisible hit-area pseudos on the flush-right trash buttons (see
+          .icon-btn::after) otherwise count as scrollable overflow and summon a horizontal bar. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: SPACE.lg, flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }}>
         {orderedSections.map((s) => {
           const fixed = isFixedSection(s.id);
           const FixedIcon = FIXED_SECTION_META[s.id]?.icon;

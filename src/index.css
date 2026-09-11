@@ -578,14 +578,17 @@ body {
 }
 
 /* One continuous motion, not two moves with a pause between them. The cutout starts travelling
-   while the disc is still arriving — for the first third of its path it sits clear of the disc
-   (its lower edge only reaches the disc at translateY ≈ -52 of -80), so the full moon still
-   reads while it approaches, and the bite begins just as the disc settles. Nothing ever stops.
+   while the disc is still arriving — for roughly the first half of its path it sits clear of the
+   disc, so the full moon still reads while it approaches, and the bite begins just as the disc
+   settles. Nothing ever stops.
+   It glides in from the upper right at ~45°, the same side it comes to rest on (its centre sits
+   up and to the right of the disc's), so the path reads as the shadow sliding into place rather
+   than dropping onto it.
    Deliberately NOT --ease-entrance: that curve covers its distance almost immediately, which
    skips straight past the full moon. */
 @keyframes moon-cut {
   from {
-    transform: translate(-6px, -80px) scale(0.78);
+    transform: translate(56px, -58px) scale(0.78);
   }
   to {
     transform: translate(0, 0) scale(1);
