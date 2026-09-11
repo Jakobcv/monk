@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import {
-  font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, SIZE, WEIGHT, LEADING, SPACE,
-  BRAND, BRAND_GRADIENT,
+  font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, SIZE, WEIGHT, LEADING, SPACE, BRAND,
 } from "./lib/theme";
 import { eyebrow, meta } from "./ui/text";
 import { recentlyTouched, relativeTime } from "./lib/dashboardMetrics";
@@ -22,11 +21,16 @@ const KIND_COLOR = {
 // Geometry: disc r=34 at (50,50), cutout r=31 offset 19 units up-and-right — which leaves a
 // crescent 34 + 19 − 31 = 22 units thick at its widest, opening toward the upper right, the
 // same way the brand mark does.
-function MoonMark({ size = 148 }) {
+//
+// The viewBox is offset rather than starting at 0,0. A crescent's ink sits low and to the left
+// of the disc it was cut from — its centroid lands near (39, 59) in this 100-unit box — so a
+// geometrically centred box leaves the shape looking like it drifted down-left. Moving the
+// window takes out about two thirds of that, the usual optical correction.
+function MoonMark({ size = 136 }) {
   return (
-    <svg className="moon-mark" width={size} height={size} viewBox="0 0 100 100" role="img" aria-label="Monk">
+    <svg className="moon-mark" width={size} height={size} viewBox="-8 5 100 100" role="img" aria-label="Monk">
       <defs>
-        <linearGradient id="moon-gradient" x1="10%" y1="0%" x2="90%" y2="100%">
+        <linearGradient id="moon-gradient" x1="15%" y1="0%" x2="85%" y2="100%">
           <stop offset="0%" stopColor={BRAND.from} />
           <stop offset="100%" stopColor={BRAND.to} />
         </linearGradient>
@@ -68,13 +72,15 @@ export default function Home({ signals = [], insights = [], activities = [], spe
       <div style={{ maxWidth: "560px", margin: "0 auto" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <MoonMark />
+          {/* The mark carries the gradient; the wordmark is set solid and small enough to read
+              as a caption under it rather than a second logo competing for the same job. The
+              negative margin closes the gap the crescent leaves below its own ink. */}
           <h1
             className="enter-up"
             style={{
-              fontFamily: font, fontWeight: WEIGHT.black, fontSize: "46px",
-              letterSpacing: "-0.035em", margin: `${SPACE.xl} 0 0`, lineHeight: LEADING.tight,
-              background: BRAND_GRADIENT, WebkitBackgroundClip: "text", backgroundClip: "text",
-              color: "transparent", WebkitTextFillColor: "transparent",
+              fontFamily: font, fontWeight: WEIGHT.bold, fontSize: "30px",
+              letterSpacing: "-0.015em", margin: "-10px 0 0", lineHeight: LEADING.tight,
+              color: INK,
               animationDelay: "1250ms", animationFillMode: "backwards",
             }}
           >

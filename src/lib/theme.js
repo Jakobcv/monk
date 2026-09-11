@@ -41,7 +41,9 @@ export const ACTIVITY = "#6741D9"; // violet — distinct from all four card acc
 export const DANGER = "#E03E3E";   // destructive actions, "needs attention"
 export const CITED = "#946800";    // muted gold — "authoritative", most-cited
 
-export const BRAND = { from: "#37352F", to: "#8A6E52" };
+// Monochrome — one warm-neutral ramp from near-black to a light grey. The mark is the only
+// thing that carries it, and a mark doesn't need to say hue and depth at the same time.
+export const BRAND = { from: "#2E2C28", to: "#9A968D" };
 export const BRAND_GRADIENT = `linear-gradient(135deg, ${BRAND.from} 0%, ${BRAND.to} 100%)`;
 
 // 8-digit hex alpha — used for the low-alpha card tints on the board
