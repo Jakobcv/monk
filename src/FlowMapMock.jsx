@@ -189,6 +189,41 @@ export default function FlowMapMock() {
     return { ...p, columns: p.columns.filter((c) => c.id !== id), cards: p.cards.filter((c) => !gone.has(c.id)), links: p.links.filter((l) => !gone.has(l.from) && !gone.has(l.to)) };
   });
   const addRow = () => { const id = nid("r"); setFresh(id); set("rows", (rs) => [...rs, { id, tier: 2, text: "" }]); };
+  // Drag from a step's handle onto another step to connect them — the Discovery board's gesture.
+  // A dashed preview follows the pointer and snaps (solid, with an arrowhead) onto the step under
+  // it. A tap without movement falls back to click-to-connect instead, as does Enter/Space.
+  const [drag, setDrag] = useState(null); // { from, x, y, over, moved }
+  const dragOrigin = useRef(null);
+  const gridPoint = (e) => {
+    const r = gridRef.current.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+  const cardUnder = (e, from) => {
+    const id = document.elementFromPoint(e.clientX, e.clientY)?.closest?.("[data-card-id]")?.getAttribute("data-card-id");
+    return id && id !== from ? id : null;
+  };
+  const startDrag = (from) => (e) => {
+    e.preventDefault();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* synthetic pointer */ }
+    dragOrigin.current = { x: e.clientX, y: e.clientY };
+    setSelLink(null);
+    setDrag({ from, ...gridPoint(e), over: null, moved: false });
+  };
+  const moveDrag = (e) => {
+    if (!drag) return;
+    const o = dragOrigin.current;
+    const moved = drag.moved || Math.hypot(e.clientX - o.x, e.clientY - o.y) > 4;
+    setDrag({ ...drag, ...gridPoint(e), over: moved ? cardUnder(e, drag.from) : null, moved });
+  };
+  const endDrag = () => {
+    if (!drag) return;
+    if (!drag.moved) setConnectFrom(drag.from);
+    else if (drag.over && !m.links.some((l) => l.from === drag.from && l.to === drag.over)) {
+      set("links", (ls) => [...ls, { id: nid("l"), from: drag.from, to: drag.over, label: "" }]);
+    }
+    setDrag(null);
+  };
+
   const finishConnect = (to) => {
     if (connectFrom && to !== connectFrom && !m.links.some((l) => l.from === connectFrom && l.to === to)) {
       set("links", (ls) => [...ls, { id: nid("l"), from: connectFrom, to, label: "" }]);
@@ -234,7 +269,7 @@ export default function FlowMapMock() {
   // Focus: a hovered step's whole path (everything upstream and downstream of it), a hovered use
   // case's connectors, or the selected connector. Everything else dims.
   const focus = (() => {
-    if (connectFrom) return null;
+    if (connectFrom || drag) return null;
     if (hoverCard) {
       const onPath = new Set([hoverCard]);
       for (const forward of [true, false]) {
@@ -280,6 +315,8 @@ export default function FlowMapMock() {
         .fm-col-x { opacity: 0; transition: opacity 120ms ease; }
         .fm-link { transition: stroke ${MOTION.base} ${MOTION.ease}, stroke-width ${MOTION.fast} ${MOTION.ease}, opacity ${MOTION.base} ${MOTION.ease}; }
         .fm-connecting .fm-card:not(.fm-source):hover { outline: 2px solid ${INK_SOFT}; outline-offset: 2px; cursor: crosshair; }
+        /* Mid-drag nothing is selectable — a stray text selection under the pointer is never meant. */
+        .fm-dragging, .fm-dragging * { user-select: none; -webkit-user-select: none; cursor: grabbing !important; }
       `}</style>
 
       {connectFrom && (
@@ -292,7 +329,7 @@ export default function FlowMapMock() {
 
       <div
         ref={gridRef}
-        className={connectFrom ? "fm-connecting" : undefined}
+        className={[connectFrom && "fm-connecting", drag && "fm-dragging"].filter(Boolean).join(" ") || undefined}
         style={{ position: "relative", display: "grid", gridTemplateColumns: cols, minWidth: "min-content" }}
       >
         {/* Stage header row */}
@@ -350,11 +387,13 @@ export default function FlowMapMock() {
                     >
                       <div
                         ref={(el) => { cardEls.current[k.id] = el; }}
+                        data-card-id={k.id}
                         className={`el-card fm-card${connectFrom === k.id ? " fm-source" : ""}`}
                         onClickCapture={connectFrom && connectFrom !== k.id ? (e) => { e.preventDefault(); e.stopPropagation(); finishConnect(k.id); } : undefined}
                         style={{
                           background: BG, border: `1px solid ${BORDER}`,
-                          outline: connectFrom === k.id ? `2px solid ${INK}` : undefined, outlineOffset: "2px",
+                          outline: connectFrom === k.id ? `2px solid ${INK}` : drag?.over === k.id ? `2px solid ${INK_SOFT}` : undefined,
+                          outlineOffset: "2px",
                         }}
                       >
                         <AutoTextarea
@@ -365,9 +404,20 @@ export default function FlowMapMock() {
                       </div>
                       {!connectFrom && (
                         <button
-                          className="reveal" title="Connect to another step" aria-label="Connect to another step"
-                          onClick={() => { setSelLink(null); setConnectFrom(k.id); }}
-                          style={{ position: "absolute", right: "-6px", top: "50%", transform: "translateY(-50%)", width: "12px", height: "12px", borderRadius: "50%", border: `2px solid ${INK_SOFT}`, background: "#fff", padding: 0, cursor: "pointer", zIndex: 3 }}
+                          className="reveal"
+                          title="Drag to another step to connect — or click, then pick one"
+                          aria-label="Connect to another step"
+                          onPointerDown={startDrag(k.id)} onPointerMove={moveDrag} onPointerUp={endDrag}
+                          onPointerCancel={() => setDrag(null)}
+                          // Keyboard activation only (detail 0) — a mouse tap is handled by endDrag.
+                          onClick={(e) => { if (e.detail === 0) { setSelLink(null); setConnectFrom(k.id); } }}
+                          style={{
+                            position: "absolute", right: "-6px", top: "50%", transform: "translateY(-50%)",
+                            width: "12px", height: "12px", borderRadius: "50%", border: `2px solid ${INK_SOFT}`,
+                            background: drag?.from === k.id ? INK_SOFT : "#fff", padding: 0, cursor: "grab", zIndex: 3, touchAction: "none",
+                            // Stay visible (and keep receiving the captured pointer) while its drag is in flight.
+                            ...(drag?.from === k.id ? { opacity: 1, pointerEvents: "auto" } : {}),
+                          }}
                         />
                       )}
                       <IconButton className="reveal" title="Remove step" onClick={() => removeCard(k.id)} style={{ ...cornerBadge, right: "-7px" }}>
@@ -421,6 +471,18 @@ export default function FlowMapMock() {
               </g>
             );
           })}
+          {/* Drag preview: dashed while free, solid with an arrowhead once it snaps onto a step. */}
+          {drag?.moved && layout.cards?.[drag.from] && (() => {
+            const s = layout.cards[drag.from];
+            const t = drag.over && layout.cards[drag.over];
+            const x2 = t ? t.left : drag.x, y2 = t ? t.cy : drag.y;
+            const mx = (s.right + x2) / 2;
+            const d = roundedPath([{ x: s.right, y: s.cy }, { x: mx, y: s.cy }, { x: mx, y: y2 }, { x: x2, y: y2 }]);
+            return (
+              <path d={d} fill="none" stroke={INK} strokeWidth={t ? 2 : 1.5} strokeDasharray={t ? undefined : "4 4"}
+                markerEnd={t ? "url(#fm-cap)" : undefined} opacity={t ? 1 : 0.7} style={{ pointerEvents: "none" }} />
+            );
+          })()}
         </svg>
 
         {/* Connector labels — shown when a link has one, or while it's selected (to add one) */}
