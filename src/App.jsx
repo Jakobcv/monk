@@ -633,7 +633,7 @@ export default function App() {
     return (
       <div style={{ fontFamily: font, height: "100dvh", overflowY: "auto", background: "var(--bg)" }}>
         {route.name === "homePreview"
-          ? <Home {...mock} recentHref={(kind, id) => recentHref(kind, id)} />
+          ? <Home {...mock} recentHref={(kind, id) => recentHref(kind, id)} folderName="product-research" onChangeFolder={() => {}} />
           : <DashboardPage {...mock} demo />}
       </div>
     );
@@ -826,6 +826,8 @@ export default function App() {
                 initiatives={initiatives}
                 onCreateSpec={createSpec}
                 recentHref={recentHref}
+                folderName={dirHandle?.name}
+                onChangeFolder={handleChangeFolder}
               />
             )}
           </main>

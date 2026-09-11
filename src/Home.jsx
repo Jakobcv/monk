@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, FolderOpen } from "lucide-react";
 import {
-  font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, SIZE, SPACE, BRAND,
+  font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, SIZE, SPACE, RADIUS, BRAND,
 } from "./lib/theme";
 import { eyebrow, meta, wordmark } from "./ui/text";
 import { recentlyTouched, relativeTime } from "./lib/dashboardMetrics";
@@ -81,7 +81,7 @@ function RecentRow({ item, href, now, delay }) {
 
 // The start page. Not a dashboard — the numbers live on their own page now (DashboardPage);
 // this is the mark, and the short list of what you last touched so you can get back into it.
-export default function Home({ signals = [], insights = [], activities = [], specs = [], initiatives = [], onCreateSpec, recentHref }) {
+export default function Home({ signals = [], insights = [], activities = [], specs = [], initiatives = [], onCreateSpec, recentHref, folderName, onChangeFolder }) {
   const [now] = useState(() => Date.now());
   const recent = recentlyTouched({ signals, insights, activities, specs, initiatives }, 8);
 
@@ -101,6 +101,32 @@ export default function Home({ signals = [], insights = [], activities = [], spe
           >
             monk
           </h1>
+
+          {/* Which folder you're actually in, and the way out of it. Every other route carries
+              this as the first breadcrumb; the start page has no breadcrumb bar, so it sat
+              under the wordmark as a subtitle instead — which is roughly where it belongs
+              anyway: this is monk, and this is the workspace you have open.
+
+              Colour is left to `.crumb` rather than set inline. Setting it here would beat the
+              class's :hover and kill the hover state, which is exactly the bug the breadcrumbs
+              had. */}
+          {onChangeFolder && (
+            <button
+              className="enter-up crumb"
+              onClick={onChangeFolder}
+              title="Switch to a different research folder"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: SPACE.sm,
+                marginTop: SPACE.lg, padding: "5px 11px", borderRadius: RADIUS.pill,
+                border: "none", background: "none", cursor: "pointer",
+                fontFamily: font, fontSize: SIZE.sm,
+                animationDelay: "1040ms", animationFillMode: "backwards",
+              }}
+            >
+              <FolderOpen size={12} style={{ flexShrink: 0 }} />
+              {folderName || "Research folder"}
+            </button>
+          )}
         </div>
 
         <div className="enter-up" style={{ marginTop: "68px", animationDelay: "1100ms", animationFillMode: "backwards" }}>
