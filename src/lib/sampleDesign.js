@@ -19,11 +19,6 @@ export const SAMPLE_DESIGN_MD = `## Use cases
 - Must be fully keyboard operable
 - No server round-trip; everything is generated locally
 
-## Experience qualities
-
-- **Layout:** One column, preview-first. Options stay out of the way until asked for.
-- **Motion:** Calm. Animate only to confirm a state change (copied, exported).
-
 ## Edge cases
 
 - The insight has no linked signals → Disable export and say why

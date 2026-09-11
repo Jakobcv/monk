@@ -620,7 +620,11 @@ export default function App() {
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
           <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-            <DesignTab value={SAMPLE_DESIGN_MD} onChange={(md) => { window.__designMd = md; }} />
+            <DesignTab
+              value={SAMPLE_DESIGN_MD}
+              onChange={(md) => { window.__designMd = md; }}
+              onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
+            />
           </div>
         </div>
       </div>

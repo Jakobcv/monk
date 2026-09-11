@@ -112,7 +112,6 @@ in this order, each omitted when empty — one item per line:
                               - Flow: step → step → step        (optional, nested)
 ## Principles             1. text
 ## Constraints            - text
-## Experience qualities   - **Layout|Motion|Responsive|Copy:** text
 ## Edge cases             - when → then                     (then = _agent decides_ if left open)
 ## Decisions              - **Decision**
                               - Because: …   - Rejected: …     (each optional, nested)

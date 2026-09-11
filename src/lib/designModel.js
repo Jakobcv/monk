@@ -14,8 +14,7 @@
 //   ## Use cases            - **Primary:** text          (optional nested "  - Flow: a → b → c")
 //   ## Principles           1. text
 //   ## Constraints          - text
-//   ## Experience qualities - **Layout:** text
-//   ## Edge cases           - when → then                ("_agent decides_" when no outcome given)
+//   ## Edge cases          - when → then                ("_agent decides_" when no outcome given)
 //   ## Decisions            - **Decision**               (nested "  - Because: …", "  - Rejected: …")
 //   ## Artefacts            - [Title](url) — prototype, match exactly
 //   ## Notes                freeform markdown
@@ -23,25 +22,25 @@
 export const TIERS = ["Primary", "Secondary", "Tertiary"];
 export const ARTEFACT_TYPES = ["link", "prototype", "design", "diagram", "persona"];
 export const AUTHORITIES = { exact: "Match exactly", direction: "Follow direction", context: "Background" };
-export const QUALITY_FACETS = ["Layout", "Motion", "Responsive", "Copy"];
 
+// There used to be an "Experience qualities" section; it was dropped. A file that still has one
+// keeps it — as an unknown heading it lands in Notes verbatim, so nothing is lost.
 const TITLES = {
   artefacts: "Artefacts", useCases: "Use cases", principles: "Principles", constraints: "Constraints",
-  qualities: "Experience qualities", edgeCases: "Edge cases", decisions: "Decisions", notes: "Notes",
+  edgeCases: "Edge cases", decisions: "Decisions", notes: "Notes",
 };
 const KEY_BY_TITLE = Object.fromEntries(Object.entries(TITLES).map(([k, t]) => [t.toLowerCase(), k]));
 
 const AGENT_DECIDES = "_agent decides_";
 
 export function blankDesign() {
-  return { artefacts: [], useCases: [], principles: [], constraints: [], qualities: {}, edgeCases: [], decisions: [], notes: "" };
+  return { artefacts: [], useCases: [], principles: [], constraints: [], edgeCases: [], decisions: [], notes: "" };
 }
 
 // List items are one line each in the file; a stray newline typed into a field is collapsed.
 const oneLine = (s) => (s || "").replace(/\s+/g, " ").trim();
 const splitFlow = (s) => (s || "").split(/\s*(?:→|->)\s*/).map(oneLine).filter(Boolean);
 const bullet = (l) => l.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, "").trim();
-const facetOrder = (k) => { const i = QUALITY_FACETS.indexOf(k); return i === -1 ? QUALITY_FACETS.length : i; };
 
 // The non-empty sections, in canonical order, each rendered to its markdown body. Shared by
 // serializeDesign (under `##` headings) and the build brief (under its own headings + framing).
@@ -61,11 +60,6 @@ export function designSections(d) {
 
   add("principles", d.principles.map(oneLine).filter(Boolean).map((p, i) => `${i + 1}. ${p}`));
   add("constraints", d.constraints.map(oneLine).filter(Boolean).map((c) => `- ${c}`));
-
-  add("qualities", Object.entries(d.qualities)
-    .filter(([, v]) => oneLine(v))
-    .sort(([a], [b]) => facetOrder(a) - facetOrder(b))
-    .map(([k, v]) => `- **${k}:** ${oneLine(v)}`));
 
   add("edgeCases", d.edgeCases
     .filter((e) => oneLine(e.when))
@@ -123,13 +117,6 @@ const PARSERS = {
   },
   principles(d, lines) { for (const l of lines) d.principles.push(bullet(l)); },
   constraints(d, lines) { for (const l of lines) d.constraints.push(bullet(l)); },
-  qualities(d, lines) {
-    for (const l of lines) {
-      const m = /^\s*[-*+]\s+\*\*(.+?):\*\*\s*(.*)$/.exec(l);
-      if (m) d.qualities[m[1]] = m[2];
-      else d.qualities.Other = [d.qualities.Other, bullet(l)].filter(Boolean).join(" ");
-    }
-  },
   edgeCases(d, lines) {
     for (const l of lines) {
       const [when, ...rest] = bullet(l).split(" → ");

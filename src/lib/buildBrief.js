@@ -21,7 +21,6 @@ const DESIGN_FRAMING = {
   useCases: "Ranked. When use cases pull in different directions, the higher tier wins.",
   principles: "Intent — optimise for these. How to achieve them is your call.",
   constraints: "Binding. Do not violate any of these; if one can't be met, stop and flag it.",
-  qualities: "Intent, not specification. Visual language (tokens, type, components) comes from Standards.",
   edgeCases: "Coverage — every item must be handled; treat them as test cases. Where no outcome is given, choose one and note what you chose.",
   decisions: "Settled. Do not reverse one without flagging it.",
   notes: "Background.",

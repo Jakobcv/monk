@@ -249,7 +249,7 @@ export default function SpecPage({
 
           <div hidden={activeTab !== "design"} style={{ height: "100%", overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
             <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-              <DesignTab value={spec.design} onChange={setDesign} />
+              <DesignTab value={spec.design} onChange={setDesign} onToast={onToast} />
             </div>
           </div>
 

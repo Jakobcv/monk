@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Plus, X, ExternalLink } from "lucide-react";
 import { font, INK, INK_SOFT, BORDER, SIZE, WEIGHT, SPACE } from "./lib/theme";
 import { eyebrow, meta } from "./ui/text";
-import { parseDesign, serializeDesign, ARTEFACT_TYPES, AUTHORITIES, TIERS, QUALITY_FACETS } from "./lib/designModel";
+import { parseDesign, serializeDesign, ARTEFACT_TYPES, AUTHORITIES, TIERS } from "./lib/designModel";
+import { insertAt } from "./lib/arrays";
 import AutoTextarea from "./ui/AutoTextarea";
 import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
@@ -14,7 +15,7 @@ import IconButton from "./ui/IconButton";
 //
 // Every row is the same three-column grid — a label column, the text, the remove button — so
 // text starts at one x down the whole page, whatever the section. The label column holds the
-// row's own label (priority, number, bullet, facet, decision part, artefact type), and every text
+// row's own label (priority, number, bullet, decision part, artefact type), and every text
 // is an auto-growing prose field, so nothing long is ever silently cut off. Order runs intent →
 // coverage → reference, matching the file (lib/designModel.js).
 //
@@ -23,9 +24,13 @@ import IconButton from "./ui/IconButton";
 // on screen while you're editing but aren't written to the file.
 
 const ARTEFACT_LABEL = { link: "Link", prototype: "Prototype", design: "Design file", diagram: "Diagram", persona: "Persona" };
-const FACET_PLACEHOLDER = {
-  Layout: "How it's arranged…", Motion: "How it moves…", Responsive: "How it adapts…", Copy: "Voice, or exact strings…",
+// What the Undo toast calls a removed row.
+const ROW_NOUN = {
+  useCases: "use case", principles: "principle", constraints: "constraint",
+  edgeCases: "edge case", decisions: "decision", artefacts: "artefact",
 };
+const hasContent = (x) =>
+  typeof x === "string" ? !!x.trim() : Object.values(x).some((v) => typeof v === "string" && v.trim());
 
 const withScheme = (url) => (/^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`);
 
@@ -46,17 +51,10 @@ const bullet = { width: "4px", height: "4px", borderRadius: "50%", background: I
 const labelSelect = { ...labelText, padding: "3px 0", minHeight: "26px", width: "100%" };
 
 // Same rhythm as Overview: eyebrow, 8px, content.
-function Section({ title, children, onRemove }) {
+function Section({ title, children }) {
   return (
-    <section className="reveal-group" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ display: "flex", alignItems: "center", minHeight: "16px" }}>
-        <div style={{ ...eyebrow, flex: 1 }}>{title}</div>
-        {onRemove && (
-          <IconButton className="reveal" onClick={onRemove} title="Remove section" style={{ margin: "-4px 0" }}>
-            <X size={16} />
-          </IconButton>
-        )}
-      </div>
+    <section style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div style={{ ...eyebrow, minHeight: "16px", display: "flex", alignItems: "center" }}>{title}</div>
       {children}
     </section>
   );
@@ -103,38 +101,34 @@ function RowText({ value, onChange, placeholder, label, autoFocus, className, st
   );
 }
 
-export default function DesignTab({ value, onChange }) {
+export default function DesignTab({ value, onChange, onToast }) {
   const [d, setD] = useState(() => parseDesign(value));
-  // Optional sections start open only if they already have something in them.
-  const [shown, setShown] = useState(() => {
-    const s = new Set();
-    if (Object.values(d.qualities).some((v) => v.trim())) s.add("qualities");
-    if (d.notes.trim()) s.add("notes");
-    return s;
-  });
   // "section:index" of the row just added — it mounts with autoFocus, so you can type straight away.
   const [fresh, setFresh] = useState(null);
+  // The latest design, kept in step by `commit`. Undo reads it so a row comes back into whatever
+  // the tab holds *when you press Undo* — restoring the snapshot from removal time would silently
+  // throw away anything typed in between.
+  const latest = useRef(d);
 
-  const commit = (next) => { setD(next); onChange(serializeDesign(next)); };
+  const commit = (next) => { latest.current = next; setD(next); onChange(serializeDesign(next)); };
   const set = (key, v) => commit({ ...d, [key]: v });
   const patchAt = (key, i, fields) =>
     set(key, d[key].map((x, j) => (j === i ? (typeof x === "object" ? { ...x, ...fields } : fields) : x)));
-  const removeAt = (key, i) => set(key, d[key].filter((_, j) => j !== i));
   const append = (key, item) => { setFresh(`${key}:${d[key].length}`); set(key, [...d[key], item]); };
   const isFresh = (key, i) => fresh === `${key}:${i}`;
 
-  const openSection = (key) => setShown((s) => new Set(s).add(key));
-  // Removing an optional section clears it too — otherwise it'd vanish from view but stay in the file.
-  const removeSection = (key) => {
-    setShown((s) => { const n = new Set(s); n.delete(key); return n; });
-    set(key, key === "notes" ? "" : {});
+  // Removal reports through the app's Undo toast, same as deleting a card or a document. An empty
+  // row has nothing to bring back, so it goes quietly. Undo re-inserts at the row's old position.
+  // (Like Board's card undo, it acts on this tab's state — once you've left the spec, it's moot.)
+  const removeAt = (key, i) => {
+    const item = d[key][i];
+    set(key, d[key].filter((_, j) => j !== i));
+    if (!hasContent(item)) return;
+    onToast?.(`Removed ${ROW_NOUN[key]}`, () => {
+      const cur = latest.current;
+      commit({ ...cur, [key]: insertAt(cur[key], i, item) });
+    });
   };
-
-  const facets = [...QUALITY_FACETS, ...Object.keys(d.qualities).filter((k) => !QUALITY_FACETS.includes(k))];
-  const optional = [
-    { key: "qualities", label: "Experience qualities" },
-    { key: "notes", label: "Notes" },
-  ].filter((o) => !shown.has(o.key));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
@@ -225,23 +219,6 @@ export default function DesignTab({ value, onChange }) {
         )}
         <AddRow onClick={() => append("constraints", "")} />
       </Section>
-
-      {shown.has("qualities") && (
-        <Section title="Experience qualities" onRemove={() => removeSection("qualities")}>
-          <div style={rows}>
-            {facets.map((facet) => (
-              <Row key={facet} label={<div style={labelText}>{facet}</div>}>
-                <AutoTextarea
-                  className="prose-field" minRows={1} aria-label={facet}
-                  placeholder={FACET_PLACEHOLDER[facet] || "…"}
-                  value={d.qualities[facet] || ""}
-                  onChange={(e) => set("qualities", { ...d.qualities, [facet]: e.target.value })}
-                />
-              </Row>
-            ))}
-          </div>
-        </Section>
-      )}
 
       <div style={{ height: "1px", backgroundColor: BORDER }} />
 
@@ -353,24 +330,13 @@ export default function DesignTab({ value, onChange }) {
         <AddRow onClick={() => append("artefacts", { type: "link", title: "", url: "", authority: "context" })} />
       </Section>
 
-      {shown.has("notes") && (
-        <Section title="Notes" onRemove={() => removeSection("notes")}>
-          <AutoTextarea
-            className="prose-field" minRows={2} placeholder="Anything else…" aria-label="Notes"
-            value={d.notes} onChange={(e) => set("notes", e.target.value)}
-          />
-        </Section>
-      )}
-
-      {optional.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: SPACE.base, marginLeft: "-6px" }}>
-          {optional.map((o) => (
-            <Button key={o.key} variant="subtle" onClick={() => openSection(o.key)}>
-              <Plus size={16} /> {o.label}
-            </Button>
-          ))}
-        </div>
-      )}
+      {/* Always there — the catch-all for anything the sections above don't hold. */}
+      <Section title="Notes">
+        <AutoTextarea
+          className="prose-field" minRows={2} placeholder="Anything else…" aria-label="Notes"
+          value={d.notes} onChange={(e) => set("notes", e.target.value)}
+        />
+      </Section>
     </div>
   );
 }
