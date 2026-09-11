@@ -26,7 +26,7 @@ import SignalCardBody from "./SignalCardBody";
 // card is selected that has to stay visible, not disappear the moment the mouse leaves.
 export default function SignalCard({
   signal, activities, onChange, onDelete, deleteTitle = "Delete this signal everywhere",
-  autoFocus = false, missing = false, selected = false, onToggleSelect, header, footer, metaExtra, style,
+  autoFocus = false, missing = false, selected = false, onToggleSelect, header, footer, metaExtra, activityLink, style,
 }) {
   return (
     <div className="reveal-group" style={{ position: "relative", ...style }}>
@@ -40,7 +40,7 @@ export default function SignalCard({
         {header}
         <SignalCardBody
           signal={signal} activities={activities} onChange={onChange}
-          autoFocus={autoFocus} missing={missing} after={metaExtra}
+          autoFocus={autoFocus} missing={missing} after={metaExtra} activityLink={activityLink}
         />
         {footer}
       </div>

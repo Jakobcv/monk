@@ -100,6 +100,7 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
                     <SignalCard
                       signal={sig}
                       activities={activities}
+                      activityLink={false}
                       autoFocus={focusId === sig.id}
                       onChange={(patch) => onUpdateSignal(sig.id, patch)}
                       onDelete={() => onDeleteSignal(sig.id)}
@@ -126,6 +127,7 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
               autoFocus
               signal={newSignal}
               activities={activities}
+              activityLink={false}
               onChange={(patch) => setNewSignal((s) => ({ ...s, ...patch }))}
             />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.base, marginTop: SPACE.lg }}>
