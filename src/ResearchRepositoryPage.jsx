@@ -13,15 +13,6 @@ import EmptyState from "./ui/EmptyState";
 import Modal from "./ui/Modal";
 import DialogActions from "./ui/DialogActions";
 
-// A small action inside a signal card's metadata row ("↗ <spec>", "Attach to spec") — sized and
-// weighted like the card's own date and "+ Activity" rather than as a full button, so the row
-// stays one quiet line of metadata. The negative margin keeps the text aligned with its neighbours
-// while the padding gives the hover background somewhere to sit.
-const cardMetaAction = {
-  fontSize: meta.fontSize, fontWeight: WEIGHT.medium, color: INK_SOFT,
-  gap: "3px", padding: "1px 4px", margin: "-1px -4px",
-};
-
 // per-type: which array on a board holds these cards, and which of the card's fields to
 // search against (Action has three text fields, everything else has just `text`). Signal and
 // Insight are both handled separately below — their content lives in global lists now
@@ -82,7 +73,7 @@ function highlight(text, query) {
 // `boards` are board-shaped objects, each carrying `specTitle` (a board has no name of its own
 // — see App.jsx).
 export default function ResearchRepositoryPage({
-  boards, specs, signals, insights, activities, onAttach,
+  boards, signals, insights, activities, onAttach,
   initialQuery = "", initialKind = "all", onNavigate,
   specDiscoveryHref, activityHref,
   onCreateSignal, onCreateActivity, onCreateInsight,
@@ -151,11 +142,9 @@ export default function ResearchRepositoryPage({
   // page's own Signals section): the same tinted card as a spec's Discovery board, always
   // open and editable — not a collapsed preview you click into, via the shared SignalCard.
   // The card's own tint and left border already say "this is a signal" at a glance, so
-  // Research Repository doesn't repeat that in a label — it only adds the two things a
-  // cross-spec view actually needs beyond that, and folds them into the fields' own metadata
-  // row via `metaExtra` rather than giving them a line (or two) of their own: which boards
-  // it's linked into (nothing shown at all when it isn't — "not linked to any spec" is the
-  // default state, not news), and a way to link it into another one.
+  // Research Repository doesn't repeat that in a label — and it adds nothing else either: no
+  // list of the specs it's in and no attach action, so the card is exactly its Discovery-board
+  // twin. The repository is about the signal itself; linking happens from a spec's board.
   //
   // One tradeoff of matching the board exactly: the observation is a live textarea now, not
   // rendered text, so a search match can no longer highlight the matching substring inside it
@@ -168,7 +157,6 @@ export default function ResearchRepositoryPage({
   const renderSignalRow = (m, { selectable = false } = {}) => {
     const sig = signals.find((s) => s.id === m.signalId);
     if (!sig) return null;
-    const linkedBoards = boards.filter((b) => (b.signals || []).some((x) => x.id === m.signalId));
     return (
       <SignalCard
         key={m.key}
@@ -178,30 +166,6 @@ export default function ResearchRepositoryPage({
         onDelete={() => onDeleteSignal(sig.id)}
         selected={selectable && selectedSignalIds.has(sig.id)}
         onToggleSelect={selectable ? () => toggleSignalSelected(sig.id) : undefined}
-        metaExtra={
-          <>
-            {/* Only the attach action — which specs a signal is already in isn't shown here; the
-                repository is about the signal itself. `linkedBoards` still keeps those specs out
-                of the picker. Meta-sized, like the card's own date and "+ Activity". */}
-            {attachOpenKey === m.key ? (
-              <Field
-                as="select" autoFocus defaultValue=""
-                onChange={(e) => { if (e.target.value) handleAttach(m, e.target.value); }}
-                onBlur={() => setAttachOpenKey(null)}
-                style={{ cursor: "pointer", fontSize: meta.fontSize }}
-              >
-                <option value="" disabled>Attach to…</option>
-                {specs.filter((s) => !linkedBoards.some((b) => b.id === s.id)).map((s) => (
-                  <option key={s.id} value={s.id}>{s.title || "Untitled spec"}</option>
-                ))}
-              </Field>
-            ) : (
-              <Button className="reveal" variant="subtle" onClick={() => setAttachOpenKey(m.key)} style={cardMetaAction}>
-                <Link2 size={12} /> Attach to spec
-              </Button>
-            )}
-          </>
-        }
       />
     );
   };
@@ -212,7 +176,6 @@ export default function ResearchRepositoryPage({
   const renderInsightRow = (m) => {
     const ins = insights.find((i) => i.id === m.insightId);
     if (!ins) return null;
-    const linkedBoards = boards.filter((b) => (b.insights || []).some((x) => x.id === m.insightId));
     return (
       <InsightCard
         key={m.key}
@@ -220,29 +183,6 @@ export default function ResearchRepositoryPage({
         signals={signals}
         onChange={(patch) => onUpdateInsight(ins.id, patch)}
         onDelete={() => onDeleteInsight(ins.id)}
-        metaExtra={
-          <>
-            {/* Same as a signal row: only the attach action, meta-sized — which specs the insight
-                is already in isn't shown; `linkedBoards` just keeps those out of the picker. */}
-            {attachOpenKey === m.key ? (
-              <Field
-                as="select" autoFocus defaultValue=""
-                onChange={(e) => { if (e.target.value) handleAttach(m, e.target.value); }}
-                onBlur={() => setAttachOpenKey(null)}
-                style={{ cursor: "pointer", fontSize: meta.fontSize }}
-              >
-                <option value="" disabled>Attach to…</option>
-                {specs.filter((s) => !linkedBoards.some((b) => b.id === s.id)).map((s) => (
-                  <option key={s.id} value={s.id}>{s.title || "Untitled spec"}</option>
-                ))}
-              </Field>
-            ) : (
-              <Button className="reveal" variant="subtle" onClick={() => setAttachOpenKey(m.key)} style={cardMetaAction}>
-                <Link2 size={12} /> Attach to spec
-              </Button>
-            )}
-          </>
-        }
       />
     );
   };
