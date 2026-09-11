@@ -6,6 +6,7 @@ import { documentToMarkdown } from "./lib/markdown";
 import { useCopy } from "./lib/useCopy";
 import MarkdownEditor from "./MarkdownEditor";
 import Card from "./ui/Card";
+import SwapIcon from "./ui/SwapIcon";
 
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace";
 
@@ -114,7 +115,8 @@ export default function DocumentPage({ document: doc, onChange }) {
               title="Copy this document's raw markdown to the clipboard"
               style={{ flexShrink: 0, marginTop: "6px", color: copied ? ACCENT.action : INK_SOFT }}
             >
-              {copied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy .md</>}
+              <SwapIcon active={copied} activeIcon={Check} inactiveIcon={Copy} size={13} />
+              {copied ? "Copied" : "Copy .md"}
             </button>
             <button
               className="btn btn--sm btn--subtle"

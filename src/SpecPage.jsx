@@ -6,6 +6,7 @@ import { buildSpecBrief } from "./lib/buildBrief";
 import { useCopy } from "./lib/useCopy";
 import ChecklistEditor from "./ChecklistEditor";
 import AutoTextarea from "./ui/AutoTextarea";
+import SwapIcon from "./ui/SwapIcon";
 import MarkdownEditor from "./MarkdownEditor";
 import Board from "./Board";
 import Breadcrumbs from "./Breadcrumbs";
@@ -166,9 +167,8 @@ export default function SpecPage({
               title="Copy the build brief (Standards, Product Knowledge, and this spec) to the clipboard for an agent"
               style={{ flexShrink: 0, marginTop: "10px", color: briefCopied ? SPEC_STATUS_COLOR.shipped : INK_SOFT }}
             >
-              {briefCopied
-                ? <><Check size={13} /> Brief copied</>
-                : <><FileOutput size={13} /> Start build</>}
+              <SwapIcon active={briefCopied} activeIcon={Check} inactiveIcon={FileOutput} size={13} />
+              {briefCopied ? "Brief copied" : "Start build"}
             </button>
           </div>
 

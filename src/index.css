@@ -151,6 +151,43 @@ body {
 .btn svg {
   stroke-width: 2.5;
 }
+
+/* ---------------------------------------------------------------------------
+   Icon that swaps to confirm an action (see ui/SwapIcon.jsx). The outgoing icon
+   shrinks and blurs away while the incoming one grows and sharpens, so the
+   change reads as the same control reporting back rather than two icons
+   trading places.
+   --------------------------------------------------------------------------- */
+.swap-icon {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.swap-icon__base,
+.swap-icon__over {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.25);
+  filter: blur(4px);
+  /* Named explicitly — never `all`, which would also animate the colour the
+     button is already transitioning on its own schedule. */
+  transition-property: opacity, transform, filter;
+  transition-duration: var(--motion-slow);
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+/* The incoming icon overlays the one holding the layout. */
+.swap-icon__over {
+  position: absolute;
+  inset: 0;
+}
+.swap-icon__base.is-on,
+.swap-icon__over.is-on {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+}
 .btn:disabled {
   cursor: not-allowed;
   opacity: 0.45;
