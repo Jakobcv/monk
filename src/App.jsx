@@ -24,6 +24,7 @@ import SpecPage from "./SpecPage";
 import InitiativePage from "./InitiativePage";
 import ActivityPage from "./ActivityPage";
 import DesignTab from "./DesignTab";
+import FlowMapMock from "./FlowMapMock";
 import { SAMPLE_DESIGN_MD } from "./lib/sampleDesign";
 
 const DOC_PREFIX = "#/doc/";
@@ -113,6 +114,9 @@ function useRoute() {
   }
   if (hash === "#/design-preview") {
     return { name: "designPreview" };
+  }
+  if (hash === "#/flow-preview") {
+    return { name: "flowPreview" };
   }
   return { name: "home" };
 }
@@ -607,6 +611,24 @@ export default function App() {
   // The real Design tab on sample content, framed in a stand-in spec header so it reads in
   // context — the sandboxed preview can't open a workspace folder. Every edit's serialized
   // design.md lands on window.__designMd for inspection.
+  // Flow map exploration — a spec's use cases as rows, named stages as columns. Framed as the
+  // page it would be: reached from the Design tab, full-width like Discovery.
+  if (import.meta.env.DEV && route.name === "flowPreview") {
+    return (
+      <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+        <div style={{ padding: "14px 40px 0", flexShrink: 0 }}>
+          <div style={{ fontSize: SIZE.sm, color: "var(--ink-soft)", display: "flex", gap: "6px" }}>
+            <span>Bulk export of evidence</span><span style={{ color: "var(--ink-faint)" }}>›</span>
+            <span>Design</span><span style={{ color: "var(--ink-faint)" }}>›</span>
+            <span style={{ color: INK }}>Flow map</span>
+          </div>
+          <div style={{ fontSize: "26px", fontWeight: WEIGHT.semibold, color: INK, letterSpacing: "-0.01em", margin: "14px 0 16px" }}>Flow map</div>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, padding: "0 12px 12px" }}><FlowMapMock /></div>
+      </div>
+    );
+  }
+
   if (import.meta.env.DEV && route.name === "designPreview") {
     return (
       <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
