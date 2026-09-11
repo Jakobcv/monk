@@ -183,7 +183,16 @@ body {
 /* ---------------------------------------------------------------------------
    Icon button — the bare square controls (delete ×, add +, reorder chevrons)
    --------------------------------------------------------------------------- */
+/* The visible control stays 21px — most of these are absolutely positioned against tuned
+   offsets, so growing the box would move them — while a centred pseudo-element carries the
+   real target. Costs no layout.
+
+   40px is the dense-desktop floor and the default. But a hit area that overlaps a neighbouring
+   control is worse than a small one, so sites where controls sit close pass a smaller value
+   through --hit (or --hit-w/--hit-h where only one axis is cramped). The rule is: as large as
+   possible without colliding, measured against the actual neighbour, not guessed. */
 .icon-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -197,6 +206,15 @@ body {
     background-color var(--motion-fast) var(--ease),
     color var(--motion-fast) var(--ease),
     opacity var(--motion-fast) var(--ease);
+}
+.icon-btn::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--hit-w, var(--hit, 40px));
+  height: var(--hit-h, var(--hit, 40px));
+  transform: translate(-50%, -50%);
 }
 .icon-btn:hover {
   background: var(--bg-hover);
@@ -279,12 +297,18 @@ body {
    --------------------------------------------------------------------------- */
 .reveal-group .reveal {
   opacity: 0;
+  /* opacity:0 still takes clicks. A hidden delete button was swallowing presses meant for the
+     card underneath it, and that gets worse the moment its hit area grows — so hidden means
+     non-interactive here. Keyboard focus is unaffected: pointer-events doesn't gate it, and
+     :focus-visible below restores clicks for anyone who tabbed in. */
+  pointer-events: none;
   transition: opacity var(--motion-fast) var(--ease);
 }
 .reveal-group:hover .reveal,
 .reveal-group:focus-within .reveal,
 .reveal:focus-visible {
   opacity: 1;
+  pointer-events: auto;
 }
 
 /* ---------------------------------------------------------------------------

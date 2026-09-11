@@ -31,13 +31,16 @@ function ColumnHeader({ kind, title, count, onAdd, addProps, onConnect, connectP
       {/* tabular-nums: this count changes as cards are added, linked and unlinked, and
           proportional digits shift the buttons beside it on every change. */}
       <span style={{ fontFamily: font, fontWeight: WEIGHT.normal, fontSize: SIZE.sm, color: INK_FAINT, fontVariantNumeric: "tabular-nums" }}>{count}</span>
+      {/* --hit-w is capped to the 2px gap between this pair: 21px buttons 2px apart are 23px
+          centre to centre, so anything wider would put one button's target on top of the
+          other's. Vertically the header row is clear, so height takes what it can. */}
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "2px" }}>
         {onConnect && (
-          <IconButton onClick={onConnect} title={`Link an existing ${title.toLowerCase()}`} style={{ color: INK_SOFT }} {...connectProps}>
+          <IconButton onClick={onConnect} title={`Link an existing ${title.toLowerCase()}`} style={{ color: INK_SOFT, "--hit-w": "22px", "--hit-h": "30px" }} {...connectProps}>
             <Link2 size={13} />
           </IconButton>
         )}
-        <IconButton onClick={onAdd} title={`New ${title.toLowerCase()}`} style={{ color: INK_SOFT }} {...addProps}>
+        <IconButton onClick={onAdd} title={`New ${title.toLowerCase()}`} style={{ color: INK_SOFT, "--hit-w": "22px", "--hit-h": "30px" }} {...addProps}>
           <Plus size={13} />
         </IconButton>
       </div>

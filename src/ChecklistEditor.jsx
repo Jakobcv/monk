@@ -93,7 +93,9 @@ export default function ChecklistEditor({ label, items, onChange }) {
                 placeholder="…"
                 style={{ ...rowInput, textDecoration: item.checked ? "line-through" : "none", color: item.checked ? INK_FAINT : INK }}
               />
-              <IconButton onClick={() => remove(id)} title="Remove" danger style={{ flexShrink: 0 }}>
+              {/* Bounded by the text input 8px to its left and the next row 4px below — a
+                  square 40px target would cover both. */}
+              <IconButton onClick={() => remove(id)} title="Remove" danger style={{ flexShrink: 0, "--hit-w": "34px", "--hit-h": "28px" }}>
                 <X size={13} />
               </IconButton>
             </div>

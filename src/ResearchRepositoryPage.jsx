@@ -412,7 +412,9 @@ export default function ResearchRepositoryPage({
               className="icon-btn"
               onClick={() => setQuery("")}
               title="Clear"
-              style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)" }}
+              // Sits on top of the search input, which is itself interactive — 32px gives a
+              // comfortable target while leaving most of the field clickable for the caret.
+              style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", "--hit": "32px" }}
             >
               <X size={14} />
             </button>

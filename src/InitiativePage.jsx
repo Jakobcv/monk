@@ -101,7 +101,9 @@ export default function InitiativePage({
                       className="reveal"
                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDetachSpec(s.id); }}
                       title="Remove from this initiative (keeps the spec)"
-                      style={{ position: "absolute", top: SPACE.sm, right: SPACE.sm }}
+                      // Inset only 4px, with a 12px grid gap — 34px is what fits before two
+                      // neighbouring cards' buttons would meet in the middle.
+                      style={{ position: "absolute", top: SPACE.sm, right: SPACE.sm, "--hit": "34px" }}
                     >
                       <X size={12} />
                     </IconButton>

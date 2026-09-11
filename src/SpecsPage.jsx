@@ -22,7 +22,9 @@ function SpecCard({ spec, idx = 0, href, onDelete }) {
         danger
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(spec.id); }}
         title="Delete spec"
-        style={{ position: "absolute", top: SPACE.base, right: SPACE.base }}
+        // Inset 8px from the card corner with 14px between cards, so a 36px target stops at
+        // the card's own edge and never reaches the next one.
+        style={{ position: "absolute", top: SPACE.base, right: SPACE.base, "--hit": "36px" }}
       >
         <Trash2 size={12} />
       </IconButton>

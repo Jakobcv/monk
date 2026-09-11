@@ -116,11 +116,13 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
                     {s.name || "Untitled section"}
                   </div>
                 )}
-                <IconButton onClick={() => onCreateDocument(s.id)} title="New document in this section">
+                {/* This pair sits 4px apart — 25px centre to centre — so the targets cap just
+                    under that. Height is free; the section label above is not interactive. */}
+                <IconButton onClick={() => onCreateDocument(s.id)} title="New document in this section" style={{ "--hit-w": "24px", "--hit-h": "28px" }}>
                   <Plus size={12} />
                 </IconButton>
                 {!fixed && (
-                  <IconButton className="reveal" danger onClick={() => onDeleteSection(s.id)} title="Delete section">
+                  <IconButton className="reveal" danger onClick={() => onDeleteSection(s.id)} title="Delete section" style={{ "--hit-w": "24px", "--hit-h": "28px" }}>
                     <Trash2 size={12} />
                   </IconButton>
                 )}
@@ -146,7 +148,9 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
                       className="reveal" danger
                       onClick={() => onDeleteDocument(s.id, doc.id)}
                       title="Delete document"
-                      style={{ flexShrink: 0 }}
+                      // The document link sits 2px to the left and fills the row, so width is
+                      // capped hard to keep this off it. Rows are ~31px tall with no gap.
+                      style={{ flexShrink: 0, "--hit-w": "24px", "--hit-h": "30px" }}
                     >
                       <Trash2 size={12} />
                     </IconButton>

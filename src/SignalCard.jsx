@@ -72,6 +72,10 @@ export default function SignalCard({
             position: "absolute", top: "-7px", right: "-7px",
             width: "16px", height: "16px", borderRadius: "50%",
             border: `1px solid ${BORDER_STRONG}`, background: "#fff",
+            // Hangs 7px off the card corner, and the grid leaves 12px between cards — so the
+            // neighbour's edge is only ~13px from this button's centre. 24px is the largest
+            // target that doesn't reach onto the card next door.
+            "--hit": "24px",
           }}
         >
           <Trash2 size={9} />
