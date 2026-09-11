@@ -112,9 +112,9 @@ export default function SpecPage({
   const [acceptanceCriteria, setAcceptanceCriteria] = useState(spec.acceptanceCriteria);
   const [board, setBoard] = useState(spec.board);
   const [design, setDesign] = useState(spec.design);
-  // Use cases + flow map (flow.md). Shared by the Design tab's Use cases section and the flow map
-  // page, so it lives here; both edit it through setFlow updaters. A map with no stages yet gets
-  // the default few (see withDefaultStages) — saved along with the first real edit.
+  // Use cases + flow map (flow.md). Edited on the flow map page (through setFlow updaters); the
+  // Design tab only reads it for its "Open flow map" summary. A map with no stages yet gets the
+  // default few (see withDefaultStages) — saved along with the first real edit.
   const [flow, setFlow] = useState(() => withDefaultStages(spec.flow || blankFlow()));
   const [plan, setPlan] = useState(spec.plan);
 
@@ -259,7 +259,7 @@ export default function SpecPage({
             <div style={{ maxWidth: "760px", margin: "0 auto" }}>
               <DesignTab
                 value={spec.design} onChange={setDesign} onToast={onToast}
-                flow={flow} onFlowChange={setFlow} flowHref={tabHref("flow")}
+                flow={flow} flowHref={tabHref("flow")}
               />
             </div>
           </div>

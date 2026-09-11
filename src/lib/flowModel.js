@@ -10,9 +10,9 @@ import { parseDesign, serializeDesign, TIERS } from "./designModel.js";
 //   steps:    [{ id, useCase, stage, text }]
 //   links:    [{ id, from, to, label }]
 //
-// Use cases live here rather than in design.md because rows need stable ids to hang steps off —
-// a plain list line has no identity to survive being edited or reordered. The Design tab's Use
-// cases section edits these same records.
+// Use cases live here, and only here — rows need stable ids to hang steps off, which a plain
+// design.md list line doesn't have. They're created and edited on the flow map; the Design tab
+// just links to it.
 
 export function blankFlow() {
   return { useCases: [], stages: [], steps: [], links: [] };

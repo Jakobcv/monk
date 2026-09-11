@@ -146,17 +146,16 @@ function FlowPreviewDemo() {
   return <FlowMap flow={flow} onChange={setFlow} onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }} />;
 }
 
-// The real Design tab on sample content (#/design-preview), including the sample flow's use cases
-// so that section reads as it would on a real spec. The serialized design.md lands on
-// window.__designMd; "Open flow map" goes to the flow preview.
+// The real Design tab on sample content (#/design-preview), with the sample flow behind its
+// "Open flow map" summary. The serialized design.md lands on window.__designMd; the link goes to
+// the flow preview.
 function DesignPreviewDemo() {
-  const [flow, setFlow] = useState(SAMPLE_FLOW);
   return (
     <DesignTab
       value={SAMPLE_DESIGN_MD}
       onChange={(md) => { window.__designMd = md; }}
       onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
-      flow={flow} onFlowChange={setFlow} flowHref="#/flow-preview"
+      flow={SAMPLE_FLOW} flowHref="#/flow-preview"
     />
   );
 }

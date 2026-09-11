@@ -12,8 +12,8 @@ import AutoTextarea from "./ui/AutoTextarea";
 import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
 
-// A spec's flow map: a story map where rows are its use cases (the same records the Design tab's
-// Use cases section edits) and columns are stages you name. Steps sit in a cell; connectors go
+// A spec's flow map: a story map where rows are its use cases (which live only here — the Design
+// tab just links in) and columns are stages you name. Steps sit in a cell; connectors go
 // from any step to any other and can carry a label for a branch. Data lives in `flow` (see
 // lib/flowModel.js); `onChange` takes an updater, `(prev) => next`.
 //
