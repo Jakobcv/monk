@@ -23,6 +23,7 @@ import SpecsPage from "./SpecsPage";
 import SpecPage from "./SpecPage";
 import InitiativePage from "./InitiativePage";
 import ActivityPage from "./ActivityPage";
+import DesignTabMock from "./DesignTabMock";
 
 const DOC_PREFIX = "#/doc/";
 const RESEARCH_ROUTE = "#/research";
@@ -108,6 +109,9 @@ function useRoute() {
   }
   if (hash === "#/home-preview") {
     return { name: "homePreview" };
+  }
+  if (hash === "#/design-preview") {
+    return { name: "designPreview" };
   }
   return { name: "home" };
 }
@@ -635,6 +639,23 @@ export default function App() {
         {route.name === "homePreview"
           ? <Home {...mock} recentHref={(kind, id) => recentHref(kind, id)} folderName="product-research" onChangeFolder={() => {}} />
           : <DashboardPage {...mock} demo />}
+      </div>
+    );
+  }
+
+  // Design-tab exploration — framed in a stand-in spec header so it reads in context.
+  if (import.meta.env.DEV && route.name === "designPreview") {
+    return (
+      <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+        <div style={{ padding: "20px 40px 0", flexShrink: 0 }}>
+          <div style={{ fontFamily: font, fontSize: "26px", fontWeight: WEIGHT.semibold, color: INK, letterSpacing: "-0.01em" }}>Bulk export of evidence</div>
+          <div style={{ display: "flex", gap: "18px", borderBottom: "1px solid var(--border)", marginTop: "18px" }}>
+            {["Overview", "Discovery", "Design", "Plan"].map((t) => (
+              <span key={t} style={{ fontSize: SIZE.ui, fontWeight: WEIGHT.semibold, padding: "8px 2px", color: t === "Design" ? INK : "var(--ink-faint)", boxShadow: t === "Design" ? `inset 0 -2px 0 ${INK}` : "none" }}>{t}</span>
+            ))}
+          </div>
+        </div>
+        <div style={{ flex: 1, minHeight: 0 }}><DesignTabMock /></div>
       </div>
     );
   }
