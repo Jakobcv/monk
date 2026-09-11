@@ -6,7 +6,9 @@ import {
   signalToMarkdown, markdownToSignal, activityToMarkdown, markdownToActivity,
   insightToMarkdown, markdownToInsight,
   initiativeToMarkdown, markdownToInitiative,
+  flowToMarkdown, markdownToFlow,
 } from "./markdown.js";
+import { blankFlow, migrateUseCases } from "./flowModel.js";
 import { MONK_SCHEMA_DOC } from "./monkSchema.js";
 
 const CARD_KINDS = ["signals", "insights", "actions", "results"];
@@ -134,6 +136,13 @@ async function loadSpec(handle) {
   const spec = markdownToSpec(await (await specMdFile.getFile()).text());
   spec.design = (await hasFile(handle, "design.md")) ? await (await (await handle.getFileHandle("design.md")).getFile()).text() : "";
   spec.plan = (await hasFile(handle, "plan.md")) ? await (await (await handle.getFileHandle("plan.md")).getFile()).text() : "";
+  // flow.md holds the spec's use cases and flow map (see flowModel.js). Use cases still sitting in
+  // design.md — written before they moved — come across here; the next save writes both files in
+  // their new shape.
+  const flow = (await hasFile(handle, "flow.md"))
+    ? markdownToFlow(await (await (await handle.getFileHandle("flow.md")).getFile()).text())
+    : blankFlow();
+  ({ flow: spec.flow, design: spec.design } = migrateUseCases(flow, spec.design));
   try {
     const boardDir = await handle.getDirectoryHandle("board");
     spec.board = await loadBoardFrom(boardDir);
@@ -213,6 +222,7 @@ export async function saveWorkspace(dirHandle, workspace) {
     await writeFile(specDir, "spec.md", specToMarkdown(spec));
     await writeFile(specDir, "design.md", spec.design || "");
     await writeFile(specDir, "plan.md", spec.plan || "");
+    await writeFile(specDir, "flow.md", flowToMarkdown(spec.flow || blankFlow()));
     const boardDir = await specDir.getDirectoryHandle("board", { create: true });
     await saveBoardTo(boardDir, spec.board);
   }

@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
-import { Plus, X, ExternalLink } from "lucide-react";
+import { Plus, X, ExternalLink, Workflow } from "lucide-react";
 import { font, INK, INK_SOFT, BORDER, SIZE, WEIGHT, SPACE } from "./lib/theme";
 import { eyebrow, meta } from "./ui/text";
 import { parseDesign, serializeDesign, ARTEFACT_TYPES, AUTHORITIES, TIERS } from "./lib/designModel";
+import { genEntityId } from "./lib/boardModel";
 import { insertAt } from "./lib/arrays";
 import AutoTextarea from "./ui/AutoTextarea";
 import Button from "./ui/Button";
@@ -13,26 +14,29 @@ import IconButton from "./ui/IconButton";
 // text or treatment labels on screen: how each section is framed for an agent (intent / binding /
 // coverage / reference) lives in the build brief (buildBrief.js).
 //
-// Every row is the same three-column grid — a label column, the text, the remove button — so
-// text starts at one x down the whole page, whatever the section. The label column holds the
-// row's own label (priority, number, bullet, decision part, artefact type), and every text
-// is an auto-growing prose field, so nothing long is ever silently cut off. Order runs intent →
-// coverage → reference, matching the file (lib/designModel.js).
+// Every row is the same three-column grid — a label column, the text, the trailing controls — so
+// text starts at one x down the whole page, whatever the section. Every text is an auto-growing
+// prose field, so nothing long is ever silently cut off. Order runs intent → coverage → reference.
 //
-// `value` is the design.md string; it seeds local structured state once, and every edit is
-// serialized back out through `onChange`. SpecPage remounts this per spec. Rows still empty stay
-// on screen while you're editing but aren't written to the file.
+// Two sources of data:
+//   - `value` is the design.md string; it seeds local structured state once, and every edit is
+//     serialized back out through `onChange` (see lib/designModel.js).
+//   - Use cases are the spec's flow records (flow.md, see lib/flowModel.js) — the same rows the
+//     flow map lays out — so they come in as `flow` and are edited through `onFlowChange`, which
+//     takes an updater. Each shows how many steps the map has for it; `flowHref` opens the map.
+// SpecPage remounts this per spec. Rows still empty stay on screen but aren't written to the file.
 
 const ARTEFACT_LABEL = { link: "Link", prototype: "Prototype", design: "Design file", diagram: "Diagram", persona: "Persona" };
 // What the Undo toast calls a removed row.
 const ROW_NOUN = {
-  useCases: "use case", principles: "principle", constraints: "constraint",
+  principles: "principle", constraints: "constraint",
   edgeCases: "edge case", decisions: "decision", artefacts: "artefact",
 };
 const hasContent = (x) =>
   typeof x === "string" ? !!x.trim() : Object.values(x).some((v) => typeof v === "string" && v.trim());
 
 const withScheme = (url) => (/^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`);
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 // List items are one line each in the file, so Enter shouldn't start a second line the save would
 // only collapse again.
@@ -60,7 +64,7 @@ function Section({ title, children }) {
   );
 }
 
-// One row: label column, text, trailing controls (the remove button, sometimes a "+ Flow" first).
+// One row: label column, text, trailing controls.
 function Row({ label, children, trailing }) {
   return (
     <div className="reveal-group" style={{ display: "grid", gridTemplateColumns: `${LABEL_W} 1fr auto`, columnGap: SPACE.xl, alignItems: "start" }}>
@@ -101,7 +105,7 @@ function RowText({ value, onChange, placeholder, label, autoFocus, className, st
   );
 }
 
-export default function DesignTab({ value, onChange, onToast }) {
+export default function DesignTab({ value, onChange, onToast, flow, onFlowChange, flowHref }) {
   const [d, setD] = useState(() => parseDesign(value));
   // "section:index" of the row just added — it mounts with autoFocus, so you can type straight away.
   const [fresh, setFresh] = useState(null);
@@ -130,58 +134,76 @@ export default function DesignTab({ value, onChange, onToast }) {
     });
   };
 
+  // Use cases — the flow's rows. Removing one takes its steps (and their connectors) off the map
+  // too; Undo puts all of it back.
+  const useCases = flow?.useCases || [];
+  const stepCount = (id) => (flow?.steps || []).filter((s) => s.useCase === id).length;
+  const patchUseCase = (id, fields) =>
+    onFlowChange((p) => ({ ...p, useCases: p.useCases.map((u) => (u.id === id ? { ...u, ...fields } : u)) }));
+  const addUseCase = () => {
+    const id = genEntityId();
+    setFresh(`uc:${id}`);
+    onFlowChange((p) => ({ ...p, useCases: [...p.useCases, { id, tier: p.useCases.length ? 1 : 0, text: "" }] }));
+  };
+  const removeUseCase = (i) => {
+    const uc = useCases[i];
+    const steps = flow.steps.filter((s) => s.useCase === uc.id);
+    const ids = new Set(steps.map((s) => s.id));
+    const links = flow.links.filter((l) => ids.has(l.from) || ids.has(l.to));
+    onFlowChange((p) => ({
+      ...p,
+      useCases: p.useCases.filter((u) => u.id !== uc.id),
+      steps: p.steps.filter((s) => !ids.has(s.id)),
+      links: p.links.filter((l) => !ids.has(l.from) && !ids.has(l.to)),
+    }));
+    if (!uc.text.trim() && !steps.length) return;
+    onToast?.(`Removed use case${steps.length ? ` and ${plural(steps.length, "step")}` : ""}`, () =>
+      onFlowChange((p) => ({ ...p, useCases: insertAt(p.useCases, i, uc), steps: [...p.steps, ...steps], links: [...p.links, ...links] })));
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
       <Section title="Use cases">
-        {d.useCases.length > 0 && (
+        {useCases.length > 0 && (
           <div style={rows}>
-            {d.useCases.map((u, i) => (
-              <Row
-                key={i}
-                label={
-                  <select
-                    className="design-select" aria-label="Priority"
-                    value={u.tier} onChange={(e) => patchAt("useCases", i, { tier: Number(e.target.value) })}
-                    style={{ ...labelSelect, fontWeight: u.tier === 0 ? WEIGHT.semibold : WEIGHT.normal, color: u.tier === 0 ? INK : INK_SOFT }}
-                  >
-                    {TIERS.map((t, n) => <option key={t} value={n}>{t}</option>)}
-                  </select>
-                }
-                trailing={
-                  <>
-                    {/* In the trailing controls, not on a line of its own — a hidden control still
-                        occupies layout, so a line under every flow-less use case read as uneven spacing. */}
-                    {u.flow === null && (
-                      <button
-                        className="reveal"
-                        onClick={() => { setFresh(`flow:${i}`); patchAt("useCases", i, { flow: "" }); }}
-                        style={{ ...meta, display: "inline-flex", alignItems: "center", gap: "3px", background: "none", border: "none", padding: "3px 0", cursor: "pointer", color: INK_SOFT }}
-                      >
-                        <Plus size={11} /> Flow
-                      </button>
-                    )}
-                    <RemoveBtn onClick={() => removeAt("useCases", i)} />
-                  </>
-                }
-              >
-                <RowText
-                  value={u.text} onChange={(v) => patchAt("useCases", i, { text: v })}
-                  placeholder="A use case…" label={`Use case ${i + 1}`} autoFocus={isFresh("useCases", i)}
-                />
-                {u.flow !== null && (
+            {useCases.map((u, i) => {
+              const n = stepCount(u.id);
+              return (
+                <Row
+                  key={u.id}
+                  label={
+                    <select
+                      className="design-select" aria-label="Priority"
+                      value={u.tier} onChange={(e) => patchUseCase(u.id, { tier: Number(e.target.value) })}
+                      style={{ ...labelSelect, fontWeight: u.tier === 0 ? WEIGHT.semibold : WEIGHT.normal, color: u.tier === 0 ? INK : INK_SOFT }}
+                    >
+                      {TIERS.map((t, k) => <option key={t} value={k}>{t}</option>)}
+                    </select>
+                  }
+                  trailing={
+                    <>
+                      {n > 0 && <span style={{ ...meta, color: INK_SOFT, whiteSpace: "nowrap" }}>{plural(n, "step")}</span>}
+                      <RemoveBtn onClick={() => removeUseCase(i)} />
+                    </>
+                  }
+                >
                   <RowText
-                    value={u.flow}
-                    // "->" is the easy way to type a step separator; show it as the real arrow.
-                    onChange={(v) => patchAt("useCases", i, { flow: v.replace(/->/g, "→") })}
-                    placeholder="Step -> step -> step" label={`Use case ${i + 1} flow`} autoFocus={isFresh("flow", i)}
-                    style={{ fontSize: SIZE.sm, color: INK_SOFT }}
+                    value={u.text} onChange={(v) => patchUseCase(u.id, { text: v })}
+                    placeholder="A use case…" label={`Use case ${i + 1}`} autoFocus={fresh === `uc:${u.id}`}
                   />
-                )}
-              </Row>
-            ))}
+                </Row>
+              );
+            })}
           </div>
         )}
-        <AddRow onClick={() => append("useCases", { tier: d.useCases.length ? 1 : 0, text: "", flow: null })} />
+        <div style={{ display: "flex", alignItems: "center", gap: SPACE.lg }}>
+          <AddRow onClick={addUseCase} />
+          {flowHref && (
+            <a className="btn btn--sm btn--subtle" href={flowHref} style={{ textDecoration: "none", marginTop: "4px", color: INK_SOFT }}>
+              <Workflow size={16} /> Open flow map
+            </a>
+          )}
+        </div>
       </Section>
 
       <Section title="Principles">

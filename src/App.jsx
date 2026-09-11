@@ -24,7 +24,8 @@ import SpecPage from "./SpecPage";
 import InitiativePage from "./InitiativePage";
 import ActivityPage from "./ActivityPage";
 import DesignTab from "./DesignTab";
-import FlowMapMock from "./FlowMapMock";
+import FlowMap from "./FlowMap";
+import { SAMPLE_FLOW } from "./lib/sampleFlow";
 import Board from "./Board";
 import { SAMPLE_DESIGN_MD } from "./lib/sampleDesign";
 
@@ -45,6 +46,7 @@ const hrefDocument = (sectionId, docId) => DOC_PREFIX + encodeURIComponent(secti
 const hrefSpecs = () => SPECS_ROUTE;
 const hrefSpec = (id) => SPEC_PREFIX + encodeURIComponent(id);
 const hrefSpecDesign = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/design";
+const hrefSpecFlow = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/flow";
 const hrefSpecPlan = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/plan";
 const hrefSpecDiscovery = (id, cardId) => SPEC_PREFIX + encodeURIComponent(id) + "/discovery" + (cardId != null ? "/" + encodeURIComponent(cardId) : "");
 const hrefInitiative = (id) => INITIATIVE_PREFIX + encodeURIComponent(id);
@@ -96,7 +98,7 @@ function useRoute() {
   if (hash.startsWith(SPEC_PREFIX)) {
     const [idRaw, sub, cardIdRaw] = hash.slice(SPEC_PREFIX.length).split("/");
     return {
-      name: sub === "design" ? "specDesign" : sub === "plan" ? "specPlan" : sub === "discovery" ? "specDiscovery" : "spec",
+      name: sub === "design" ? "specDesign" : sub === "flow" ? "specFlow" : sub === "plan" ? "specPlan" : sub === "discovery" ? "specDiscovery" : "spec",
       id: decodeURIComponent(idRaw),
       cardId: cardIdRaw ? Number(decodeURIComponent(cardIdRaw)) : null,
     };
@@ -123,6 +125,30 @@ function useRoute() {
     return { name: "boardPreview" };
   }
   return { name: "home" };
+}
+
+// The real flow map on sample data, for the DEV-only #/flow-preview route (the sandboxed preview
+// can't open a workspace). The current flow lands on window.__flow and the last toast on
+// window.__lastToast, for inspection.
+function FlowPreviewDemo() {
+  const [flow, setFlow] = useState(SAMPLE_FLOW);
+  useEffect(() => { window.__flow = flow; }, [flow]);
+  return <FlowMap flow={flow} onChange={setFlow} onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }} />;
+}
+
+// The real Design tab on sample content (#/design-preview), including the sample flow's use cases
+// so that section reads as it would on a real spec. The serialized design.md lands on
+// window.__designMd; "Open flow map" goes to the flow preview.
+function DesignPreviewDemo() {
+  const [flow, setFlow] = useState(SAMPLE_FLOW);
+  return (
+    <DesignTab
+      value={SAMPLE_DESIGN_MD}
+      onChange={(md) => { window.__designMd = md; }}
+      onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
+      flow={flow} onFlowChange={setFlow} flowHref="#/flow-preview"
+    />
+  );
 }
 
 function ConnectScreen({ title, message, buttonLabel, onClick }) {
@@ -320,7 +346,7 @@ export default function App() {
     );
   };
 
-  const isSpecRoute = route.name === "spec" || route.name === "specDesign" || route.name === "specPlan" || route.name === "specDiscovery";
+  const isSpecRoute = route.name === "spec" || route.name === "specDesign" || route.name === "specFlow" || route.name === "specPlan" || route.name === "specDiscovery";
 
   const createSpec = (initiativeId = null) => {
     const spec = blankSpec("Untitled spec", initiativeId);
@@ -526,7 +552,7 @@ export default function App() {
   // The initiative a spec belongs to (if any) — its title threads into the spec's breadcrumb.
   const specInitiative = activeSpec ? initiatives.find((i) => i.id === activeSpec.initiativeId) : null;
   const activeActivity = route.name === "activity" ? activities.find((a) => a.id === route.id) : null;
-  const activeSpecTab = route.name === "specDesign" ? "design" : route.name === "specPlan" ? "plan" : route.name === "specDiscovery" ? "discovery" : "overview";
+  const activeSpecTab = route.name === "specDesign" ? "design" : route.name === "specFlow" ? "flow" : route.name === "specPlan" ? "plan" : route.name === "specDiscovery" ? "discovery" : "overview";
   // Boards are never their own top-level thing anymore — this is the flat, board-shaped view
   // every cross-spec reference (`resolveRef`) and the Research Repository search need, each
   // one labeled with the spec that owns it since a board carries no name of its own.
@@ -571,7 +597,10 @@ export default function App() {
         folderCrumb,
         { label: "Specs", href: hrefSpecs() },
         ...(specInitiative ? [{ label: specInitiative.title || "Untitled initiative", href: hrefInitiative(specInitiative.id) }] : []),
-        { label: activeSpec ? (activeSpec.title || "Untitled spec") : "Spec not found" },
+        // The flow map sits under the spec's Design tab, so its trail links back there.
+        ...(route.name === "specFlow" && activeSpec
+          ? [{ label: activeSpec.title || "Untitled spec", href: hrefSpecDesign(activeSpec.id) }, { label: "Flow map" }]
+          : [{ label: activeSpec ? (activeSpec.title || "Untitled spec") : "Spec not found" }]),
       ]
     : route.name === "initiative"
     ? [folderCrumb, { label: "Specs", href: hrefSpecs() }, { label: activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found" }]
@@ -649,7 +678,7 @@ export default function App() {
           </div>
           <div style={{ fontSize: "26px", fontWeight: WEIGHT.semibold, color: INK, letterSpacing: "-0.01em", margin: "14px 0 16px" }}>Flow map</div>
         </div>
-        <div style={{ flex: 1, minHeight: 0, padding: "0 12px 12px" }}><FlowMapMock /></div>
+        <div style={{ flex: 1, minHeight: 0, padding: "0 12px 12px" }}><FlowPreviewDemo /></div>
       </div>
     );
   }
@@ -667,11 +696,7 @@ export default function App() {
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
           <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-            <DesignTab
-              value={SAMPLE_DESIGN_MD}
-              onChange={(md) => { window.__designMd = md; }}
-              onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
-            />
+            <DesignPreviewDemo />
           </div>
         </div>
       </div>
@@ -758,6 +783,7 @@ export default function App() {
                   activeTab={activeSpecTab}
                   tabHref={(tab) => (
                     tab === "design" ? hrefSpecDesign(activeSpec.id) :
+                    tab === "flow" ? hrefSpecFlow(activeSpec.id) :
                     tab === "plan" ? hrefSpecPlan(activeSpec.id) :
                     tab === "discovery" ? hrefSpecDiscovery(activeSpec.id) :
                     hrefSpec(activeSpec.id)

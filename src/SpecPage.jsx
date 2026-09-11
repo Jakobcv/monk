@@ -9,6 +9,8 @@ import AutoTextarea from "./ui/AutoTextarea";
 import SwapIcon from "./ui/SwapIcon";
 import MarkdownEditor from "./MarkdownEditor";
 import DesignTab from "./DesignTab";
+import FlowMap from "./FlowMap";
+import { blankFlow } from "./lib/flowModel";
 import Board from "./Board";
 import Breadcrumbs from "./Breadcrumbs";
 
@@ -110,14 +112,17 @@ export default function SpecPage({
   const [acceptanceCriteria, setAcceptanceCriteria] = useState(spec.acceptanceCriteria);
   const [board, setBoard] = useState(spec.board);
   const [design, setDesign] = useState(spec.design);
+  // Use cases + flow map (flow.md). Shared by the Design tab's Use cases section and the flow map
+  // page, so it lives here; both edit it through setFlow updaters.
+  const [flow, setFlow] = useState(spec.flow || blankFlow());
   const [plan, setPlan] = useState(spec.plan);
 
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
-    onChange({ title, status, owner, initiativeId, problem, goals, nonGoals, openQuestions, acceptanceCriteria, board, design, plan });
+    onChange({ title, status, owner, initiativeId, problem, goals, nonGoals, openQuestions, acceptanceCriteria, board, design, plan, flow });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, status, owner, initiativeId, problem, goals, nonGoals, openQuestions, acceptanceCriteria, board, design, plan]);
+  }, [title, status, owner, initiativeId, problem, goals, nonGoals, openQuestions, acceptanceCriteria, board, design, plan, flow]);
 
   // Assembles Standards + Product Knowledge + (if the spec is under an initiative) that
   // initiative's shared context + this spec's own content into one hand-off document (see
@@ -127,7 +132,7 @@ export default function SpecPage({
   const startBuild = () => {
     const initiative = initiativeId ? (initiatives || []).find((i) => i.id === initiativeId) : null;
     copyBrief(buildSpecBrief(
-      { title, problem, goals, nonGoals, openQuestions, acceptanceCriteria, design, plan },
+      { title, problem, goals, nonGoals, openQuestions, acceptanceCriteria, design, plan, flow },
       sections,
       initiative
     ));
@@ -138,16 +143,18 @@ export default function SpecPage({
   // measurement is applied without a transition (via a double render before paint) so it
   // doesn't slide in from the left on mount.
   const tabRefs = useRef([]);
+  // The flow map is a page within Design, not a tab of its own — the bar keeps Design marked.
+  const tabKey = activeTab === "flow" ? "design" : activeTab;
   const [underline, setUnderline] = useState({ left: 0, width: 0 });
   useLayoutEffect(() => {
     const measure = () => {
-      const el = tabRefs.current[TABS.findIndex((t) => t.key === activeTab)];
+      const el = tabRefs.current[TABS.findIndex((t) => t.key === tabKey)];
       if (el) setUnderline({ left: el.offsetLeft, width: el.offsetWidth });
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [activeTab]);
+  }, [tabKey]);
 
   return (
     <div style={{ height: "100%", display: "flex" }}>
@@ -181,7 +188,7 @@ export default function SpecPage({
                 className="spec-tab"
                 href={tabHref(t.key)}
                 role="tab"
-                aria-selected={activeTab === t.key}
+                aria-selected={tabKey === t.key}
                 style={tabLinkStyle}
               >
                 {t.label}
@@ -249,8 +256,16 @@ export default function SpecPage({
 
           <div hidden={activeTab !== "design"} style={{ height: "100%", overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
             <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-              <DesignTab value={spec.design} onChange={setDesign} onToast={onToast} />
+              <DesignTab
+                value={spec.design} onChange={setDesign} onToast={onToast}
+                flow={flow} onFlowChange={setFlow} flowHref={tabHref("flow")}
+              />
             </div>
+          </div>
+
+          {/* The flow map — full width like Discovery, since it's a canvas, not a reading column. */}
+          <div hidden={activeTab !== "flow"} style={{ height: "100%", boxSizing: "border-box", padding: "12px" }}>
+            <FlowMap flow={flow} onChange={setFlow} onToast={onToast} />
           </div>
 
           <div hidden={activeTab !== "plan"} style={{ height: "100%", overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>

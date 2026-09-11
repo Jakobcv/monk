@@ -1,13 +1,7 @@
 // Sample design.md for the DEV-only #/design-preview route — a realistic filled-in Design tab,
-// in the on-disk format (and canonical section order) lib/designModel.js reads and writes.
-export const SAMPLE_DESIGN_MD = `## Use cases
-
-- **Primary:** Export every signal behind one insight as a shareable doc
-  - Flow: Open insight → Choose Export → Pick format → Copy link
-- **Secondary:** Export a filtered set of signals from Research Repository
-- **Tertiary:** Re-export after edits without redoing the selection
-
-## Principles
+// in the on-disk format (and canonical section order) lib/designModel.js reads and writes. Use
+// cases live in the spec's flow (see sampleFlow.js / flowModel.js), not here.
+export const SAMPLE_DESIGN_MD = `## Principles
 
 1. The evidence is the hero — export chrome should disappear once you've chosen.
 2. Never make someone pick a format before they've seen what's included.

@@ -11,7 +11,8 @@
 // dropped, so migrating an existing spec is lossless. Sections are written in this order — intent
 // first, then what must be covered, then reference material — one item per line:
 //
-//   ## Use cases            - **Primary:** text          (optional nested "  - Flow: a → b → c")
+//   (## Use cases — no longer written here; still read, so older files migrate into the spec's
+//    flow, where use cases now live with ids — see flowModel.js)
 //   ## Principles           1. text
 //   ## Constraints          - text
 //   ## Edge cases          - when → then                ("_agent decides_" when no outcome given)
@@ -50,13 +51,6 @@ export function designSections(d) {
     const body = lines.filter(Boolean).join("\n");
     if (body.trim()) out.push({ key, title: TITLES[key], body });
   };
-
-  add("useCases", d.useCases
-    .filter((u) => oneLine(u.text))
-    .flatMap((u) => {
-      const flow = splitFlow(u.flow);
-      return [`- **${TIERS[u.tier] || TIERS[0]}:** ${oneLine(u.text)}`, flow.length ? `  - Flow: ${flow.join(" → ")}` : ""];
-    }));
 
   add("principles", d.principles.map(oneLine).filter(Boolean).map((p, i) => `${i + 1}. ${p}`));
   add("constraints", d.constraints.map(oneLine).filter(Boolean).map((c) => `- ${c}`));

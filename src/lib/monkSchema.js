@@ -59,6 +59,7 @@ every record; set \`updatedAt\` to now when you change something.
   <spec-uuid>/               ← a spec (folder marker: spec.md)
     spec.md                     see "Spec" below
     design.md                   markdown in fixed ## sections, NO frontmatter (the Design tab)
+    flow.md                     use cases + flow map: JSON frontmatter, generated outline body
     plan.md                     plain markdown, NO frontmatter (the Plan tab)
     board/                      the Discovery board
       board.md                  { id, createdAt, updatedAt }, no body
@@ -108,8 +109,6 @@ design intent (not visual language — that belongs in Standards), in any of the
 in this order, each omitted when empty — one item per line:
 
 \`\`\`
-## Use cases              - **Primary|Secondary|Tertiary:** text
-                              - Flow: step → step → step        (optional, nested)
 ## Principles             1. text
 ## Constraints            - text
 ## Edge cases             - when → then                     (then = _agent decides_ if left open)
@@ -120,6 +119,19 @@ in this order, each omitted when empty — one item per line:
 \`\`\`
 
 Text before the first heading, or under any other \`##\` heading, is kept as Notes.
+
+\`flow.md\` holds the spec's use cases and its flow map. The frontmatter is the data:
+
+\`\`\`
+{"useCases":[{"id","tier","text"}],"stages":[{"id","name"}],
+ "steps":[{"id","useCase","stage","text"}],"links":[{"id","from","to","label"}]}
+\`\`\`
+
+\`tier\` is 0 = Primary, 1 = Secondary, 2 = Tertiary. Each use case is a row and each stage a
+column; a step sits in one of each, and links go from step to step (a label is the branch
+condition). The body is a readable outline of every path, regenerated on each save — edit the
+frontmatter, not the outline. Older specs kept use cases in design.md's \`## Use cases\`; Monk moves
+them here on load.
 
 ### Board cards — \`<spec-uuid>/board/<kind>/<id>.md\`
 

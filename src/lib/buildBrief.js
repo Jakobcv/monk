@@ -12,13 +12,13 @@
 // still unresolved gets surfaced as a stop condition, not folded into the background: silently
 // picking an answer and moving on is the one thing this brief explicitly rules out.
 import { parseDesign, designSections } from "./designModel.js";
+import { flowOutline, normalizeFlow } from "./flowModel.js";
 
 // Each Design section tells the agent how to treat it — goals it can solve its own way, limits it
 // can't cross, cases it must cover, material to consult. This is what lets a spec state intent
 // rather than pixel instructions without the agent guessing where its latitude ends.
 const DESIGN_FRAMING = {
   artefacts: "Consult these. Each notes its authority: match exactly = reproduce it; follow direction = keep the intent, the execution is yours; background = context only.",
-  useCases: "Ranked. When use cases pull in different directions, the higher tier wins.",
   principles: "Intent — optimise for these. How to achieve them is your call.",
   constraints: "Binding. Do not violate any of these; if one can't be met, stop and flag it.",
   edgeCases: "Coverage — every item must be handled; treat them as test cases. Where no outcome is given, choose one and note what you chose.",
@@ -109,6 +109,11 @@ export function buildSpecBrief(spec, sections, initiative) {
   }
 
   lines.push(
+    "",
+    "### Use cases & flows",
+    "_Ranked — when use cases pull in different directions, the higher tier wins. Under each, its steps by stage and where each leads; a label in parentheses is the condition for that branch, and (back) marks a return to an earlier stage._",
+    "",
+    spec.flow && normalizeFlow(spec.flow).useCases.length ? flowOutline(normalizeFlow(spec.flow)) : "_(not written)_",
     "",
     "### Design",
     renderDesign(spec.design),

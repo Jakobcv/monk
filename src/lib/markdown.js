@@ -1,3 +1,5 @@
+import { flowOutline, normalizeFlow } from "./flowModel.js";
+
 // Frontmatter here is a single line of JSON between `---` fences, not YAML — the data is
 // always simple (strings/numbers/an array/a small object or null), so JSON's own
 // unambiguous serializer is a better fit than pulling in a YAML library. Still perfectly
@@ -260,6 +262,26 @@ export function markdownToSpec(content) {
     goals: extractSection(body, "Goals"),
     nonGoals: extractSection(body, "Non-goals"),
   };
+}
+
+// A spec's flow map (flow.md, see flowModel.js): the structure is the frontmatter, and the body is
+// a readable outline of every path — regenerated on each save and ignored on load, so it can never
+// drift from the data it describes.
+export function flowToMarkdown(flow) {
+  const f = normalizeFlow(flow);
+  const body = [
+    "# Flow map",
+    "",
+    "_Generated from the frontmatter on every save — edit the map in Monk (or the frontmatter), not this outline._",
+    "",
+    flowOutline(f) || "_No use cases yet._",
+    "",
+  ].join("\n");
+  return stringifyFrontmatter(f, body);
+}
+
+export function markdownToFlow(content) {
+  return normalizeFlow(parseFrontmatter(content).data);
 }
 
 // An initiative is a flat top-level record like a signal/insight/activity — title/status in
