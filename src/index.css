@@ -776,6 +776,37 @@ a.recent-row:hover {
 .prose-field:hover:not(:focus) {
   background: var(--bg-hover);
 }
+
+/* Design tab: an edge case's empty outcome isn't a hint, it's the value the agent receives
+   ("agent decides") — so it's legible like content, set apart only by the italic. */
+.design-then::placeholder {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+/* Design tab's label-column dropdowns (priority, artefact type) and artefact authority: a native
+   select dressed as plain text — no box, no arrow — that shows it's a choice on hover/focus. */
+.design-select {
+  appearance: none;
+  border: none;
+  background: none;
+  outline: none;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  text-overflow: ellipsis;
+  transition: color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+}
+.design-select:hover {
+  color: var(--ink) !important;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.design-select:focus-visible {
+  box-shadow: 0 0 0 2px rgba(35, 131, 226, 0.35);
+}
+.design-link::placeholder {
+  color: var(--ink-soft);
+}
 .prose-field:focus {
   background: var(--bg);
   box-shadow:

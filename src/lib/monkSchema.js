@@ -108,7 +108,6 @@ design intent (not visual language — that belongs in Standards), in any of the
 in this order, each omitted when empty — one item per line:
 
 \`\`\`
-## Artefacts              - [Title](url) — <link|prototype|design|diagram|persona>, <match exactly|follow direction|background>
 ## Use cases              - **Primary|Secondary|Tertiary:** text
                               - Flow: step → step → step        (optional, nested)
 ## Principles             1. text
@@ -117,6 +116,7 @@ in this order, each omitted when empty — one item per line:
 ## Edge cases             - when → then                     (then = _agent decides_ if left open)
 ## Decisions              - **Decision**
                               - Because: …   - Rejected: …     (each optional, nested)
+## Artefacts              - [Title](url) — <link|prototype|design|diagram|persona>, <match exactly|follow direction|background>
 ## Notes                  freeform markdown
 \`\`\`
 

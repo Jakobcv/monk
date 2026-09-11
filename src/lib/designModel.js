@@ -8,15 +8,16 @@
 //
 // Parsing is forgiving on purpose: anything it doesn't recognise — text before the first heading,
 // an unknown `## Heading`, a pre-structure freeform design.md — lands in Notes rather than being
-// dropped, so migrating an existing spec is lossless. Line formats (one item per line):
+// dropped, so migrating an existing spec is lossless. Sections are written in this order — intent
+// first, then what must be covered, then reference material — one item per line:
 //
-//   ## Artefacts            - [Title](url) — prototype, match exactly
 //   ## Use cases            - **Primary:** text          (optional nested "  - Flow: a → b → c")
 //   ## Principles           1. text
 //   ## Constraints          - text
 //   ## Experience qualities - **Layout:** text
 //   ## Edge cases           - when → then                ("_agent decides_" when no outcome given)
 //   ## Decisions            - **Decision**               (nested "  - Because: …", "  - Rejected: …")
+//   ## Artefacts            - [Title](url) — prototype, match exactly
 //   ## Notes                freeform markdown
 
 export const TIERS = ["Primary", "Secondary", "Tertiary"];
@@ -51,14 +52,6 @@ export function designSections(d) {
     if (body.trim()) out.push({ key, title: TITLES[key], body });
   };
 
-  add("artefacts", d.artefacts
-    .filter((a) => oneLine(a.title) || oneLine(a.url))
-    .map((a) => {
-      const type = ARTEFACT_TYPES.includes(a.type) ? a.type : "link";
-      const authority = (AUTHORITIES[a.authority] || AUTHORITIES.context).toLowerCase();
-      return `- [${oneLine(a.title)}](${oneLine(a.url).replace(/\s/g, "")}) — ${type}, ${authority}`;
-    }));
-
   add("useCases", d.useCases
     .filter((u) => oneLine(u.text))
     .flatMap((u) => {
@@ -85,6 +78,15 @@ export function designSections(d) {
       oneLine(x.why) ? `  - Because: ${oneLine(x.why)}` : "",
       oneLine(x.rejected) ? `  - Rejected: ${oneLine(x.rejected)}` : "",
     ]));
+
+  // Reference material comes after the intent and coverage it supports.
+  add("artefacts", d.artefacts
+    .filter((a) => oneLine(a.title) || oneLine(a.url))
+    .map((a) => {
+      const type = ARTEFACT_TYPES.includes(a.type) ? a.type : "link";
+      const authority = (AUTHORITIES[a.authority] || AUTHORITIES.context).toLowerCase();
+      return `- [${oneLine(a.title)}](${oneLine(a.url).replace(/\s/g, "")}) — ${type}, ${authority}`;
+    }));
 
   add("notes", [(d.notes || "").trim()]);
   return out;

@@ -1,12 +1,6 @@
 // Sample design.md for the DEV-only #/design-preview route — a realistic filled-in Design tab,
-// in the on-disk format lib/designModel.js reads and writes.
-export const SAMPLE_DESIGN_MD = `## Artefacts
-
-- [Bulk export — flows v3](figma.com/file/bulk-export) — design, follow direction
-- [Clickable prototype](proto.monk.dev/export) — prototype, match exactly
-- [Research lead persona](notion.so/research-lead) — persona, background
-
-## Use cases
+// in the on-disk format (and canonical section order) lib/designModel.js reads and writes.
+export const SAMPLE_DESIGN_MD = `## Use cases
 
 - **Primary:** Export every signal behind one insight as a shareable doc
   - Flow: Open insight → Choose Export → Pick format → Copy link
@@ -41,4 +35,10 @@ export const SAMPLE_DESIGN_MD = `## Artefacts
 - **Markdown is the only format in v1**
   - Because: It pastes cleanly everywhere our users write readouts.
   - Rejected: PDF — layout cost, and nobody edits a PDF.
+
+## Artefacts
+
+- [Bulk export — flows v3](figma.com/file/bulk-export) — design, follow direction
+- [Clickable prototype](proto.monk.dev/export) — prototype, match exactly
+- [Research lead persona](notion.so/research-lead) — persona, background
 `;
