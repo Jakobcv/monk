@@ -449,6 +449,57 @@ body {
   animation: reveal-x var(--motion-slow) var(--ease-entrance) backwards;
 }
 
+/* ---------------------------------------------------------------------------
+   The start page's moon. The mark is two circles: a gradient disc, and a disc
+   painted in the page background that sits on top of it. The cutout starts
+   clear of the disc (so you see a full moon), then falls into place and the
+   crescent appears. Reduced motion collapses both to their resting state via
+   the global rule above.
+   --------------------------------------------------------------------------- */
+.moon-mark {
+  overflow: visible;
+}
+.moon-mark circle {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes moon-disc {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.moon-mark__disc {
+  animation: moon-disc 460ms var(--ease-entrance) backwards;
+}
+
+/* Deliberately NOT --ease-entrance: that curve covers most of its distance in the first
+   fraction of the duration, which skips straight past the full moon. This one accelerates
+   into the travel and settles, so the bite is visibly taken out of the disc. */
+@keyframes moon-cut {
+  from {
+    transform: translate(-6px, -80px) scale(0.78);
+  }
+  to {
+    transform: translate(0, 0) scale(1);
+  }
+}
+.moon-mark__cut {
+  animation: moon-cut 680ms cubic-bezier(0.45, 0, 0.25, 1) 700ms backwards;
+}
+
+/* A row in the start page's recent list — quiet until you reach for it. */
+.recent-row {
+  transition: background-color var(--motion-fast) var(--ease);
+}
+a.recent-row:hover {
+  background: var(--bg-hover);
+}
+
 /* Donut / ring settles in — keeps the -90deg base rotation the SVG is drawn at. */
 @keyframes donut-in {
   from {

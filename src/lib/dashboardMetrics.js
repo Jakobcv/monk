@@ -142,6 +142,7 @@ export function staleSpecs({ specs }, days = 21, now = Date.now()) {
 
 export function recentlyTouched({ signals, insights, activities, specs, initiatives }, n = 6) {
   const tag = (arr, kind, nameKey) => arr.map((x) => ({
+    id: x.id,
     kind,
     label: x[nameKey] || x.title || x.name || x.text || "Untitled",
     updatedAt: x.updatedAt || x.createdAt || 0,

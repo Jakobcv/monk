@@ -14,6 +14,7 @@ import Button from "./ui/Button";
 import Toast from "./ui/Toast";
 import Header from "./Header";
 import Home from "./Home";
+import DashboardPage from "./DashboardPage";
 import ResearchRepositoryPage from "./ResearchRepositoryPage";
 import Sidebar from "./Sidebar";
 import Breadcrumbs from "./Breadcrumbs";
@@ -25,6 +26,7 @@ import ActivityPage from "./ActivityPage";
 
 const DOC_PREFIX = "#/doc/";
 const RESEARCH_ROUTE = "#/research";
+const DASHBOARD_ROUTE = "#/dashboard";
 const SPECS_ROUTE = "#/specs";
 const SPEC_PREFIX = "#/spec/";
 const INITIATIVE_PREFIX = "#/initiative/";
@@ -34,6 +36,7 @@ const ACTIVITY_PREFIX = "#/activity/";
 // `<a href>` (so Cmd/Ctrl/middle-click open a new tab); `goTo*` just assigns the same string
 // to window.location.hash for the after-an-action programmatic case.
 const hrefStart = () => "#";
+const hrefDashboard = () => DASHBOARD_ROUTE;
 const hrefDocument = (sectionId, docId) => DOC_PREFIX + encodeURIComponent(sectionId) + "/" + encodeURIComponent(docId);
 const hrefSpecs = () => SPECS_ROUTE;
 const hrefSpec = (id) => SPEC_PREFIX + encodeURIComponent(id);
@@ -80,6 +83,9 @@ function useRoute() {
     const params = new URLSearchParams(hash.slice(RESEARCH_ROUTE.length).replace(/^\?/, ""));
     return { name: "research", q: params.get("q") || "", kind: params.get("kind") || "all" };
   }
+  if (hash === DASHBOARD_ROUTE) {
+    return { name: "dashboard" };
+  }
   if (hash === SPECS_ROUTE) {
     return { name: "specs" };
   }
@@ -99,6 +105,9 @@ function useRoute() {
   }
   if (hash === "#/dashboard-preview") {
     return { name: "dashboardPreview" };
+  }
+  if (hash === "#/home-preview") {
+    return { name: "homePreview" };
   }
   return { name: "home" };
 }
@@ -557,12 +566,22 @@ export default function App() {
   const activeView = route.name === "doc" ? { type: "doc", sectionId: route.sectionId, docId: route.docId }
     : (route.name === "specs" || isSpecRoute || route.name === "initiative") ? { type: "specs" }
     : (route.name === "research" || route.name === "activity") ? { type: "research" }
+    : route.name === "dashboard" ? { type: "dashboard" }
     : { type: "home" };
 
   // Every trail is rooted in the folder the data actually lives in — everything below it is a
   // path *within* that folder, so it belongs at the front. Clicking it re-opens the folder
   // picker (the same thing "Change folder" does in the corner), because the place you're most
   // likely to want to switch folders is while looking at which one you're in.
+  // Where a "Recently touched" row on the start page goes. Signals and insights have no page
+  // of their own — they're read and edited in the Research Repository — so they land there.
+  const recentHref = (kind, id) => (
+    kind === "spec" ? hrefSpec(id)
+    : kind === "initiative" ? hrefInitiative(id)
+    : kind === "activity" ? hrefActivity(id)
+    : RESEARCH_ROUTE
+  );
+
   const folderCrumb = {
     label: dirHandle?.name || "Research folder",
     onClick: handleChangeFolder,
@@ -589,6 +608,8 @@ export default function App() {
     ? [folderCrumb, { label: "Research Repository", href: RESEARCH_ROUTE }, { label: activeActivity ? (activeActivity.name || "Untitled activity") : "Activity not found" }]
     : route.name === "research"
     ? [folderCrumb, { label: "Research Repository" }]
+    : route.name === "dashboard"
+    ? [folderCrumb, { label: "Dashboard" }]
     : null;
 
   // Keep the browser tab title current — otherwise every route reads "Monk" and the tab / a
@@ -600,16 +621,20 @@ export default function App() {
       : route.name === "initiative" ? (activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found")
       : route.name === "activity" ? (activeActivity ? (activeActivity.name || "Untitled activity") : "Activity not found")
       : route.name === "specs" ? "Specs"
+      : route.name === "dashboard" ? "Dashboard"
       : route.name === "research" ? "Research Repository"
       : "";
     document.title = name ? `${name} · Monk` : "Monk";
   }, [route, isSpecRoute, activeDocument, activeSpec, activeInitiative, activeActivity]);
 
-  // Dev-only: preview the Home dashboard populated with mock data, no folder needed.
-  if (import.meta.env.DEV && route.name === "dashboardPreview") {
+  // Dev-only: preview either page populated with mock data, no folder needed.
+  if (import.meta.env.DEV && (route.name === "dashboardPreview" || route.name === "homePreview")) {
+    const mock = mockWorkspace(1);
     return (
       <div style={{ fontFamily: font, height: "100dvh", overflowY: "auto", background: "var(--bg)" }}>
-        <Home {...mockWorkspace(1)} demo />
+        {route.name === "homePreview"
+          ? <Home {...mock} recentHref={(kind, id) => recentHref(kind, id)} />
+          : <DashboardPage {...mock} demo />}
       </div>
     );
   }
@@ -658,6 +683,7 @@ export default function App() {
         <Sidebar
           sections={sections}
           activeView={activeView}
+          dashboardHref={hrefDashboard()}
           researchHref={RESEARCH_ROUTE}
           specsHref={hrefSpecs()}
           docHref={hrefDocument}
@@ -715,6 +741,16 @@ export default function App() {
               ) : (
                 <NotFoundMessage text="Document not found." backLabel="Back to research repository" backHref={RESEARCH_ROUTE} />
               )
+            ) : route.name === "dashboard" ? (
+              <DashboardPage
+                signals={signals}
+                insights={insights}
+                activities={activities}
+                specs={specs}
+                initiatives={initiatives}
+                sections={sections}
+                onCreateSpec={createSpec}
+              />
             ) : route.name === "specs" ? (
               <SpecsPage
                 specs={specs}
@@ -788,8 +824,8 @@ export default function App() {
                 activities={activities}
                 specs={specs}
                 initiatives={initiatives}
-                sections={sections}
                 onCreateSpec={createSpec}
+                recentHref={recentHref}
               />
             )}
           </main>

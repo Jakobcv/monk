@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Layers, FileText, Plus, Trash2, Library, ShieldCheck } from "lucide-react";
+import { BookOpen, Layers, FileText, Plus, Trash2, Library, ShieldCheck, ChartNoAxesColumn } from "lucide-react";
 import { font, INK_FAINT, BORDER, BG_SIDEBAR, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
 import { FIXED_SECTIONS, isFixedSection } from "./lib/documentModel";
 import Button from "./ui/Button";
@@ -35,7 +35,7 @@ const sectionLabelStyle = {
 // Product Knowledge and Standards ARE `sections` entries (freeform documents, exactly like a
 // user-created section) — they just can't be renamed or deleted, and always sort first, because
 // what belongs in them is a matter of purpose, not user choice (see documentModel.js).
-export default function Sidebar({ sections, activeView, researchHref, specsHref, docHref, onCreateSection, onRenameSection, onDeleteSection, onCreateDocument, onDeleteDocument }) {
+export default function Sidebar({ sections, activeView, dashboardHref, researchHref, specsHref, docHref, onCreateSection, onRenameSection, onDeleteSection, onCreateDocument, onDeleteDocument }) {
   const [editingSectionId, setEditingSectionId] = useState(null);
   const [draftName, setDraftName] = useState("");
 
@@ -59,6 +59,14 @@ export default function Sidebar({ sections, activeView, researchHref, specsHref,
       display: "flex", flexDirection: "column", gap: "14px",
     }}>
       <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
+        <a
+          className="nav-item"
+          href={dashboardHref}
+          aria-current={activeView.type === "dashboard" ? "page" : undefined}
+          style={navItemStyle}
+        >
+          <ChartNoAxesColumn size={14} /> Dashboard
+        </a>
         <a
           className="nav-item"
           href={researchHref}
