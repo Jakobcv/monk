@@ -23,6 +23,25 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* This app is short-to-medium UI strings almost end to end — empty states, card text, hints,
+   list rows — which is exactly what `pretty` is the default for. It only prevents a one-word
+   last line, and it's inert on the single-line ellipsised labels that make up most of the
+   interface, so it's set here rather than opted into per string. */
+body {
+  text-wrap: pretty;
+}
+/* …but not inside the editors. `pretty` re-breaks the tail of a paragraph, which while you're
+   typing means the last line can reflow under the caret. */
+textarea,
+input {
+  text-wrap: wrap;
+}
+/* Headings are short enough for the balancer to actually run — it's capped near 6 lines. Inert
+   on today's one- and two-word page titles; correct the moment one of them grows. */
+h1 {
+  text-wrap: balance;
+}
+
 /* No 300ms double-tap-zoom delay on anything you click or drag. Scoped to interactive
    elements rather than the whole document so scroll containers keep their default behaviour. */
 button,
@@ -433,7 +452,11 @@ body {
   position: fixed;
   z-index: 60;
   background: #fff;
-  border-radius: var(--radius-md);
+  /* Concentric: the search field and the result rows inside are --radius-sm and sit right
+     against the 8px padding, so the outer corner has to be inner + padding or the inner
+     surfaces look pinched into it. Written as the sum rather than 14px so it stays true if
+     either value moves. */
+  border-radius: calc(var(--radius-sm) + 8px);
   box-shadow: var(--edge-float);
   padding: 8px;
 }

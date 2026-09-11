@@ -120,7 +120,7 @@ export default function Home({ signals = [], insights = [], activities = [], spe
                 marginTop: SPACE.lg, padding: "5px 11px", borderRadius: RADIUS.pill,
                 border: "none", background: "none", cursor: "pointer",
                 fontFamily: font, fontSize: SIZE.sm,
-                animationDelay: "1040ms", animationFillMode: "backwards",
+                animationDelay: "1080ms", animationFillMode: "backwards",
               }}
             >
               <FolderOpen size={12} style={{ flexShrink: 0 }} />
@@ -129,7 +129,7 @@ export default function Home({ signals = [], insights = [], activities = [], spe
           )}
         </div>
 
-        <div className="enter-up" style={{ marginTop: "68px", animationDelay: "1100ms", animationFillMode: "backwards" }}>
+        <div className="enter-up" style={{ marginTop: "68px", animationDelay: "1180ms", animationFillMode: "backwards" }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: SPACE.lg, marginBottom: SPACE.base }}>
             <div style={{ ...eyebrow, fontSize: SIZE.xs, letterSpacing: "0.07em" }}>Recently touched</div>
             {onCreateSpec && (
@@ -151,7 +151,7 @@ export default function Home({ signals = [], insights = [], activities = [], spe
                   item={item}
                   href={recentHref ? recentHref(item.kind, item.id) : null}
                   now={now}
-                  delay={1160 + i * 40}
+                  delay={1280 + i * 40}
                 />
               ))}
             </div>

@@ -773,7 +773,7 @@ export default function Board({
                         key={sig.id}
                         className="el-signal-pick"
                         onClick={() => linkSignal(sig.id)}
-                        style={{ textAlign: "left", fontFamily: font, fontSize: SIZE.sm, color: INK, background: "none", border: "none", borderRadius: RADIUS.xs, padding: "5px 6px", cursor: "pointer" }}
+                        style={{ textAlign: "left", fontFamily: font, fontSize: SIZE.sm, color: INK, background: "none", border: "none", borderRadius: RADIUS.sm, padding: "5px 6px", cursor: "pointer" }}
                       >
                         {sig.text ? sig.text.slice(0, 80) : "(empty signal)"}
                       </button>
@@ -820,7 +820,7 @@ export default function Board({
                         key={ins.id}
                         className="el-signal-pick"
                         onClick={() => linkInsight(ins.id)}
-                        style={{ textAlign: "left", fontFamily: font, fontSize: SIZE.sm, color: INK, background: "none", border: "none", borderRadius: RADIUS.xs, padding: "5px 6px", cursor: "pointer" }}
+                        style={{ textAlign: "left", fontFamily: font, fontSize: SIZE.sm, color: INK, background: "none", border: "none", borderRadius: RADIUS.sm, padding: "5px 6px", cursor: "pointer" }}
                       >
                         {ins.text ? ins.text.slice(0, 80) : "(empty insight)"}
                       </button>
