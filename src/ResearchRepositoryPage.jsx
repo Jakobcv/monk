@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Search as SearchIcon, X, Link2, ArrowLeft, Star, Plus, Lightbulb } from "lucide-react";
+import { Search as SearchIcon, X, Link2, ArrowLeft, Star, Plus, Lightbulb, ArrowUpRight } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, ACCENT, ACTIVITY, DANGER, CITED, SIZE, WEIGHT, SPACE, RADIUS, withAlpha } from "./lib/theme";
 import { blankSignal, signalsForActivity, isSignalUnlinked } from "./lib/signalModel";
 import { blankInsight } from "./lib/insightModel";
@@ -12,6 +12,15 @@ import Field from "./ui/Field";
 import EmptyState from "./ui/EmptyState";
 import Modal from "./ui/Modal";
 import DialogActions from "./ui/DialogActions";
+
+// A small action inside a signal card's metadata row ("↗ <spec>", "Attach to spec") — sized and
+// weighted like the card's own date and "+ Activity" rather than as a full button, so the row
+// stays one quiet line of metadata. The negative margin keeps the text aligned with its neighbours
+// while the padding gives the hover background somewhere to sit.
+const cardMetaAction = {
+  fontSize: meta.fontSize, fontWeight: WEIGHT.medium, color: INK_SOFT,
+  gap: "3px", padding: "1px 4px", margin: "-1px -4px",
+};
 
 // per-type: which array on a board holds these cards, and which of the card's fields to
 // search against (Action has three text fields, everything else has just `text`). Signal and
@@ -171,9 +180,11 @@ export default function ResearchRepositoryPage({
         onToggleSelect={selectable ? () => toggleSignalSelected(sig.id) : undefined}
         metaExtra={
           <>
+            {/* Meta-sized, like the card's own date and "+ Activity", so this row reads as one
+                quiet line of metadata — the same as the card on a Discovery board. */}
             {linkedBoards.map((b) => (
-              <a key={b.id} className="btn btn--sm btn--subtle" href={specDiscoveryHref(b.id, sig.id)} style={{ textDecoration: "none" }}>
-                Open in {b.specTitle || "Untitled spec"}
+              <a key={b.id} className="btn btn--subtle" href={specDiscoveryHref(b.id, sig.id)} style={{ ...cardMetaAction, textDecoration: "none" }}>
+                <ArrowUpRight size={12} /> {b.specTitle || "Untitled spec"}
               </a>
             ))}
             {attachOpenKey === m.key ? (
@@ -181,7 +192,7 @@ export default function ResearchRepositoryPage({
                 as="select" autoFocus defaultValue=""
                 onChange={(e) => { if (e.target.value) handleAttach(m, e.target.value); }}
                 onBlur={() => setAttachOpenKey(null)}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: "pointer", fontSize: meta.fontSize }}
               >
                 <option value="" disabled>Attach to…</option>
                 {specs.filter((s) => !linkedBoards.some((b) => b.id === s.id)).map((s) => (
@@ -189,8 +200,8 @@ export default function ResearchRepositoryPage({
                 ))}
               </Field>
             ) : (
-              <Button className="reveal" variant="subtle" onClick={() => setAttachOpenKey(m.key)}>
-                <Link2 size={16} /> Attach to spec
+              <Button className="reveal" variant="subtle" onClick={() => setAttachOpenKey(m.key)} style={cardMetaAction}>
+                <Link2 size={12} /> Attach to spec
               </Button>
             )}
           </>

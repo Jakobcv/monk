@@ -1,5 +1,5 @@
 import { X, Check } from "lucide-react";
-import { BORDER_STRONG, ACCENT, SPACE } from "./lib/theme";
+import { BORDER_STRONG, ACCENT } from "./lib/theme";
 import { cardSurface, cornerBadge } from "./ui/cardStyles";
 import IconButton from "./ui/IconButton";
 import SignalCardBody from "./SignalCardBody";
@@ -39,16 +39,10 @@ export default function SignalCard({
         {header}
         <SignalCardBody
           signal={signal} activities={activities} onChange={onChange}
-          autoFocus={autoFocus} missing={missing} activityLink={activityLink}
+          autoFocus={autoFocus} missing={missing} activityLink={activityLink} after={metaExtra}
         />
         {footer}
       </div>
-
-      {metaExtra && (
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: SPACE.xs, marginTop: SPACE.xs, marginLeft: "-3px" }}>
-          {metaExtra}
-        </div>
-      )}
 
       {onToggleSelect && (
         <button
