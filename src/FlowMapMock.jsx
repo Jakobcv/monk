@@ -1,6 +1,6 @@
 import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import { Plus, X } from "lucide-react";
-import { font, INK, INK_SOFT, BORDER, BG, BG_SIDEBAR, SIZE, WEIGHT, RADIUS } from "./lib/theme";
+import { font, INK, INK_SOFT, BORDER, BG, BG_SIDEBAR, SIZE, WEIGHT, RADIUS, MOTION } from "./lib/theme";
 import { editArea } from "./ui/text";
 import { cornerBadge } from "./ui/cardStyles";
 import AutoTextarea from "./ui/AutoTextarea";
@@ -8,12 +8,24 @@ import IconButton from "./ui/IconButton";
 
 // MOCKUP ONLY (DEV route #/flow-preview) — local state, nothing persists. A spec's flow map: a
 // story map where rows are the Design tab's use cases (in priority order) and columns are stages
-// you name. Cards are steps; connectors go from any card to any other — forward, up/down within a
-// stage, or back (a loop, drawn dashed over the top) — and can carry a label for a branch.
+// you name. Cards are steps; connectors go from any step to any other and can carry a label.
+//
+// Connector readability, per graph-drawing research (crossings hurt most, then high curvature;
+// swimlane practice: flow left→right, don't attach to tops/bottoms):
+//   1. Orthogonal, gutter-only routing. Every connector leaves a card's right edge and enters the
+//      target's left edge; in between it travels only along column and row boundaries — never
+//      behind a card — with small rounded corners.
+//   2. Distinct ports and lanes. Several connectors on one card side get their own ports, ordered
+//      by the far end to avoid crossing; connectors sharing a gutter get parallel lanes.
+//   3. Focus on demand, not colour-coding. At rest every line is one quiet grey. Hovering a step
+//      (or a use case) brings its whole path forward in ink and dims the rest.
+// Loop-backs are dashed. A label sits on its connector's longest straight run.
 
 const TIERS = ["Primary", "Secondary", "Tertiary"];
 const HEADER_W = 220;
 const LINE = "#A9A9A5";
+const LANE = 6;     // px between parallel lanes in one gutter
+const CORNER = 6;   // corner radius
 
 let seq = 100;
 const nid = (p) => `${p}${seq++}`;
@@ -52,54 +64,119 @@ const SAMPLE = {
   ],
 };
 
-// Cubic midpoint — where a connector's label sits.
-const mid = (p0, p1, p2, p3) => ({
-  x: (p0.x + 3 * p1.x + 3 * p2.x + p3.x) / 8,
-  y: (p0.y + 3 * p1.y + 3 * p2.y + p3.y) / 8,
-});
+// Polyline → SVG path with rounded corners (radius clamped to half of each adjoining run).
+function roundedPath(pts) {
+  const p = pts.filter((q, i) => i === 0 || Math.abs(q.x - pts[i - 1].x) > 0.5 || Math.abs(q.y - pts[i - 1].y) > 0.5);
+  let d = `M${p[0].x} ${p[0].y}`;
+  for (let i = 1; i < p.length - 1; i++) {
+    const a = p[i - 1], b = p[i], c = p[i + 1];
+    const d1 = Math.hypot(b.x - a.x, b.y - a.y), d2 = Math.hypot(c.x - b.x, c.y - b.y);
+    const r = Math.min(CORNER, d1 / 2, d2 / 2);
+    const p1 = { x: b.x - ((b.x - a.x) / d1) * r, y: b.y - ((b.y - a.y) / d1) * r };
+    const p2 = { x: b.x + ((c.x - b.x) / d2) * r, y: b.y + ((c.y - b.y) / d2) * r };
+    d += ` L${p1.x} ${p1.y} Q${b.x} ${b.y} ${p2.x} ${p2.y}`;
+  }
+  const z = p[p.length - 1];
+  return `${d} L${z.x} ${z.y}`;
+}
 
-// Forward → right edge to left edge. Same stage → straight up or down between the cards, unless
-// another card sits between them, in which case a bracket out to the left and back — a straight
-// line would run behind that card and read as connecting to it. Back (a loop) → out of the top of
-// one card, arcing over, into the top of the other — above, so it never cuts through the cards
-// stacked beneath. `all` is every card's position, for spotting what's in the way.
-function route(s, t, all) {
-  if (t.left >= s.right - 4) {
-    const p0 = { x: s.right, y: s.cy }, p3 = { x: t.left, y: t.cy };
-    const dx = Math.max(28, (p3.x - p0.x) / 2);
-    const p1 = { x: p0.x + dx, y: p0.y }, p2 = { x: p3.x - dx, y: p3.y };
-    return { d: `M${p0.x} ${p0.y} C${p1.x} ${p1.y} ${p2.x} ${p2.y} ${p3.x} ${p3.y}`, m: mid(p0, p1, p2, p3), back: false };
+// Where a label sits: the middle of the connector's longest straight run.
+function labelAt(pts) {
+  let best = null, len = -1;
+  for (let i = 1; i < pts.length; i++) {
+    const l = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    if (l > len) { len = l; best = { x: (pts[i].x + pts[i - 1].x) / 2, y: (pts[i].y + pts[i - 1].y) / 2 }; }
   }
-  if (Math.abs(t.cx - s.cx) < 12) {
-    const lo = Math.min(s.bottom, t.bottom), hi = Math.max(s.top, t.top);
-    const blocked = Object.values(all || {}).some((o) =>
-      o !== s && o !== t && Math.abs(o.cx - s.cx) < 12 && o.top >= lo - 1 && o.bottom <= hi + 1);
-    if (blocked) {
-      const x = Math.min(s.left, t.left) - 24;
-      const p0 = { x: s.left, y: s.cy }, p3 = { x: t.left, y: t.cy };
-      const p1 = { x, y: p0.y }, p2 = { x, y: p3.y };
-      return { d: `M${p0.x} ${p0.y} C${p1.x} ${p1.y} ${p2.x} ${p2.y} ${p3.x} ${p3.y}`, m: mid(p0, p1, p2, p3), back: false };
+  return best;
+}
+
+// All connector geometry for the current layout. `layout` holds measured card rects and the
+// column/row boundaries (the gutters connectors are allowed to travel along).
+function computeRoutes(m, layout) {
+  const { cards: cp, cols, rows } = layout;
+  if (!cp || !cols || !rows) return [];
+  const colIdx = Object.fromEntries(m.columns.map((c, i) => [c.id, i]));
+  const rowIdx = Object.fromEntries(m.rows.map((r, i) => [r.id, i]));
+  const card = Object.fromEntries(m.cards.map((c) => [c.id, c]));
+  const links = m.links.filter((l) => cp[l.from] && cp[l.to] && cols[card[l.from]?.col] && cols[card[l.to]?.col]);
+
+  // Ports: spread a card side's connectors along it, ordered by where their other end sits.
+  const port = {};
+  const spread = (byCard, key, otherEnd) => {
+    for (const [id, list] of Object.entries(byCard)) {
+      const r = cp[id];
+      list.sort((a, b) => cp[a[otherEnd]].cy - cp[b[otherEnd]].cy);
+      list.forEach((l, k) => { port[`${l.id}:${key}`] = r.top + ((r.bottom - r.top) * (k + 1)) / (list.length + 1); });
     }
-    const down = t.top > s.bottom;
-    const p0 = { x: s.cx, y: down ? s.bottom : s.top }, p3 = { x: t.cx, y: down ? t.top : t.bottom };
-    const dy = (p3.y - p0.y) / 2;
-    const p1 = { x: p0.x, y: p0.y + dy }, p2 = { x: p3.x, y: p3.y - dy };
-    return { d: `M${p0.x} ${p0.y} C${p1.x} ${p1.y} ${p2.x} ${p2.y} ${p3.x} ${p3.y}`, m: mid(p0, p1, p2, p3), back: false };
-  }
-  const p0 = { x: s.cx, y: s.top }, p3 = { x: t.cx, y: t.top };
-  const peak = Math.min(p0.y, p3.y) - 34;
-  const p1 = { x: p0.x, y: peak }, p2 = { x: p3.x, y: peak };
-  return { d: `M${p0.x} ${p0.y} C${p1.x} ${p1.y} ${p2.x} ${p2.y} ${p3.x} ${p3.y}`, m: mid(p0, p1, p2, p3), back: true };
+  };
+  const outs = {}, ins = {};
+  for (const l of links) { (outs[l.from] ||= []).push(l); (ins[l.to] ||= []).push(l); }
+  spread(outs, "out", "to");
+  spread(ins, "in", "from");
+
+  const blocked = (x1, x2, y, skip) => Object.entries(cp).some(([id, r]) =>
+    !skip.includes(id) && r.right > x1 && r.left < x2 && y > r.top - 4 && y < r.bottom + 4);
+
+  const routes = links.map((l) => {
+    const a = card[l.from], b = card[l.to];
+    const sc = colIdx[a.col], tc = colIdx[b.col], sr = rowIdx[a.row], tr = rowIdx[b.row];
+    const sy = port[`${l.id}:out`], ty = port[`${l.id}:in`];
+    const gx1 = cols[a.col].right, gx2 = cols[b.col].left;
+    // Which row boundary to travel along when a connector can't go straight: the one between the
+    // source's row and the target's, or the source row's top edge for same-row detours and loops.
+    const hy = tr > sr ? rows[a.row].bottom : rows[a.row].top;
+    const r = { l, sx: cp[l.from].right, tx: cp[l.to].left, sy, ty, back: tc < sc, v1: null, h: null, v2: { x: gx2, span: 0 } };
+    if (tc === sc + 1) {
+      // Next stage: one elbow in the gutter between them.
+    } else if (tc > sc && !blocked(gx1, gx2, sy, [l.from, l.to])) {
+      // Skipping stages with a clear run at the port's height: straight across, elbow at the end.
+    } else {
+      r.v1 = { x: gx1 };
+      r.h = { y: hy };
+    }
+    r.v2.span = Math.min(r.h ? r.h.y : sy, ty);
+    if (r.v1) { r.v1.span = Math.min(sy, hy); r.h.span = Math.min(gx1, gx2); }
+    return r;
+  });
+
+  // Lanes: connectors running in the same gutter get parallel offsets, ordered by where they start.
+  const lanes = (items) => {
+    const groups = {};
+    for (const it of items) (groups[Math.round(it.x ?? it.y)] ||= []).push(it);
+    for (const g of Object.values(groups)) {
+      g.sort((p, q) => p.span - q.span);
+      g.forEach((it, k) => { it.off = (k - (g.length - 1) / 2) * LANE; });
+    }
+  };
+  lanes(routes.flatMap((r) => [r.v1, r.v2].filter(Boolean)));
+  lanes(routes.map((r) => r.h).filter(Boolean));
+
+  return routes.map((r) => {
+    const X2 = r.v2.x + r.v2.off;
+    const pts = [{ x: r.sx, y: r.sy }];
+    if (r.v1) {
+      const X1 = r.v1.x + r.v1.off, Y = r.h.y + r.h.off;
+      pts.push({ x: X1, y: r.sy }, { x: X1, y: Y }, { x: X2, y: Y });
+    } else {
+      pts.push({ x: X2, y: r.sy });
+    }
+    pts.push({ x: X2, y: r.ty }, { x: r.tx, y: r.ty });
+    return { link: r.l, d: roundedPath(pts), at: labelAt(pts), back: r.back };
+  });
 }
 
 export default function FlowMapMock() {
   const [m, setM] = useState(SAMPLE);
-  const [pos, setPos] = useState({});
+  const [layout, setLayout] = useState({});
   const [connectFrom, setConnectFrom] = useState(null);
   const [selLink, setSelLink] = useState(null);
+  const [hoverCard, setHoverCard] = useState(null);
+  const [hoverRow, setHoverRow] = useState(null);
   const [fresh, setFresh] = useState(null);
   const gridRef = useRef(null);
   const cardEls = useRef({});
+  const colEls = useRef({});
+  const rowEls = useRef({});
 
   const set = (key, fn) => setM((p) => ({ ...p, [key]: fn(p[key]) }));
   const patch = (key, id, fields) => set(key, (xs) => xs.map((x) => (x.id === id ? { ...x, ...fields } : x)));
@@ -119,23 +196,18 @@ export default function FlowMapMock() {
     setConnectFrom(null);
   };
 
-  // Card positions relative to the grid (the SVG and label layer live inside it, so they scroll
-  // with it). Re-measured on every change and whenever the grid resizes — a card growing as you
-  // type moves everything below it.
+  // Card rects and gutter boundaries, relative to the grid (the SVG and label layer live inside
+  // it, so they scroll with it). Re-measured on every change and whenever the grid resizes.
   const measure = () => {
     const g = gridRef.current;
     if (!g) return;
     const gr = g.getBoundingClientRect();
-    const next = {};
-    for (const [id, el] of Object.entries(cardEls.current)) {
-      if (!el) continue;
+    const rel = (el) => {
       const r = el.getBoundingClientRect();
-      next[id] = {
-        left: r.left - gr.left, right: r.right - gr.left, top: r.top - gr.top, bottom: r.bottom - gr.top,
-        cx: (r.left + r.right) / 2 - gr.left, cy: (r.top + r.bottom) / 2 - gr.top,
-      };
-    }
-    setPos(next);
+      return { left: r.left - gr.left, right: r.right - gr.left, top: r.top - gr.top, bottom: r.bottom - gr.top, cx: (r.left + r.right) / 2 - gr.left, cy: (r.top + r.bottom) / 2 - gr.top };
+    };
+    const pick = (els) => Object.fromEntries(Object.entries(els).filter(([, el]) => el).map(([id, el]) => [id, rel(el)]));
+    setLayout({ cards: pick(cardEls.current), cols: pick(colEls.current), rows: pick(rowEls.current) });
   };
   useLayoutEffect(measure, [m]);
   useEffect(() => {
@@ -157,8 +229,44 @@ export default function FlowMapMock() {
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  const routes = computeRoutes(m, layout);
+
+  // Focus: a hovered step's whole path (everything upstream and downstream of it), a hovered use
+  // case's connectors, or the selected connector. Everything else dims.
+  const focus = (() => {
+    if (connectFrom) return null;
+    if (hoverCard) {
+      const onPath = new Set([hoverCard]);
+      for (const forward of [true, false]) {
+        const queue = [hoverCard], seen = new Set([hoverCard]);
+        while (queue.length) {
+          const at = queue.shift();
+          for (const l of m.links) {
+            const [from, to] = forward ? [l.from, l.to] : [l.to, l.from];
+            if (from === at && !seen.has(to)) { seen.add(to); queue.push(to); onPath.add(to); }
+          }
+        }
+      }
+      return { cards: onPath, links: new Set(m.links.filter((l) => onPath.has(l.from) && onPath.has(l.to)).map((l) => l.id)) };
+    }
+    if (hoverRow) {
+      const inRow = new Set(m.cards.filter((c) => c.row === hoverRow).map((c) => c.id));
+      const ls = m.links.filter((l) => inRow.has(l.from) || inRow.has(l.to));
+      const cards = new Set([...inRow, ...ls.flatMap((l) => [l.from, l.to])]);
+      return { cards, links: new Set(ls.map((l) => l.id)) };
+    }
+    if (selLink) {
+      const l = m.links.find((x) => x.id === selLink);
+      return l ? { cards: new Set([l.from, l.to]), links: new Set([l.id]) } : null;
+    }
+    return null;
+  })();
+  const cardDim = (id) => focus && !focus.cards.has(id);
+  const linkOn = (id) => !focus || focus.links.has(id);
+
   const cols = `${HEADER_W}px repeat(${m.columns.length}, minmax(200px, 1fr)) 52px`;
   const cellBorder = { borderRight: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` };
+  const fade = `opacity ${MOTION.base} ${MOTION.ease}`;
 
   return (
     <div
@@ -170,7 +278,7 @@ export default function FlowMapMock() {
         .fm-cell:hover .fm-add, .fm-cell:focus-within .fm-add { opacity: 1; }
         .fm-col:hover .fm-col-x, .fm-col:focus-within .fm-col-x { opacity: 1; }
         .fm-col-x { opacity: 0; transition: opacity 120ms ease; }
-        .fm-link { transition: stroke 120ms ease, stroke-width 120ms ease; }
+        .fm-link { transition: stroke ${MOTION.base} ${MOTION.ease}, stroke-width ${MOTION.fast} ${MOTION.ease}, opacity ${MOTION.base} ${MOTION.ease}; }
         .fm-connecting .fm-card:not(.fm-source):hover { outline: 2px solid ${INK_SOFT}; outline-offset: 2px; cursor: crosshair; }
       `}</style>
 
@@ -192,7 +300,7 @@ export default function FlowMapMock() {
           <span style={{ fontSize: SIZE.micro, fontWeight: WEIGHT.semibold, letterSpacing: "0.06em", textTransform: "uppercase", color: INK_SOFT }}>Use cases</span>
         </div>
         {m.columns.map((c) => (
-          <div key={c.id} className="fm-col" style={{ ...cellBorder, padding: "12px 16px", display: "flex", alignItems: "center", gap: "6px" }}>
+          <div key={c.id} ref={(el) => { colEls.current[c.id] = el; }} className="fm-col" style={{ ...cellBorder, padding: "12px 16px", display: "flex", alignItems: "center", gap: "6px" }}>
             <input
               autoFocus={fresh === c.id}
               value={c.name} onChange={(e) => patch("columns", c.id, { name: e.target.value })}
@@ -211,7 +319,11 @@ export default function FlowMapMock() {
         {/* One row per use case */}
         {m.rows.map((r) => (
           <FragmentRow key={r.id}>
-            <div style={{ ...cellBorder, position: "sticky", left: 0, zIndex: 4, background: BG_SIDEBAR, padding: "14px 16px", display: "flex", flexDirection: "column", gap: "4px" }}>
+            <div
+              ref={(el) => { rowEls.current[r.id] = el; }}
+              onMouseEnter={() => setHoverRow(r.id)} onMouseLeave={() => setHoverRow((h) => (h === r.id ? null : h))}
+              style={{ ...cellBorder, position: "sticky", left: 0, zIndex: 4, background: BG_SIDEBAR, padding: "14px 16px", display: "flex", flexDirection: "column", gap: "4px" }}
+            >
               <select
                 className="design-select" aria-label="Priority" value={r.tier}
                 onChange={(e) => patch("rows", r.id, { tier: Number(e.target.value) })}
@@ -231,7 +343,11 @@ export default function FlowMapMock() {
               return (
                 <div key={c.id} className="fm-cell" style={{ ...cellBorder, padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px", minHeight: "88px" }}>
                   {here.map((k) => (
-                    <div key={k.id} className="reveal-group" style={{ position: "relative", zIndex: 2 }}>
+                    <div
+                      key={k.id} className="reveal-group"
+                      onMouseEnter={() => setHoverCard(k.id)} onMouseLeave={() => setHoverCard((h) => (h === k.id ? null : h))}
+                      style={{ position: "relative", zIndex: 2, opacity: cardDim(k.id) ? 0.4 : 1, transition: fade }}
+                    >
                       <div
                         ref={(el) => { cardEls.current[k.id] = el; }}
                         className={`el-card fm-card${connectFrom === k.id ? " fm-source" : ""}`}
@@ -287,17 +403,18 @@ export default function FlowMapMock() {
               <path d="M1 1 L8 5 L1 9" fill="none" stroke="context-stroke" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
             </marker>
           </defs>
-          {m.links.map((l) => {
-            const s = pos[l.from], t = pos[l.to];
-            if (!s || !t) return null;
-            const { d, back } = route(s, t, pos);
-            const sel = selLink === l.id;
+          {routes.map(({ link: l, d, back }) => {
+            const on = linkOn(l.id), lit = focus && on;
             return (
               <g key={l.id}>
-                <path className="fm-link" d={d} fill="none" stroke={sel ? INK : LINE} strokeWidth={sel ? 2.25 : 1.5} strokeDasharray={back ? "5 4" : undefined} markerEnd="url(#fm-cap)" />
+                <path
+                  className="fm-link" d={d} fill="none"
+                  stroke={lit ? INK : LINE} strokeWidth={lit ? 2 : 1.5} opacity={on ? 1 : 0.15}
+                  strokeDasharray={back ? "5 4" : undefined} markerEnd="url(#fm-cap)"
+                />
                 <path
                   d={d} fill="none" stroke="transparent" strokeWidth="14" style={{ pointerEvents: "stroke", cursor: "pointer" }}
-                  onClick={(e) => { e.stopPropagation(); setConnectFrom(null); setSelLink(sel ? null : l.id); }}
+                  onClick={(e) => { e.stopPropagation(); setConnectFrom(null); setSelLink(selLink === l.id ? null : l.id); }}
                 >
                   <title>Click to label or remove</title>
                 </path>
@@ -308,14 +425,11 @@ export default function FlowMapMock() {
 
         {/* Connector labels — shown when a link has one, or while it's selected (to add one) */}
         <div style={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none" }}>
-          {m.links.map((l) => {
-            const s = pos[l.from], t = pos[l.to];
-            if (!s || !t) return null;
+          {routes.map(({ link: l, at }) => {
             const sel = selLink === l.id;
-            if (!l.label && !sel) return null;
-            const { m: at } = route(s, t, pos);
+            if ((!l.label && !sel) || !at) return null;
             return (
-              <div key={l.id} style={{ position: "absolute", left: at.x, top: at.y, transform: "translate(-50%, -50%)", display: "flex", alignItems: "center", gap: "2px", pointerEvents: "auto" }}>
+              <div key={l.id} style={{ position: "absolute", left: at.x, top: at.y, transform: "translate(-50%, -50%)", display: "flex", alignItems: "center", gap: "2px", pointerEvents: "auto", opacity: linkOn(l.id) ? 1 : 0.25, transition: fade }}>
                 <input
                   autoFocus={sel && !l.label}
                   value={l.label} onChange={(e) => patch("links", l.id, { label: e.target.value })}
