@@ -72,14 +72,17 @@ export default function Home({ signals = [], insights = [], activities = [], spe
       <div style={{ maxWidth: "560px", margin: "0 auto" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <MoonMark />
-          {/* The mark carries the gradient; the wordmark is set solid and small enough to read
-              as a caption under it rather than a second logo competing for the same job. The
-              negative margin closes the gap the crescent leaves below its own ink. */}
+          {/* Set to serve the mark rather than compete with it. At bold the wordmark was both
+              heavier and darker than the moon — whose gradient averages to a mid-grey — so the
+              type won a stack it was meant to support. Medium weight evens that out. The open
+              tracking answers the void the crescent is built around; at −0.015em the word was
+              dense and closed, the opposite instinct to the mark above it. The negative right
+              margin drops the trailing letterspace so the glyphs, not the box, sit centred. */}
           <h1
             className="enter-up"
             style={{
-              fontFamily: font, fontWeight: WEIGHT.bold, fontSize: "28px",
-              letterSpacing: "-0.015em", margin: "-6px 0 0", lineHeight: LEADING.tight,
+              fontFamily: font, fontWeight: WEIGHT.medium, fontSize: "28px",
+              letterSpacing: "0.07em", margin: "-6px -0.07em 0 0", lineHeight: LEADING.tight,
               color: INK,
               animationDelay: "980ms", animationFillMode: "backwards",
             }}
