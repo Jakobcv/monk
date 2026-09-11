@@ -47,6 +47,16 @@ const hrefSpecs = () => SPECS_ROUTE;
 const hrefSpec = (id) => SPEC_PREFIX + encodeURIComponent(id);
 const hrefSpecDesign = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/design";
 const hrefSpecFlow = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/flow";
+
+// A card id from a deep link. Signal and insight ids are text (UUIDs); action and result ids are
+// numbers — and the board compares ids with ===, so an all-digit id has to come back as a number
+// and anything else must stay text. (It used to be Number() for everything, which turned every
+// signal/insight id into NaN, so a deep link to one never found its card.)
+const parseCardId = (raw) => {
+  if (!raw) return null;
+  const id = decodeURIComponent(raw);
+  return /^\d+$/.test(id) ? Number(id) : id;
+};
 const hrefSpecPlan = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/plan";
 const hrefSpecDiscovery = (id, cardId) => SPEC_PREFIX + encodeURIComponent(id) + "/discovery" + (cardId != null ? "/" + encodeURIComponent(cardId) : "");
 const hrefInitiative = (id) => INITIATIVE_PREFIX + encodeURIComponent(id);
@@ -100,7 +110,7 @@ function useRoute() {
     return {
       name: sub === "design" ? "specDesign" : sub === "flow" ? "specFlow" : sub === "plan" ? "specPlan" : sub === "discovery" ? "specDiscovery" : "spec",
       id: decodeURIComponent(idRaw),
-      cardId: cardIdRaw ? Number(decodeURIComponent(cardIdRaw)) : null,
+      cardId: parseCardId(cardIdRaw),
     };
   }
   if (hash.startsWith(INITIATIVE_PREFIX)) {
@@ -121,8 +131,8 @@ function useRoute() {
   if (hash === "#/flow-preview") {
     return { name: "flowPreview" };
   }
-  if (hash === "#/board-preview") {
-    return { name: "boardPreview" };
+  if (hash === "#/board-preview" || hash.startsWith("#/board-preview/")) {
+    return { name: "boardPreview", cardId: parseCardId(hash.split("/")[2]) };
   }
   return { name: "home" };
 }
@@ -660,6 +670,7 @@ export default function App() {
           signals={mock.signals} insights={mock.insights} activities={mock.activities}
           onUpdateSignal={() => {}} onCreateSignal={() => {}} onUpdateInsight={() => {}} onCreateInsight={() => {}}
           onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
+          highlightCardId={route.cardId}
         />
       </div>
     );

@@ -21,6 +21,15 @@ export function blankFlow() {
 const str = (v) => (typeof v === "string" ? v : "");
 const arr = (v) => (Array.isArray(v) ? v : []);
 
+// A flow map with no stages opens with a few already in place, so you can start placing steps
+// straight away instead of building columns first. They're ordinary stages — rename or remove them.
+export const DEFAULT_STAGE_NAMES = ["Start", "Explore", "Act", "Finish"];
+
+export function withDefaultStages(flow) {
+  if (flow.stages.length) return flow;
+  return { ...flow, stages: DEFAULT_STAGE_NAMES.map((name) => ({ id: genEntityId(), name })) };
+}
+
 // Whatever was on disk, in the exact shape above. A step whose use case or stage is gone, or a link
 // whose ends are, can't be placed or drawn — it's dropped rather than left to break the map.
 export function normalizeFlow(raw) {

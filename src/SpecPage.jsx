@@ -10,7 +10,7 @@ import SwapIcon from "./ui/SwapIcon";
 import MarkdownEditor from "./MarkdownEditor";
 import DesignTab from "./DesignTab";
 import FlowMap from "./FlowMap";
-import { blankFlow } from "./lib/flowModel";
+import { blankFlow, withDefaultStages } from "./lib/flowModel";
 import Board from "./Board";
 import Breadcrumbs from "./Breadcrumbs";
 
@@ -113,8 +113,9 @@ export default function SpecPage({
   const [board, setBoard] = useState(spec.board);
   const [design, setDesign] = useState(spec.design);
   // Use cases + flow map (flow.md). Shared by the Design tab's Use cases section and the flow map
-  // page, so it lives here; both edit it through setFlow updaters.
-  const [flow, setFlow] = useState(spec.flow || blankFlow());
+  // page, so it lives here; both edit it through setFlow updaters. A map with no stages yet gets
+  // the default few (see withDefaultStages) — saved along with the first real edit.
+  const [flow, setFlow] = useState(() => withDefaultStages(spec.flow || blankFlow()));
   const [plan, setPlan] = useState(spec.plan);
 
   const isFirstRender = useRef(true);

@@ -36,6 +36,16 @@ const LINE = "#A9A9A5";
 const LANE = 6;
 const CORNER = 6;
 
+// Surfaces carry the structure so that lines can mean one thing — a connector. The frame (stage
+// headers, use-case column) sits on the app's chrome surface, like the sidebar; each use case's row
+// is a lane on a slightly deeper work surface, alternating so neighbouring lanes separate without
+// a rule between them; steps are white and lifted off it. No grid lines inside the lanes: stages
+// read from their header and from how steps line up beneath it.
+const FRAME = BG_SIDEBAR;
+const LANES = ["#F6F6F3", "#F1F1EE"];
+const laneOf = (rowIndex) => LANES[rowIndex % 2];
+const frameCell = { background: FRAME, borderRight: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` };
+
 function roundedPath(pts) {
   const p = pts.filter((q, i) => i === 0 || Math.abs(q.x - pts[i - 1].x) > 0.5 || Math.abs(q.y - pts[i - 1].y) > 0.5);
   let d = `M${p[0].x} ${p[0].y}`;
@@ -95,7 +105,10 @@ function computeRoutes(flow, rects) {
     const sc = colIdx[a.stage], tc = colIdx[b.stage], sr = rowIdx[a.useCase], tr = rowIdx[b.useCase];
     const sy = port[`${l.id}:out`], ty = port[`${l.id}:in`];
     const gx1 = col(a.stage).right, gx2 = col(b.stage).left;
-    const hy = tr > sr ? row(a.useCase).bottom : row(a.useCase).top;
+    // A detour travels just inside the source lane's own padding (9px in from its edge) rather than
+    // on the boundary itself: it reads as belonging to that lane, and the first lane's top edge is
+    // under the sticky stage header, which would otherwise hide the line and its label.
+    const hy = tr > sr ? row(a.useCase).bottom - 9 : row(a.useCase).top + 9;
     const r = { l, sx: cp[l.from].right, tx: cp[l.to].left, sy, ty, back: tc < sc, v1: null, h: null, v2: { x: gx2, span: 0 } };
     if (tc === sc + 1) {
       // next stage: one elbow in the gutter between them
@@ -253,13 +266,12 @@ export default function FlowMap({ flow, onChange, onToast }) {
   const linkOn = (id) => !focus || focus.links.has(id);
 
   const cols = `${HEADER_W}px repeat(${flow.stages.length}, minmax(200px, 1fr)) ${flow.stages.length ? "52px" : "auto"}`;
-  const cellBorder = { borderRight: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` };
   const fade = `opacity ${MOTION.base} ${MOTION.ease}`;
 
   return (
     <div
       onClick={(e) => { if (e.target === e.currentTarget) setSelLink(null); }}
-      style={{ position: "relative", height: "100%", backgroundColor: BG_SIDEBAR, border: `1px solid ${BORDER}`, borderRadius: "10px", overflow: "auto", fontFamily: font }}
+      style={{ position: "relative", height: "100%", backgroundColor: LANES[0], border: `1px solid ${BORDER}`, borderRadius: "10px", overflow: "auto", fontFamily: font }}
     >
       <style>{`
         .fm-cell .fm-add { opacity: 0; transition: opacity 120ms ease; }
@@ -269,6 +281,9 @@ export default function FlowMap({ flow, onChange, onToast }) {
         .fm-link { transition: stroke ${MOTION.base} ${MOTION.ease}, stroke-width ${MOTION.fast} ${MOTION.ease}, opacity ${MOTION.base} ${MOTION.ease}; }
         .fm-connecting .fm-card:not(.fm-source):hover { outline: 2px solid ${INK_SOFT}; outline-offset: 2px; cursor: crosshair; }
         .fm-dragging, .fm-dragging * { user-select: none; -webkit-user-select: none; cursor: grabbing !important; }
+        /* Steps: white, lifted off the lane by an edge shadow rather than outlined by a border. */
+        .fm-card { box-shadow: var(--edge-raised); }
+        .fm-card:hover { box-shadow: var(--edge-lifted); }
       `}</style>
 
       {connectFrom != null && (
@@ -285,11 +300,13 @@ export default function FlowMap({ flow, onChange, onToast }) {
         style={{ position: "relative", display: "grid", gridTemplateColumns: cols, minWidth: "min-content" }}
       >
         {/* Stage header row */}
-        <div style={{ ...cellBorder, position: "sticky", left: 0, zIndex: 4, background: BG_SIDEBAR, padding: "14px 16px", display: "flex", alignItems: "center" }}>
+        {/* The header row stays put while you scroll down, the use-case column while you scroll
+            across — so a step always has its stage and use case in view. */}
+        <div style={{ ...frameCell, position: "sticky", left: 0, top: 0, zIndex: 6, padding: "14px 16px", display: "flex", alignItems: "center" }}>
           <span style={{ fontSize: SIZE.micro, fontWeight: WEIGHT.semibold, letterSpacing: "0.06em", textTransform: "uppercase", color: INK_SOFT }}>Use cases</span>
         </div>
         {flow.stages.map((c) => (
-          <div key={c.id} ref={setRef(`col:${c.id}`)} className="fm-head" style={{ ...cellBorder, padding: "12px 16px", display: "flex", alignItems: "center", gap: "6px" }}>
+          <div key={c.id} ref={setRef(`col:${c.id}`)} className="fm-head" style={{ ...frameCell, position: "sticky", top: 0, zIndex: 5, padding: "12px 16px", display: "flex", alignItems: "center", gap: "6px" }}>
             <input
               autoFocus={fresh === c.id}
               value={c.name} onChange={(e) => patch("stages", c.id, { name: e.target.value })}
@@ -301,7 +318,7 @@ export default function FlowMap({ flow, onChange, onToast }) {
             </IconButton>
           </div>
         ))}
-        <div style={{ borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", padding: flow.stages.length ? 0 : "0 12px" }}>
+        <div style={{ background: FRAME, borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, zIndex: 5, display: "flex", alignItems: "center", justifyContent: "center", padding: flow.stages.length ? 0 : "0 12px" }}>
           {flow.stages.length ? (
             <IconButton title="Add a stage" onClick={addStage} style={{ color: INK_SOFT, "--hit": "32px" }}><Plus size={16} /></IconButton>
           ) : (
@@ -316,7 +333,7 @@ export default function FlowMap({ flow, onChange, onToast }) {
               ref={setRef(`row:${r.id}`)}
               className="fm-head"
               onMouseEnter={() => setHoverRow(r.id)} onMouseLeave={() => setHoverRow((h) => (h === r.id ? null : h))}
-              style={{ ...cellBorder, position: "sticky", left: 0, zIndex: 4, background: BG_SIDEBAR, padding: "14px 16px", display: "flex", flexDirection: "column", gap: "4px" }}
+              style={{ ...frameCell, position: "sticky", left: 0, zIndex: 4, padding: "14px 16px", display: "flex", flexDirection: "column", gap: "4px" }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <select
@@ -340,7 +357,7 @@ export default function FlowMap({ flow, onChange, onToast }) {
             {flow.stages.map((c) => {
               const here = flow.steps.filter((k) => k.useCase === r.id && k.stage === c.id);
               return (
-                <div key={c.id} className="fm-cell" style={{ ...cellBorder, padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px", minHeight: "88px" }}>
+                <div key={c.id} className="fm-cell" style={{ background: laneOf(ri), padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px", minHeight: "88px" }}>
                   {here.map((k) => {
                     const isSource = connectFrom === k.id || pending?.from === k.id;
                     const canPick = connectFrom != null && connectFrom !== k.id;
@@ -356,7 +373,7 @@ export default function FlowMap({ flow, onChange, onToast }) {
                           className={`el-card fm-card${connectFrom === k.id ? " fm-source" : ""}`}
                           onClickCapture={canPick ? (e) => { e.preventDefault(); e.stopPropagation(); completeConnect(k.id); } : undefined}
                           style={{
-                            background: BG, border: `1px solid ${BORDER}`,
+                            background: BG,
                             outline: connectFrom === k.id ? `2px solid ${INK}` : pending?.over === k.id ? `2px solid ${INK_SOFT}` : undefined,
                             outlineOffset: "2px",
                           }}
@@ -407,12 +424,12 @@ export default function FlowMap({ flow, onChange, onToast }) {
                 </div>
               );
             })}
-            <div style={{ borderBottom: `1px solid ${BORDER}` }} />
+            <div style={{ background: laneOf(ri) }} />
           </div>
         ))}
 
         {/* Add a use case */}
-        <div style={{ position: "sticky", left: 0, zIndex: 4, background: BG_SIDEBAR, padding: "10px", borderRight: `1px solid ${BORDER}` }}>
+        <div style={{ position: "sticky", left: 0, zIndex: 4, background: FRAME, padding: "10px", borderRight: `1px solid ${BORDER}` }}>
           <button className="btn btn--sm btn--subtle" onClick={addUseCase} style={{ color: INK_SOFT }}>
             <Plus size={16} /> Use case
           </button>
@@ -484,7 +501,7 @@ export default function FlowMap({ flow, onChange, onToast }) {
                   placeholder="Label…" aria-label="Connector label"
                   style={{
                     fieldSizing: "content", minWidth: "44px", fontFamily: font, fontSize: SIZE.xs, fontStyle: "italic",
-                    color: sel ? INK : INK_SOFT, background: BG_SIDEBAR, border: `1px solid ${sel ? INK_SOFT : BORDER}`,
+                    color: sel ? INK : INK_SOFT, background: BG, border: `1px solid ${sel ? INK_SOFT : BORDER}`,
                     borderRadius: RADIUS.pill, padding: "1px 8px", outline: "none", textAlign: "center",
                   }}
                 />
