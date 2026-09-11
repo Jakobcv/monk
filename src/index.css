@@ -473,13 +473,19 @@ body {
     transform: scale(1);
   }
 }
+/* A gentler decel than --ease-entrance, which is so front-loaded the disc would be visually
+   static for the last third of its duration — a stall right before the cutout arrives. This
+   one is still easing in when the bite begins, so the two phases overlap rather than queue. */
 .moon-mark__disc {
-  animation: moon-disc 460ms var(--ease-entrance) backwards;
+  animation: moon-disc 560ms cubic-bezier(0.25, 0.5, 0.35, 1) backwards;
 }
 
-/* Deliberately NOT --ease-entrance: that curve covers most of its distance in the first
-   fraction of the duration, which skips straight past the full moon. This one accelerates
-   into the travel and settles, so the bite is visibly taken out of the disc. */
+/* One continuous motion, not two moves with a pause between them. The cutout starts travelling
+   while the disc is still arriving — for the first third of its path it sits clear of the disc
+   (its lower edge only reaches the disc at translateY ≈ -52 of -80), so the full moon still
+   reads while it approaches, and the bite begins just as the disc settles. Nothing ever stops.
+   Deliberately NOT --ease-entrance: that curve covers its distance almost immediately, which
+   skips straight past the full moon. */
 @keyframes moon-cut {
   from {
     transform: translate(-6px, -80px) scale(0.78);
@@ -489,7 +495,7 @@ body {
   }
 }
 .moon-mark__cut {
-  animation: moon-cut 680ms cubic-bezier(0.45, 0, 0.25, 1) 700ms backwards;
+  animation: moon-cut 1000ms cubic-bezier(0.33, 0, 0.2, 1) 260ms backwards;
 }
 
 /* A row in the start page's recent list — quiet until you reach for it. */

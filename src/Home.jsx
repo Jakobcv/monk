@@ -26,7 +26,7 @@ const KIND_COLOR = {
 // of the disc it was cut from — its centroid lands near (39, 59) in this 100-unit box — so a
 // geometrically centred box leaves the shape looking like it drifted down-left. Moving the
 // window takes out about two thirds of that, the usual optical correction.
-function MoonMark({ size = 136 }) {
+function MoonMark({ size = 104 }) {
   return (
     <svg className="moon-mark" width={size} height={size} viewBox="-8 5 100 100" role="img" aria-label="Monk">
       <defs>
@@ -78,17 +78,17 @@ export default function Home({ signals = [], insights = [], activities = [], spe
           <h1
             className="enter-up"
             style={{
-              fontFamily: font, fontWeight: WEIGHT.bold, fontSize: "30px",
-              letterSpacing: "-0.015em", margin: "-10px 0 0", lineHeight: LEADING.tight,
+              fontFamily: font, fontWeight: WEIGHT.bold, fontSize: "28px",
+              letterSpacing: "-0.015em", margin: "-6px 0 0", lineHeight: LEADING.tight,
               color: INK,
-              animationDelay: "1250ms", animationFillMode: "backwards",
+              animationDelay: "980ms", animationFillMode: "backwards",
             }}
           >
             monk
           </h1>
         </div>
 
-        <div className="enter-up" style={{ marginTop: "72px", animationDelay: "1400ms", animationFillMode: "backwards" }}>
+        <div className="enter-up" style={{ marginTop: "68px", animationDelay: "1100ms", animationFillMode: "backwards" }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: SPACE.lg, marginBottom: SPACE.base }}>
             <div style={{ ...eyebrow, fontSize: SIZE.xs, letterSpacing: "0.07em" }}>Recently touched</div>
             {onCreateSpec && (
@@ -110,7 +110,7 @@ export default function Home({ signals = [], insights = [], activities = [], spe
                   item={item}
                   href={recentHref ? recentHref(item.kind, item.id) : null}
                   now={now}
-                  delay={1460 + i * 45}
+                  delay={1160 + i * 40}
                 />
               ))}
             </div>
