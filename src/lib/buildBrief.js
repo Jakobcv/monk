@@ -11,6 +11,28 @@
 // a human reader fills gaps with restraint by default; an agent doesn't. Any Open Question
 // still unresolved gets surfaced as a stop condition, not folded into the background: silently
 // picking an answer and moving on is the one thing this brief explicitly rules out.
+import { parseDesign, designSections } from "./designModel.js";
+
+// Each Design section tells the agent how to treat it — goals it can solve its own way, limits it
+// can't cross, cases it must cover, material to consult. This is what lets a spec state intent
+// rather than pixel instructions without the agent guessing where its latitude ends.
+const DESIGN_FRAMING = {
+  artefacts: "Consult these. Each notes its authority: match exactly = reproduce it; follow direction = keep the intent, the execution is yours; background = context only.",
+  useCases: "Ranked. When use cases pull in different directions, the higher tier wins.",
+  principles: "Intent — optimise for these. How to achieve them is your call.",
+  constraints: "Binding. Do not violate any of these; if one can't be met, stop and flag it.",
+  qualities: "Intent, not specification. Visual language (tokens, type, components) comes from Standards.",
+  edgeCases: "Coverage — every item must be handled; treat them as test cases. Where no outcome is given, choose one and note what you chose.",
+  decisions: "Settled. Do not reverse one without flagging it.",
+  notes: "Background.",
+};
+
+function renderDesign(md) {
+  const sections = designSections(parseDesign(md));
+  if (!sections.length) return "_(not written)_";
+  return sections.map((s) => `#### ${s.title}\n_${DESIGN_FRAMING[s.key]}_\n\n${s.body}`).join("\n\n");
+}
+
 const sectionDocs = (sections, id) => (sections || []).find((s) => s.id === id)?.documents || [];
 
 function renderDocs(docs) {
@@ -90,7 +112,7 @@ export function buildSpecBrief(spec, sections, initiative) {
   lines.push(
     "",
     "### Design",
-    (spec.design || "").trim() || "_(not written)_",
+    renderDesign(spec.design),
     "",
     "### Plan",
     (spec.plan || "").trim() || "_(not written)_",

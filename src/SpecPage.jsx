@@ -8,6 +8,7 @@ import ChecklistEditor from "./ChecklistEditor";
 import AutoTextarea from "./ui/AutoTextarea";
 import SwapIcon from "./ui/SwapIcon";
 import MarkdownEditor from "./MarkdownEditor";
+import DesignTab from "./DesignTab";
 import Board from "./Board";
 import Breadcrumbs from "./Breadcrumbs";
 
@@ -248,7 +249,7 @@ export default function SpecPage({
 
           <div hidden={activeTab !== "design"} style={{ height: "100%", overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
             <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-              <MarkdownEditor value={spec.design} onChange={setDesign} placeholder="Design notes in Markdown…" />
+              <DesignTab value={spec.design} onChange={setDesign} />
             </div>
           </div>
 

@@ -58,7 +58,7 @@ every record; set \`updatedAt\` to now when you change something.
 
   <spec-uuid>/               ← a spec (folder marker: spec.md)
     spec.md                     see "Spec" below
-    design.md                   plain markdown, NO frontmatter (the Design tab)
+    design.md                   markdown in fixed ## sections, NO frontmatter (the Design tab)
     plan.md                     plain markdown, NO frontmatter (the Plan tab)
     board/                      the Discovery board
       board.md                  { id, createdAt, updatedAt }, no body
@@ -102,8 +102,25 @@ repo.
 ...
 \`\`\`
 
-\`design.md\` and \`plan.md\` are sibling files, plain markdown, no frontmatter. \`initiativeId\`
-links up to \`initiatives/<id>.md\` (or \`null\`).
+\`design.md\` and \`plan.md\` are sibling files, no frontmatter. \`initiativeId\` links up to
+\`initiatives/<id>.md\` (or \`null\`). \`plan.md\` is plain markdown. \`design.md\` is the feature's
+design intent (not visual language — that belongs in Standards), in any of these \`##\` sections,
+in this order, each omitted when empty — one item per line:
+
+\`\`\`
+## Artefacts              - [Title](url) — <link|prototype|design|diagram|persona>, <match exactly|follow direction|background>
+## Use cases              - **Primary|Secondary|Tertiary:** text
+                              - Flow: step → step → step        (optional, nested)
+## Principles             1. text
+## Constraints            - text
+## Experience qualities   - **Layout|Motion|Responsive|Copy:** text
+## Edge cases             - when → then                     (then = _agent decides_ if left open)
+## Decisions              - **Decision**
+                              - Because: …   - Rejected: …     (each optional, nested)
+## Notes                  freeform markdown
+\`\`\`
+
+Text before the first heading, or under any other \`##\` heading, is kept as Notes.
 
 ### Board cards — \`<spec-uuid>/board/<kind>/<id>.md\`
 

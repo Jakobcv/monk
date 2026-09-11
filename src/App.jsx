@@ -23,7 +23,8 @@ import SpecsPage from "./SpecsPage";
 import SpecPage from "./SpecPage";
 import InitiativePage from "./InitiativePage";
 import ActivityPage from "./ActivityPage";
-import DesignTabMock from "./DesignTabMock";
+import DesignTab from "./DesignTab";
+import { SAMPLE_DESIGN_MD } from "./lib/sampleDesign";
 
 const DOC_PREFIX = "#/doc/";
 const RESEARCH_ROUTE = "#/research";
@@ -643,7 +644,9 @@ export default function App() {
     );
   }
 
-  // Design-tab exploration — framed in a stand-in spec header so it reads in context.
+  // The real Design tab on sample content, framed in a stand-in spec header so it reads in
+  // context — the sandboxed preview can't open a workspace folder. Every edit's serialized
+  // design.md lands on window.__designMd for inspection.
   if (import.meta.env.DEV && route.name === "designPreview") {
     return (
       <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
@@ -655,7 +658,11 @@ export default function App() {
             ))}
           </div>
         </div>
-        <div style={{ flex: 1, minHeight: 0 }}><DesignTabMock /></div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
+          <div style={{ maxWidth: "760px", margin: "0 auto" }}>
+            <DesignTab value={SAMPLE_DESIGN_MD} onChange={(md) => { window.__designMd = md; }} />
+          </div>
+        </div>
       </div>
     );
   }
