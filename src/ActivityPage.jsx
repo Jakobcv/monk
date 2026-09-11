@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
-import { INK_FAINT, BORDER, SIZE, SPACE, METHOD_OPTIONS } from "./lib/theme";
-import { eyebrow, meta, pageTitleInput } from "./ui/text";
+import { INK_FAINT, BORDER, SPACE, METHOD_OPTIONS } from "./lib/theme";
+import { eyebrow, pageTitleInput } from "./ui/text";
 import Breadcrumbs from "./Breadcrumbs";
 import SignalCard from "./SignalCard";
 import Button from "./ui/Button";
 import Field from "./ui/Field";
 import EmptyState from "./ui/EmptyState";
 import Modal from "./ui/Modal";
+import DialogActions from "./ui/DialogActions";
 import { blankSignal, signalsForActivity } from "./lib/signalModel";
 
 // `activity` only seeds local state on mount — the parent remounts this page (via
@@ -130,13 +131,7 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
               activityLink={false}
               onChange={(patch) => setNewSignal((s) => ({ ...s, ...patch }))}
             />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.base, marginTop: SPACE.lg }}>
-              <span style={{ ...meta, fontSize: SIZE.xs }}>⌘↵ to save · Esc to cancel</span>
-              <div style={{ display: "flex", gap: SPACE.base }}>
-                <Button onClick={closeSignalForm} style={{ padding: "6px 14px" }}>Cancel</Button>
-                <Button variant="primary" onClick={saveSignalForm} style={{ padding: "6px 14px" }}>Save</Button>
-              </div>
-            </div>
+            <DialogActions onCancel={closeSignalForm} onSave={saveSignalForm} />
           </div>
         </Modal>
       )}

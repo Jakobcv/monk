@@ -11,6 +11,7 @@ import Card from "./ui/Card";
 import Field from "./ui/Field";
 import EmptyState from "./ui/EmptyState";
 import Modal from "./ui/Modal";
+import DialogActions from "./ui/DialogActions";
 
 // per-type: which array on a board holds these cards, and which of the card's fields to
 // search against (Action has three text fields, everything else has just `text`). Signal and
@@ -575,13 +576,7 @@ export default function ResearchRepositoryPage({
                     activities={activities}
                     onChange={(patch) => setNewSignal((s) => ({ ...s, ...patch }))}
                   />
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.base, marginTop: SPACE.lg }}>
-                    <span style={{ ...meta, fontSize: SIZE.xs }}>⌘↵ to save · Esc to cancel</span>
-                    <div style={{ display: "flex", gap: SPACE.base }}>
-                      <Button onClick={closeSignalForm} style={{ padding: "6px 14px" }}>Cancel</Button>
-                      <Button variant="primary" onClick={saveSignalForm} style={{ padding: "6px 14px" }}>Save</Button>
-                    </div>
-                  </div>
+                  <DialogActions onCancel={closeSignalForm} onSave={saveSignalForm} />
                 </div>
               </Modal>
             )}
@@ -619,13 +614,7 @@ export default function ResearchRepositoryPage({
                     signals={signals}
                     onChange={(patch) => setNewInsight((i) => ({ ...i, ...patch }))}
                   />
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.base, marginTop: SPACE.lg }}>
-                    <span style={{ ...meta, fontSize: SIZE.xs }}>⌘↵ to save · Esc to cancel</span>
-                    <div style={{ display: "flex", gap: SPACE.base }}>
-                      <Button onClick={closeInsightForm} style={{ padding: "6px 14px" }}>Cancel</Button>
-                      <Button variant="primary" onClick={saveInsightForm} style={{ padding: "6px 14px" }}>Save</Button>
-                    </div>
-                  </div>
+                  <DialogActions onCancel={closeInsightForm} onSave={saveInsightForm} />
                 </div>
               </Modal>
             )}
