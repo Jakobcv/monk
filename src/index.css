@@ -438,7 +438,6 @@ body {
 .el-meta-input::placeholder {
   color: var(--ink-placeholder);
 }
-
 /* "+ Link" / "+ Author" etc. — hidden until the card is hovered (.reveal/.reveal-group, same
    pair as the corner delete), and a touch darker on their own hover so they read as clickable. */
 .signal-card .reveal:hover {

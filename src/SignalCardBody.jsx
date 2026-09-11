@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, FlaskConical } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, FlaskConical, Calendar } from "lucide-react";
 import { SIZE, SPACE } from "./lib/theme";
 import { editArea, meta } from "./ui/text";
 import { metaInputStyle } from "./ui/cardStyles";
@@ -40,7 +40,6 @@ export default function SignalCardBody({ signal, activities, onChange, autoFocus
 
   const activityId = signal.source?.type === "activity" ? signal.source.activityId : null;
   const activity = activityId ? (activities || []).find((a) => a.id === activityId) : null;
-  const dateValue = signal.date ? new Date(signal.date).toISOString().slice(0, 10) : "";
 
   const showActivityIcon = activity && activityLink;
   const showRow = showActivityIcon || !activityId || after;
@@ -59,11 +58,7 @@ export default function SignalCardBody({ signal, activities, onChange, autoFocus
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: SPACE.lg, rowGap: SPACE.xs, marginTop: SPACE.base }}>
           {/* Date leads, activity follows. */}
           {!activityId && (
-            <input
-              className="el-meta-input" type="date" value={dateValue}
-              onChange={(e) => onChange({ date: e.target.value ? new Date(e.target.value).getTime() : Date.now() })}
-              style={{ ...metaInputStyle, ...compactField }}
-            />
+            <DateField value={signal.date} onChange={(date) => onChange({ date })} />
           )}
 
           {showActivityIcon && (
@@ -114,6 +109,44 @@ export default function SignalCardBody({ signal, activities, onChange, autoFocus
 // that further down. metaInputStyle's own INK_SOFT (~4.5:1) is what actually stays legible on
 // a tinted surface, so only the size comes from `meta` here.
 const compactField = { width: "auto", margin: 0, padding: "1px 4px", fontSize: meta.fontSize };
+
+// The date as a small button — "11 Sep 2026" with the calendar icon right beside it — that opens
+// the browser's own picker. Not a styled <input type="date">: Chrome gives that a fixed
+// intrinsic width it won't give up (field-sizing doesn't apply), and its internal layout can't
+// be reliably restyled, so the native icon ended up stranded far from a short date. The real
+// input stays underneath, invisible, purely to host the picker (and anchor where it opens).
+function DateField({ value, onChange }) {
+  const inputRef = useRef(null);
+  const label = value
+    ? new Date(value).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+    : "Add date";
+  const openPicker = () => {
+    try { inputRef.current.showPicker(); } catch { inputRef.current.focus(); }
+  };
+  return (
+    <span style={{ position: "relative", display: "inline-flex" }}>
+      <button
+        type="button"
+        className="el-meta-input"
+        onClick={openPicker}
+        aria-label={value ? `Date: ${label}. Change date` : "Add date"}
+        style={{ ...metaInputStyle, ...compactField, display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
+      >
+        {label}
+        <Calendar size={12} aria-hidden="true" />
+      </button>
+      <input
+        ref={inputRef}
+        type="date"
+        tabIndex={-1}
+        aria-hidden="true"
+        value={value ? new Date(value).toISOString().slice(0, 10) : ""}
+        onChange={(e) => onChange(e.target.value ? new Date(e.target.value).getTime() : Date.now())}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, pointerEvents: "none", border: 0, padding: 0, margin: 0 }}
+      />
+    </span>
+  );
+}
 
 // Hidden until the card is hovered — there's nothing to add yet, so nothing to show until
 // you're actually looking. `.reveal` / `.reveal-group` are the same pair the card's own
