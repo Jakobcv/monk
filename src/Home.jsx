@@ -23,19 +23,21 @@ const KIND_COLOR = {
 // on any tinted surface. A mask composites properly on anything.
 //
 // Geometry: disc r=34 at (50,50), cut r=29 at (62.2, 39.5). The horns are shorter than the
-// thinner crescent this replaced, which is most of why it survives being rendered at 16–24px.
+// thinner crescent this replaced, which is what makes it survive being rendered at 16–24px.
 //
-// The filter is the rest of it: blur, then drive alpha hard through a threshold. Sharp cusps
-// come back rounded, because a blurred point never reaches the threshold but a blurred edge
-// does. stdDeviation 1.6 rounds the tips while leaving the arcs crisp — at 2.6 the horns start
-// reading as clipped stubs.
+// There was a blur-and-threshold filter here to round the cusps off. It worked, and it also
+// destroyed the antialiasing: the threshold drove alpha 0→1 across a band far narrower than a
+// pixel, so every edge pixel snapped fully on or fully off and the arcs came out as a visible
+// staircase. Softening the threshold restores the antialiasing but then rounds nothing, since
+// the rounding *is* the hard threshold. Rounding the cusps properly needs real geometry — arcs
+// with fillets — which the animation can't drive. Short horns and clean edges it is.
 //
 // The viewBox is offset rather than starting at 0,0. A crescent's ink sits low and to the left
 // of the disc it was cut from, so a geometrically centred box leaves the shape looking like it
 // drifted down-left. Moving the window takes out about two thirds of that.
 function MoonMark({ size = 104 }) {
   const uid = useId().replace(/:/g, "");
-  const grad = `moon-grad-${uid}`, mask = `moon-mask-${uid}`, round = `moon-round-${uid}`;
+  const grad = `moon-grad-${uid}`, mask = `moon-mask-${uid}`;
   return (
     <svg className="moon-mark" width={size} height={size} viewBox="-8 5 100 100" role="img" aria-label="Monk">
       <defs>
@@ -47,21 +49,11 @@ function MoonMark({ size = 104 }) {
           <circle cx="50" cy="50" r="34" fill="#fff" />
           <circle className="moon-mark__cut" cx="62.2" cy="39.5" r="29" fill="#000" />
         </mask>
-        <filter id={round} x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b" />
-          <feColorMatrix
-            in="b"
-            type="matrix"
-            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 28 -13"
-          />
-        </filter>
       </defs>
       {/* The entrance rides on a wrapping group so it transforms the already-masked result —
           scaling the masked circle itself would slide it against a mask that stays put. */}
       <g className="moon-mark__disc">
-        <g filter={`url(#${round})`}>
-          <circle cx="50" cy="50" r="34" fill={`url(#${grad})`} mask={`url(#${mask})`} />
-        </g>
+        <circle cx="50" cy="50" r="34" fill={`url(#${grad})`} mask={`url(#${mask})`} />
       </g>
     </svg>
   );
