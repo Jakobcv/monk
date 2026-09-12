@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Layers, FileText, Plus, Trash2, Library, ShieldCheck, ChartNoAxesColumn, Palette } from "lucide-react";
+import { BookOpen, Layers, FileText, Plus, Trash2, Library, ShieldCheck, Palette } from "lucide-react";
 import { font, INK_FAINT, BORDER, BG_APP, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
 import { FIXED_SECTIONS, isFixedSection } from "./lib/documentModel";
 import Button from "./ui/Button";
@@ -39,7 +39,7 @@ const sectionLabelStyle = {
 // stays free of React so storage and the tests can import it.
 const WORKSPACE_DOC_ICONS = { "design-system": Palette };
 
-export default function Sidebar({ sections, workspaceDocs = [], activeView, dashboardHref, researchHref, specsHref, docHref, onCreateSection, onRenameSection, onDeleteSection, onCreateDocument, onDeleteDocument }) {
+export default function Sidebar({ sections, workspaceDocs = [], activeView, researchHref, specsHref, docHref, onCreateSection, onRenameSection, onDeleteSection, onCreateDocument, onDeleteDocument }) {
   const [editingSectionId, setEditingSectionId] = useState(null);
   const [draftName, setDraftName] = useState("");
 
@@ -78,14 +78,6 @@ export default function Sidebar({ sections, workspaceDocs = [], activeView, dash
           style={navItemStyle}
         >
           <Layers size={16} /> Specs
-        </a>
-        <a
-          className="nav-item"
-          href={dashboardHref}
-          aria-current={activeView.type === "dashboard" ? "page" : undefined}
-          style={navItemStyle}
-        >
-          <ChartNoAxesColumn size={16} /> Dashboard
         </a>
         {/* Always listed, so a workspace without one can see it's missing. The link opens its page
             either way; creating the file is a button there, never a side effect of a click here. */}

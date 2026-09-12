@@ -24,7 +24,7 @@ export const INK_FAINT = "#A9A9A5";    // meta: dates, counts, secondary annotat
 export const INK_PLACEHOLDER = "#B9B8B3"; // hints that vanish the moment you type
 export const BORDER = "#E9E9E7";    // hairline
 export const BORDER_STRONG = "#DDDBD6";
-// The ground. One tone, under every page: lists, boards, the dashboard, a document, and the
+// The ground. One tone, under every page: lists, boards, the start page, a document, and the
 // desk a sheet of paper sits on. White surfaces need a ground that isn't white, which is the
 // whole reason this isn't #FFF; it doubles as the colour of the chrome (both sidebars),
 // deliberately, so the app reads as one recessed field with surfaces laid on it.

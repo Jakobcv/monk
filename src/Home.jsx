@@ -4,7 +4,7 @@ import {
   font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, SIZE, SPACE, RADIUS, BRAND,
 } from "./lib/theme";
 import { Eyebrow, Meta, Wordmark } from "./ui/text";
-import { recentlyTouched, relativeTime } from "./lib/dashboardMetrics";
+import { recentlyTouched, relativeTime } from "./lib/recentActivity";
 import Page from "./ui/Page";
 
 const KIND_COLOR = {
@@ -16,8 +16,8 @@ const KIND_COLOR = {
 };
 
 // A gradient disc with a second disc subtracted out of it. At rest the subtraction leaves a
-// crescent; on load the cut circle drops in from above (see .moon-mark in index.css) so the
-// mark reads as a full moon first and then waxes.
+// crescent; on load the cut circle sweeps in along the line it rests on (see .moon-mark in
+// index.css), so the mark reads as a full moon first and then narrows to a crescent.
 //
 // The subtraction is a <mask>, not a circle painted in the page colour. That was the earlier
 // approach and it quietly required the mark to sit on --bg — it would have shown a white bite
@@ -35,12 +35,14 @@ const KIND_COLOR = {
 //
 // The viewBox is offset rather than starting at 0,0. A crescent's ink sits low and to the left
 // of the disc it was cut from, so a geometrically centred box leaves the shape looking like it
-// drifted down-left. Moving the window takes out about two thirds of that.
-function MoonMark({ size = 104 }) {
+// drifted down-left. The window is moved until the midpoint of the crescent's bounding-box
+// centre and its centre of mass sits on the page axis: centring the box alone overcorrects (the
+// ink looks pushed right), centring the mass alone undercorrects.
+function MoonMark({ size = 96 }) {
   const uid = useId().replace(/:/g, "");
   const grad = `moon-grad-${uid}`, mask = `moon-mask-${uid}`;
   return (
-    <svg className="moon-mark" width={size} height={size} viewBox="-8 5 100 100" role="img" aria-label="Monk">
+    <svg className="moon-mark" width={size} height={size} viewBox="-6 5 100 100" role="img" aria-label="Monk">
       <defs>
         <linearGradient id={grad} x1="15%" y1="0%" x2="85%" y2="100%">
           <stop offset="0%" stopColor={BRAND.from} />
@@ -80,8 +82,8 @@ function RecentRow({ item, href, now, delay }) {
     : <div className="enter-up recent-row" style={style}>{inner}</div>;
 }
 
-// The start page. Not a dashboard — the numbers live on their own page now (DashboardPage);
-// this is the mark, and the short list of what you last touched so you can get back into it.
+// The start page: the mark, and the short list of what you last touched so you can get back
+// into it.
 export default function Home({ signals = [], insights = [], activities = [], specs = [], initiatives = [], onCreateSpec, recentHref, folderName, onChangeFolder }) {
   const [now] = useState(() => Date.now());
   const recent = recentlyTouched({ signals, insights, activities, specs, initiatives }, 8);
@@ -92,19 +94,37 @@ export default function Home({ signals = [], insights = [], activities = [], spe
       <div style={{ maxWidth: "560px", margin: "0 auto" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <MoonMark />
-          {/* Shared with the header — see Wordmark in ui/text.jsx. The negative top margin
-              closes the gap the crescent leaves below its own ink inside the SVG box. */}
+          {/* Shared with the header — see Wordmark in ui/text.jsx. Size and the negative top
+              margin set the lockup: the negative margin closes the space the crescent leaves
+              below its ink inside the SVG box, down to one x-height between the crescent and
+              the word, and at this size the crescent carries about twice the word's visual mass.
+              It was 1.6 x-heights and 3.4×, which read as a caption under a moon rather than a
+              mark and a name. The word starts entering as the crescent settles. */}
           <Wordmark
             as="h1"
-            size="28px"
+            size="32px"
             className="enter-up"
             style={{
-              marginTop: "-6px", marginBottom: 0, marginLeft: 0,
-              animationDelay: "980ms", animationFillMode: "backwards",
+              marginTop: "-12px", marginBottom: 0, marginLeft: 0,
+              animationDelay: "760ms", animationFillMode: "backwards",
             }}
           >
             monk
           </Wordmark>
+
+          {/* The one line on what this is. A step up from UI text but far enough below the
+              wordmark that the name reads first, and soft ink so it sits back beside the mark.
+              It follows the word in by the same 80–100ms step the rest of the page staggers on. */}
+          <p
+            className="enter-up"
+            style={{
+              margin: "10px 0 0", fontFamily: font, fontSize: SIZE.md, lineHeight: 1.4,
+              color: INK_SOFT, textAlign: "center", textWrap: "balance",
+              animationDelay: "840ms", animationFillMode: "backwards",
+            }}
+          >
+            From signal to spec, for teams and agents
+          </p>
 
           {/* Which folder you're actually in, and the way out of it. Every other route carries
               this as the first breadcrumb; the start page has no breadcrumb bar, so it sat
@@ -121,10 +141,10 @@ export default function Home({ signals = [], insights = [], activities = [], spe
               title="Switch to a different research folder"
               style={{
                 display: "inline-flex", alignItems: "center", gap: SPACE.sm,
-                marginTop: SPACE.lg, padding: "5px 11px", borderRadius: RADIUS.pill,
+                marginTop: SPACE.xl, padding: "5px 11px", borderRadius: RADIUS.pill,
                 border: "none", background: "none", cursor: "pointer",
                 fontFamily: font, fontSize: SIZE.sm,
-                animationDelay: "1080ms", animationFillMode: "backwards",
+                animationDelay: "920ms", animationFillMode: "backwards",
               }}
             >
               <FolderOpen size={12} style={{ flexShrink: 0 }} />
@@ -133,7 +153,7 @@ export default function Home({ signals = [], insights = [], activities = [], spe
           )}
         </div>
 
-        <div className="enter-up" style={{ marginTop: "68px", animationDelay: "1180ms", animationFillMode: "backwards" }}>
+        <div className="enter-up" style={{ marginTop: "68px", animationDelay: "1020ms", animationFillMode: "backwards" }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: SPACE.lg, marginBottom: SPACE.base }}>
             <Eyebrow section>Recently touched</Eyebrow>
             {onCreateSpec && (
@@ -155,7 +175,7 @@ export default function Home({ signals = [], insights = [], activities = [], spe
                   item={item}
                   href={recentHref ? recentHref(item.kind, item.id) : null}
                   now={now}
-                  delay={1280 + i * 40}
+                  delay={1120 + i * 40}
                 />
               ))}
             </div>

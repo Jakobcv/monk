@@ -1,4 +1,4 @@
-import { designSystemTemplate, DESIGN_SECTIONS } from "./designSystem.js";
+import { designSystemTemplate } from "./designSystem.js";
 
 // Files at the root of a workspace that exist for agents to read, in a format defined somewhere
 // else — which the app offers to create from a skeleton rather than leaving you to find the format
@@ -11,7 +11,8 @@ import { designSystemTemplate, DESIGN_SECTIONS } from "./designSystem.js";
 //   label      what the sidebar and its page call it
 //   summary    one line on what it is for
 //   formatUrl  where the format is defined
-//   outline    the `##` sections the format expects, in order — shown beside the editor
+//   editor     a structured editor for this format, if there is one ("design-system"); without
+//              one the page edits the raw markdown
 //   template   the skeleton written on create; receives { workspaceName }
 export const WORKSPACE_DOCS = [
   {
@@ -20,7 +21,7 @@ export const WORKSPACE_DOCS = [
     label: "Design system",
     summary: "The visual language for everything built here: design tokens, and the reasoning behind them. Every spec's build brief carries it as a contract.",
     formatUrl: "https://github.com/google-labs-code/design.md",
-    outline: DESIGN_SECTIONS,
+    editor: "design-system",
     template: ({ workspaceName }) => designSystemTemplate(workspaceName),
   },
 ];

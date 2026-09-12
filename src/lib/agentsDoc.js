@@ -27,6 +27,8 @@ format is documented in \`MONK.md\` — read that before writing.
   <https://github.com/google-labs-code/design.md>. Monk only creates it when asked, as an unfilled
   skeleton. If it's there, every build brief carries it as a contract (minus comments and empty
   sections) — so that is where tokens, type and component rules belong, not in an individual spec.
+  People edit it in a structured editor, so keep its front matter to single-line \`key: value\`
+  pairs (see \`MONK.md\`), and don't rely on YAML comments — an edit in the app drops them.
 
 Anything else in this folder isn't Monk's, and Monk never touches it.
 
@@ -43,7 +45,8 @@ The app may be open while you work.
 
 ### Editing rules
 
-- Frontmatter is a single line of JSON between \`---\` fences. Not YAML.
+- Frontmatter is a single line of JSON between \`---\` fences. Not YAML. The one exception is
+  \`DESIGN.md\`, whose format is YAML front matter of its own.
 - Leave \`id\` exactly as it is.
 - In \`spec.md\` and \`solution.md\`, a \`## Heading\` the schema doesn't recognise is kept rather
   than dropped — it lands in Notes. That's the escape hatch when you need to record something

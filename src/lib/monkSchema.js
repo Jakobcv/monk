@@ -134,11 +134,21 @@ sections in the order Overview, Colors, Typography, Layout, Elevation & Depth, S
 Components, Do's and Don'ts, any of which may be omitted.
 
 Monk creates this file only when asked (the Design system entry in its sidebar), and then only
-as a skeleton: every section, guidance in HTML comments, token examples commented out, no values
-chosen — a visual language is decided, not generated. However it gets written, every spec's
-build brief carries it as a contract, above the spec itself, because it is true of everything in
-the product rather than of one feature. The brief leaves out comments and any section with
-nothing written under it, so an unfilled skeleton contributes nothing.
+as a skeleton — \`version\`, \`name\` and every section heading, no values chosen — because a
+visual language is decided, not generated. Its editor writes tokens and sections back in this
+same format, keeping front-matter keys and sections it doesn't model; it does not keep YAML
+comments.
+
+To keep the file editable there, write the front matter as plain \`key: value\` lines nested at
+most three deep (group → token → property), with single-line values — no \`|\` or \`>\` block
+values, no lists or anchors inside \`colors\`, \`typography\`, \`rounded\`, \`spacing\` or
+\`components\`, no tabs. A file outside that still works everywhere else; Monk just opens it as
+raw Markdown and says why.
+
+However it gets written, every spec's build brief carries it as a contract, above the spec
+itself, because it is true of everything in the product rather than of one feature. The brief
+leaves out comments and any section with nothing written under it, so an unfilled skeleton
+contributes nothing.
 
 ### Board cards — \`<spec-uuid>/board/<kind>/<id>.md\`
 

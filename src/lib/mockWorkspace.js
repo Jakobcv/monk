@@ -1,6 +1,7 @@
-// A deterministic, plausible workspace for building and testing the Home dashboard without a
-// connected folder. Shapes match the real models (signalModel/insightModel/specModel/etc.);
-// only the fields the dashboard reads are filled in with any care.
+// A deterministic, plausible workspace for the DEV-only preview routes (#/home-preview,
+// #/board-preview, #/research-preview), which can't open a connected folder. Shapes match the
+// real models (signalModel/insightModel/specModel/etc.); only the fields those pages read are
+// filled in with any care.
 
 function mulberry32(seed) {
   let a = seed;

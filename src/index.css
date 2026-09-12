@@ -595,41 +595,12 @@ body {
   animation: enter-up var(--motion-base) var(--ease-entrance);
 }
 
-/* Dashboard bars grow up from the baseline on mount. transform-origin bottom so the
-   scale doesn't push the bar off its axis. */
-@keyframes bar-rise {
-  from {
-    transform: scaleY(0);
-  }
-  to {
-    transform: scaleY(1);
-  }
-}
-.bar-rise {
-  transform-origin: bottom;
-  animation: bar-rise var(--motion-slow) var(--ease-entrance) backwards;
-}
-
-/* A horizontal bar / track segment wiped in from the left — clip-path keeps the corner
-   radius crisp and touches no layout. */
-@keyframes reveal-x {
-  from {
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-  }
-}
-.reveal-x {
-  animation: reveal-x var(--motion-slow) var(--ease-entrance) backwards;
-}
-
 /* ---------------------------------------------------------------------------
-   The start page's moon. The mark is two circles: a gradient disc, and a disc
-   painted in the page background that sits on top of it. The cutout starts
-   clear of the disc (so you see a full moon), then falls into place and the
-   crescent appears. Reduced motion collapses both to their resting state via
-   the global rule above.
+   The start page's moon. The mark is a gradient disc with a second circle
+   masked out of it (see MoonMark in Home.jsx). The cut starts clear of the
+   disc, so you see a full moon, then sweeps into place and leaves the
+   crescent. Reduced motion collapses both to their resting state via the
+   global rule above.
    --------------------------------------------------------------------------- */
 .moon-mark {
   overflow: visible;
@@ -639,42 +610,42 @@ body {
   transform-box: fill-box;
   transform-origin: center;
 }
+
+/* The disc arrives solid. It barely scales and takes a strong ease-out, so it is fully there
+   within a quarter of a second — the earlier entrance grew it from 0.72 over a slow curve, and
+   for its first half it read as a pale grey placeholder rather than as the mark. */
 @keyframes moon-disc {
   from {
     opacity: 0;
-    transform: scale(0.72);
+    transform: scale(0.94);
   }
   to {
     opacity: 1;
     transform: scale(1);
   }
 }
-/* A gentler decel than --ease-entrance, which is so front-loaded the disc would be visually
-   static for the last third of its duration — a stall right before the cutout arrives. This
-   one is still easing in when the bite begins, so the two phases overlap rather than queue. */
 .moon-mark__disc {
-  animation: moon-disc 560ms cubic-bezier(0.25, 0.5, 0.35, 1) backwards;
+  animation: moon-disc 420ms cubic-bezier(0.2, 0, 0, 1) backwards;
 }
 
-/* One continuous motion, not two moves with a pause between them. The cutout starts travelling
-   while the disc is still arriving — for roughly the first half of its path it sits clear of the
-   disc, so the full moon still reads while it approaches, and the bite begins just as the disc
-   settles. Nothing ever stops.
-   It glides in from the upper right at ~45°, the same side it comes to rest on (its centre sits
-   up and to the right of the disc's), so the path reads as the shadow sliding into place rather
-   than dropping onto it.
-   Deliberately NOT --ease-entrance: that curve covers its distance almost immediately, which
-   skips straight past the full moon. */
+/* The shadow travels along the exact line it rests on — its resting offset from the disc is
+   (12.2, -10.5) — and never scales, so the lit edge thins the way a phase does. It used to come in
+   at 45° while growing from 0.78, which read as a second disc sliding over the first and bent the
+   edge's curvature as it went.
+   It starts ~94 units out along that line: far enough that it only reaches the disc about halfway
+   through, so the full moon holds for a beat once the disc is solid. The in-out curve is what
+   makes that hold — a front-loaded ease-out would cover the distance at once and skip the full
+   moon entirely — and its long deceleration lets the crescent settle rather than stop. */
 @keyframes moon-cut {
   from {
-    transform: translate(56px, -58px) scale(0.78);
+    transform: translate(71px, -61px);
   }
   to {
-    transform: translate(0, 0) scale(1);
+    transform: translate(0, 0);
   }
 }
 .moon-mark__cut {
-  animation: moon-cut 1000ms cubic-bezier(0.33, 0, 0.2, 1) 260ms backwards;
+  animation: moon-cut 820ms cubic-bezier(0.5, 0, 0.15, 1) 140ms backwards;
 }
 
 /* A row in the start page's recent list — quiet until you reach for it. */
@@ -683,21 +654,6 @@ body {
 }
 a.recent-row:hover {
   background: var(--bg-hover);
-}
-
-/* Donut / ring settles in — keeps the -90deg base rotation the SVG is drawn at. */
-@keyframes donut-in {
-  from {
-    opacity: 0;
-    transform: rotate(-90deg) scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: rotate(-90deg) scale(1);
-  }
-}
-.donut-in {
-  animation: donut-in var(--motion-slow) var(--ease-entrance) backwards;
 }
 
 /* ---------------------------------------------------------------------------
@@ -820,8 +776,8 @@ a.recent-row:hover {
   color: var(--ink-soft);
 }
 
-/* A step up, and opened further: the label over a block on the dashboard or the
-   start page, where it heads a region rather than naming a single field. */
+/* A step up, and opened further: the label over a block on the start page,
+   where it heads a region rather than naming a single field. */
 .eyebrow--section {
   font-size: var(--size-xs);
   letter-spacing: 0.07em;
@@ -857,16 +813,19 @@ a.recent-row:hover {
   padding: 0;
 }
 
-/* The brand wordmark. Lowercase "monk", medium weight and opened up — it serves
-   the crescent rather than competing with it. The negative margin cancels the
-   trailing letterspace, which otherwise pads the box on the right and leaves
-   the glyphs sitting a hair left of wherever you centred it. Size is the one
-   thing that varies (the header's and the start page's), so it stays a prop. */
+/* The brand wordmark. Lowercase "monk", semibold and lightly opened up. It was
+   medium at 0.07em, which left the word a caption under the crescent; the extra
+   weight lets it hold its own beside the mark, and the tracking comes in a
+   little because heavier strokes need less air to stay open. The negative margin
+   cancels the trailing letterspace, which otherwise pads the box on the right
+   and leaves the glyphs sitting a hair left of wherever you centred it. Size is
+   the one thing that varies (the header's and the start page's), so it stays a
+   prop. */
 .wordmark {
   font-family: var(--font);
-  font-weight: 500;
-  letter-spacing: 0.07em;
-  margin-right: -0.07em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-right: -0.04em;
   line-height: 1;
   color: var(--ink);
 }
@@ -1170,6 +1129,194 @@ a.recent-row:hover {
   box-shadow:
     0 0 0 1px var(--border-strong),
     0 0 0 4px rgba(35, 131, 226, 0.12);
+}
+
+/* ---------------------------------------------------------------------------
+   Design system editor (DesignSystemEditor.jsx). Tokens are short values set
+   in rows, so their fields run a step under the prose — 14px, mono for values
+   — with .prose-field's rest / hover / focus treatment. A value that fails its
+   check gets a red hairline under it: flagged, never blocked.
+   --------------------------------------------------------------------------- */
+.token-field {
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  border: none;
+  outline: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  margin: 0 -6px;
+  padding: 3px 6px;
+  width: calc(100% + 12px);
+  min-width: 0;
+  box-sizing: border-box;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease);
+}
+.token-field--mono,
+.paper-sheet .ds-raw {
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+.token-field::placeholder {
+  color: var(--ink-faint);
+}
+.token-field:hover:not(:focus) {
+  background: var(--bg-hover);
+}
+.token-field:focus {
+  background: var(--bg);
+  box-shadow:
+    0 0 0 1px var(--border-strong),
+    0 0 0 4px rgba(35, 131, 226, 0.12);
+}
+.token-field[aria-invalid="true"] {
+  box-shadow: inset 0 -1.5px 0 #d44c47;
+}
+.token-field[aria-invalid="true"]:focus {
+  box-shadow:
+    0 0 0 1px #d44c47,
+    0 0 0 4px rgba(212, 76, 71, 0.12);
+}
+/* Native select: explicit colours, or Windows paints its own. */
+select.token-field {
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--ink);
+}
+
+/* The design system's name, set as the sheet's title. After .paper-sheet
+   .prose-field so it wins at equal specificity. */
+.paper-sheet .ds-name {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+/* Token previews, each in the row's marker gutter and set on the first line of
+   the row's 14px/1.5 field (whose text centre sits 13.5px down). */
+.ds-swatch {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 5px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+/* No valid colour yet: an empty chip with a hairline slash. */
+.ds-swatch[data-empty] {
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 0.75px),
+    var(--border-strong) calc(50% - 0.75px) calc(50% + 0.75px),
+    transparent calc(50% + 0.75px)
+  );
+}
+.ds-swatch input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.ds-swatch:focus-within {
+  outline: 2px solid var(--accent-insight);
+  outline-offset: 2px;
+}
+.ds-aa {
+  display: block;
+  padding-top: 6px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.ds-length {
+  display: block;
+  height: 6px;
+  margin-top: 10px;
+  border-radius: 1px;
+  background: var(--ink-soft);
+}
+/* One corner of a box, drawn at the token's radius. */
+.ds-radius {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin-top: 6px;
+  box-sizing: border-box;
+  border-top: 1.5px solid var(--ink-soft);
+  border-right: 1.5px solid var(--ink-soft);
+}
+/* A list bullet for 16px paper prose; the component rows move it up to 14px. */
+.ds-bullet {
+  display: block;
+  width: 4px;
+  height: 4px;
+  margin-top: 15px;
+  border-radius: 50%;
+  background: var(--ink-soft);
+}
+.ds-specimen {
+  margin-top: 8px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ds-note {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* Editor / Markdown switch in a workspace document's header. */
+.view-switch {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.view-switch button {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease);
+}
+.view-switch button:hover {
+  color: var(--ink);
+}
+.view-switch button[aria-pressed="true"] {
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.view-switch button:focus-visible {
+  outline: 2px solid var(--accent-insight);
+  outline-offset: 1px;
 }
 
 /* ---------------------------------------------------------------------------

@@ -16,7 +16,6 @@ import Toast from "./ui/Toast";
 import Notice from "./ui/Notice";
 import Header from "./Header";
 import Home from "./Home";
-import DashboardPage from "./DashboardPage";
 import ResearchRepositoryPage from "./ResearchRepositoryPage";
 import Sidebar from "./Sidebar";
 import Breadcrumbs from "./Breadcrumbs";
@@ -33,7 +32,6 @@ import { SAMPLE_DESIGN_MD } from "./lib/sampleDesign";
 
 const DOC_PREFIX = "#/doc/";
 const RESEARCH_ROUTE = "#/research";
-const DASHBOARD_ROUTE = "#/dashboard";
 const SPECS_ROUTE = "#/specs";
 const SPEC_PREFIX = "#/spec/";
 const INITIATIVE_PREFIX = "#/initiative/";
@@ -44,7 +42,6 @@ const WORKSPACE_DOC_PREFIX = "#/workspace/";
 // `<a href>` (so Cmd/Ctrl/middle-click open a new tab); `goTo*` just assigns the same string
 // to window.location.hash for the after-an-action programmatic case.
 const hrefStart = () => "#";
-const hrefDashboard = () => DASHBOARD_ROUTE;
 const hrefDocument = (sectionId, docId) => DOC_PREFIX + encodeURIComponent(sectionId) + "/" + encodeURIComponent(docId);
 const hrefSpecs = () => SPECS_ROUTE;
 const hrefSpec = (id) => SPEC_PREFIX + encodeURIComponent(id);
@@ -102,9 +99,6 @@ function useRoute() {
     const params = new URLSearchParams(hash.slice(RESEARCH_ROUTE.length).replace(/^\?/, ""));
     return { name: "research", q: params.get("q") || "", kind: params.get("kind") || "all" };
   }
-  if (hash === DASHBOARD_ROUTE) {
-    return { name: "dashboard" };
-  }
   if (hash === SPECS_ROUTE) {
     return { name: "specs" };
   }
@@ -130,9 +124,6 @@ function useRoute() {
   }
   if (hash === "#/research-preview") {
     return { name: "researchPreview" };
-  }
-  if (hash === "#/dashboard-preview") {
-    return { name: "dashboardPreview" };
   }
   if (hash === "#/home-preview") {
     return { name: "homePreview" };
@@ -253,6 +244,7 @@ function WorkspaceDocPreviewDemo() {
       onCreate={() => setText(doc.template({ workspaceName: "product-research" }))}
       onChange={setText}
       onRemove={() => setText(null)}
+      onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
     />
   );
 }
@@ -883,7 +875,6 @@ export default function App() {
   const activeView = route.name === "doc" ? { type: "doc", sectionId: route.sectionId, docId: route.docId }
     : (route.name === "specs" || isSpecRoute || route.name === "initiative") ? { type: "specs" }
     : (route.name === "research" || route.name === "activity") ? { type: "research" }
-    : route.name === "dashboard" ? { type: "dashboard" }
     : route.name === "workspaceDoc" ? { type: "workspaceDoc", id: route.id }
     : { type: "home" };
 
@@ -926,8 +917,6 @@ export default function App() {
     ? [folderCrumb, { label: "Research Repository", href: RESEARCH_ROUTE }, { label: activeActivity ? (activeActivity.name || "Untitled activity") : "Activity not found" }]
     : route.name === "research"
     ? [folderCrumb, { label: "Research Repository" }]
-    : route.name === "dashboard"
-    ? [folderCrumb, { label: "Dashboard" }]
     : route.name === "workspaceDoc"
     ? [folderCrumb, { label: activeWorkspaceDoc ? activeWorkspaceDoc.label : "Not found" }]
     : null;
@@ -955,21 +944,18 @@ export default function App() {
       : route.name === "initiative" ? (activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found")
       : route.name === "activity" ? (activeActivity ? (activeActivity.name || "Untitled activity") : "Activity not found")
       : route.name === "specs" ? "Specs"
-      : route.name === "dashboard" ? "Dashboard"
       : route.name === "research" ? "Research Repository"
       : route.name === "workspaceDoc" ? (activeWorkspaceDoc ? activeWorkspaceDoc.label : "Not found")
       : "";
     document.title = name ? `${name} · Monk` : "Monk";
   }, [route, isSpecRoute, activeDocument, activeSpec, activeInitiative, activeActivity, activeWorkspaceDoc]);
 
-  // Dev-only: preview either page populated with mock data, no folder needed.
-  if (import.meta.env.DEV && (route.name === "dashboardPreview" || route.name === "homePreview")) {
+  // Dev-only: the start page populated with mock data, no folder needed.
+  if (import.meta.env.DEV && route.name === "homePreview") {
     const mock = mockWorkspace(1);
     return (
       <div style={{ fontFamily: font, height: "100dvh", overflowY: "auto" }}>
-        {route.name === "homePreview"
-          ? <Home {...mock} recentHref={(kind, id) => recentHref(kind, id)} folderName="product-research" onChangeFolder={() => {}} />
-          : <DashboardPage {...mock} demo />}
+        <Home {...mock} recentHref={(kind, id) => recentHref(kind, id)} folderName="product-research" onChangeFolder={() => {}} />
       </div>
     );
   }
@@ -1100,7 +1086,6 @@ export default function App() {
           sections={sections}
           workspaceDocs={WORKSPACE_DOCS.map((d) => ({ id: d.id, label: d.label, href: hrefWorkspaceDoc(d.id), exists: typeof workspaceDocs[d.id] === "string" }))}
           activeView={activeView}
-          dashboardHref={hrefDashboard()}
           researchHref={RESEARCH_ROUTE}
           specsHref={hrefSpecs()}
           docHref={hrefDocument}
@@ -1194,20 +1179,11 @@ export default function App() {
                   onCreate={() => createWorkspaceDocument(activeWorkspaceDoc.id)}
                   onChange={(text) => updateWorkspaceDocument(activeWorkspaceDoc.id, text)}
                   onRemove={() => removeWorkspaceDocument(activeWorkspaceDoc.id)}
+                  onToast={showToast}
                 />
               ) : (
                 <NotFoundMessage text="Page not found." backLabel="Back to start" backHref={hrefStart()} />
               )
-            ) : route.name === "dashboard" ? (
-              <DashboardPage
-                signals={signals}
-                insights={insights}
-                activities={activities}
-                specs={specs}
-                initiatives={initiatives}
-                sections={sections}
-                onCreateSpec={createSpec}
-              />
             ) : route.name === "specs" ? (
               <SpecsPage
                 specs={specs}

@@ -7,7 +7,7 @@
 //
 // Grounds (see the Grounds block in lib/theme.js) — a page takes one, never white:
 //
-//   ground="app"      the default: lists, boards, the dashboard, a document
+//   ground="app"      the default: lists, boards, the start page, a document
 //   ground="reading"  the desk behind a sheet of paper — a spec's writing tabs
 //
 // Shapes:
