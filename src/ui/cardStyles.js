@@ -17,14 +17,14 @@ export const cornerBadge = {
 // quietly worsening the contrast of whatever text sat on it, which is what read as "muddy"
 // once paired with the vividly-colored border right at its edge (simultaneous contrast).
 //
-// A solid left edge in the accent color carries the identity instead — it's actually visible at
-// a glance, unlike the wash it replaces — while the fill goes back to pure white, so every
-// text color on the card (including the already-low-contrast metadata) gets full contrast
-// rather than fighting a tint for it.
+// The border carries the identity instead: one even 1px edge in the kind's accent, strong enough
+// (40% alpha, up from a barely-there 16%) to name the kind at a glance. It used to be that faint
+// hairline plus a 3px solid stripe down the left side — the stock "accent bar" card, which read
+// as generic decoration rather than as this product's. The fill stays pure white, so every text
+// colour on the card (including the already-low-contrast metadata) gets full contrast.
 export const cardSurface = (kind) => ({
   backgroundColor: BG,
-  border: `1px solid ${withAlpha(ACCENT[kind], "28")}`,
-  borderLeft: `3px solid ${ACCENT[kind]}`,
+  border: `1px solid ${withAlpha(ACCENT[kind], "66")}`,
 });
 
 // A card's small metadata controls: quiet until you reach for them (the border only appears on
