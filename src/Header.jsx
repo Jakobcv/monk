@@ -1,6 +1,6 @@
 import { FolderOpen } from "lucide-react";
 import { font, INK, INK_SOFT, BORDER, SIZE, WEIGHT, SPACE, SAVE_STATUS_COLOR, SAVE_STATUS_LABEL } from "./lib/theme";
-import { wordmark } from "./ui/text";
+import { Wordmark } from "./ui/text";
 import Button from "./ui/Button";
 
 // One header, identical everywhere — the home page and every board share it rather than
@@ -13,9 +13,9 @@ export default function Header({ saveStatus, onRetrySave, onChangeFolder }) {
     }}>
       {/* Same wordmark as the start page, just smaller — the shared definition in ui/text.js
           overrides .btn's own weight so the two can't drift apart again. */}
-      <a href="#" className="btn btn--sm btn--subtle" style={{ ...wordmark(SIZE.md), marginLeft: "-6px", textDecoration: "none" }}>
+      <Wordmark as="a" size={SIZE.md} href="#" className="btn btn--sm btn--subtle" style={{ marginLeft: "-6px", textDecoration: "none" }}>
         monk
-      </a>
+      </Wordmark>
 
       <div style={{ display: "flex", alignItems: "center", gap: SPACE.xl }}>
         <Button variant="subtle" onClick={onChangeFolder} title="Switch to a different research folder">

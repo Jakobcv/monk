@@ -23,14 +23,20 @@ import SignalCardBody from "./SignalCardBody";
 // Signals section uses this for "select some signals, form an insight from them", the only
 // place selection makes sense. Unlike the delete button, this doesn't hide until hover: once a
 // card is selected that has to stay visible, not disappear the moment the mouse leaves.
+//
+// `fixedHeight` gives every card the same height — four lines of observation, ellipsised, above
+// its metadata row — for a list meant to be scanned (Research Repository). Off by default: on a
+// board or an activity page a signal is read in full, and the "New signal" dialog is where it is
+// being written.
 export default function SignalCard({
   signal, activities, onChange, onDelete, deleteTitle = "Delete this signal everywhere",
   autoFocus = false, missing = false, selected = false, onToggleSelect, header, footer, metaExtra, activityLink, style,
+  fixedHeight = false,
 }) {
   return (
     <div className="reveal-group" style={{ position: "relative", ...style }}>
       <div
-        className="el-card signal-card"
+        className={fixedHeight ? "el-card signal-card signal-card--fixed" : "el-card signal-card"}
         style={{
           ...cardSurface("signal"),
           ...(selected ? { boxShadow: `0 0 0 2px ${ACCENT.signal}` } : {}),
@@ -40,6 +46,7 @@ export default function SignalCard({
         <SignalCardBody
           signal={signal} activities={activities} onChange={onChange}
           autoFocus={autoFocus} missing={missing} activityLink={activityLink} after={metaExtra}
+          clamp={fixedHeight}
         />
         {footer}
       </div>

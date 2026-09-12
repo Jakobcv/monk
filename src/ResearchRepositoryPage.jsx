@@ -3,7 +3,7 @@ import { Search as SearchIcon, X, ArrowLeft, Star, Plus, Lightbulb } from "lucid
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, ACCENT, ACTIVITY, DANGER, CITED, SIZE, WEIGHT, SPACE, RADIUS, withAlpha } from "./lib/theme";
 import { blankSignal, signalsForActivity, isSignalUnlinked } from "./lib/signalModel";
 import { blankInsight } from "./lib/insightModel";
-import { pageHeading, meta } from "./ui/text";
+import { Meta, PageHeading } from "./ui/text";
 import SignalCard from "./SignalCard";
 import InsightCard from "./InsightCard";
 import Button from "./ui/Button";
@@ -12,6 +12,7 @@ import Field from "./ui/Field";
 import EmptyState from "./ui/EmptyState";
 import Modal from "./ui/Modal";
 import DialogActions from "./ui/DialogActions";
+import Page from "./ui/Page";
 
 // per-type: which array on a board holds these cards, and which of the card's fields to
 // search against (Action has three text fields, everything else has just `text`). Signal and
@@ -138,6 +139,10 @@ export default function ResearchRepositoryPage({
   // rendered text, so a search match can no longer highlight the matching substring inside it
   // the way every other card kind still does.
   //
+  // The one place it departs from the board is height: here every card is the same height, its
+  // text clamped to four lines with an ellipsis (`fixedHeight`, see SignalCard), because this is
+  // a list you scan. Clicking into the text still edits it in place.
+  //
   // `selectable` turns on the selection checkbox (see SignalCard's `onToggleSelect`) — only the
   // Signals section's own grid passes it; search results and every other list stay plain, since
   // "select some of these to form an insight" only makes sense while browsing signals as signals,
@@ -152,6 +157,7 @@ export default function ResearchRepositoryPage({
         activities={activities}
         onChange={(patch) => onUpdateSignal(sig.id, patch)}
         onDelete={() => onDeleteSignal(sig.id)}
+        fixedHeight
         selected={selectable && selectedSignalIds.has(sig.id)}
         onToggleSelect={selectable ? () => toggleSignalSelected(sig.id) : undefined}
       />
@@ -185,11 +191,11 @@ export default function ResearchRepositoryPage({
       <Card key={m.key} as="a" href={activityHref(act.id)} interactive style={{ padding: "10px 14px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.sm, flexWrap: "wrap" }}>
           <Dot color={ACTIVITY} />
-          <span style={{ ...meta, fontWeight: WEIGHT.semibold, color: ACTIVITY }}>Activity</span>
-          {act.method && <span style={meta}>{act.method}</span>}
-          {act.author && <span style={meta}>by {act.author}</span>}
-          {act.date && <span style={meta}>{new Date(act.date).toLocaleDateString()}</span>}
-          <span style={meta}>{linked.length} signal{linked.length === 1 ? "" : "s"}</span>
+          <Meta style={{ fontWeight: WEIGHT.semibold, color: ACTIVITY }}>Activity</Meta>
+          {act.method && <Meta>{act.method}</Meta>}
+          {act.author && <Meta>by {act.author}</Meta>}
+          {act.date && <Meta>{new Date(act.date).toLocaleDateString()}</Meta>}
+          <Meta>{linked.length} signal{linked.length === 1 ? "" : "s"}</Meta>
         </div>
         <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK, lineHeight: 1.5 }}>{highlight(act.name || "Untitled activity", q)}</div>
       </Card>
@@ -320,7 +326,7 @@ export default function ResearchRepositoryPage({
   );
 
   return (
-    <div style={{ height: "100%", overflowY: "auto", padding: "32px 40px", boxSizing: "border-box" }}>
+    <Page>
       <div style={{ maxWidth: "880px", margin: "0 auto" }}>
         <div style={{ height: "20px", marginBottom: "10px" }}>
           <Button
@@ -419,9 +425,9 @@ export default function ResearchRepositoryPage({
             </EmptyState>
           ) : (
             <div className="enter-up">
-              <div style={{ ...meta, fontSize: SIZE.sm, marginBottom: "10px" }}>
+              <Meta as="div" style={{ fontSize: SIZE.sm, marginBottom: "10px" }}>
                 {matches.length} result{matches.length === 1 ? "" : "s"}
-              </div>
+              </Meta>
               <div style={{ display: "flex", flexDirection: "column", gap: SPACE.base }}>
                 {matches.map((m) => (
                   m.kind === "signal" ? renderSignalRow(m) :
@@ -436,12 +442,12 @@ export default function ResearchRepositoryPage({
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.sm }}>
                       <Dot color={ACCENT[m.kind]} />
-                      <span style={{ ...meta, fontWeight: WEIGHT.semibold, color: ACCENT[m.kind] }}>{m.label}</span>
-                      <span style={meta}>in {m.specTitle}</span>
+                      <Meta style={{ fontWeight: WEIGHT.semibold, color: ACCENT[m.kind] }}>{m.label}</Meta>
+                      <Meta>in {m.specTitle}</Meta>
                       {m.citationCount != null && (
-                        <span style={{ ...meta, display: "flex", alignItems: "center", gap: "3px", fontWeight: WEIGHT.semibold, color: CITED }}>
+                        <Meta style={{ display: "flex", alignItems: "center", gap: "3px", fontWeight: WEIGHT.semibold, color: CITED }}>
                           <Star size={10} fill={CITED} /> {m.citationCount} citation{m.citationCount === 1 ? "" : "s"}
-                        </span>
+                        </Meta>
                       )}
                     </div>
                     <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK, lineHeight: 1.5 }}>
@@ -456,7 +462,7 @@ export default function ResearchRepositoryPage({
         ) : (
           <div className="enter-up">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg, gap: SPACE.base, flexWrap: "wrap" }}>
-              <h1 style={pageHeading}>Signals</h1>
+              <PageHeading>Signals</PageHeading>
               <div style={{ display: "flex", gap: SPACE.base }}>
                 {/* Only appears once you've actually checked something — this is how synthesis
                     starts: pick some signals, then form the insight they add up to, right from
@@ -504,7 +510,7 @@ export default function ResearchRepositoryPage({
             <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: "30px" }} />
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
-              <h1 style={pageHeading}>Insights</h1>
+              <PageHeading>Insights</PageHeading>
               <Button onClick={openInsightForm}>
                 <Plus size={16} /> Add insight
               </Button>
@@ -540,7 +546,7 @@ export default function ResearchRepositoryPage({
 
             <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: "30px" }} />
 
-            <h1 style={{ ...pageHeading, marginBottom: SPACE.lg }}>Activities</h1>
+            <PageHeading style={{ marginBottom: SPACE.lg }}>Activities</PageHeading>
 
             {sortedActivities.length === 0 ? (
               <EmptyState compact style={{ paddingBottom: "30px" }}>No activities yet — create one above.</EmptyState>
@@ -552,11 +558,11 @@ export default function ResearchRepositoryPage({
                     <Card key={a.id} as="a" href={activityHref(a.id)} interactive style={{ padding: "10px 14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.sm, flexWrap: "wrap" }}>
                         <Dot color={ACTIVITY} />
-                        <span style={{ ...meta, fontWeight: WEIGHT.semibold, color: ACTIVITY }}>Activity</span>
-                        {a.method && <span style={meta}>{a.method}</span>}
-                        {a.author && <span style={meta}>by {a.author}</span>}
-                        {a.date && <span style={meta}>{new Date(a.date).toLocaleDateString()}</span>}
-                        <span style={meta}>{linked.length} signal{linked.length === 1 ? "" : "s"}</span>
+                        <Meta style={{ fontWeight: WEIGHT.semibold, color: ACTIVITY }}>Activity</Meta>
+                        {a.method && <Meta>{a.method}</Meta>}
+                        {a.author && <Meta>by {a.author}</Meta>}
+                        {a.date && <Meta>{new Date(a.date).toLocaleDateString()}</Meta>}
+                        <Meta>{linked.length} signal{linked.length === 1 ? "" : "s"}</Meta>
                       </div>
                       <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK, lineHeight: 1.5 }}>{a.name || "Untitled activity"}</div>
                     </Card>
@@ -567,6 +573,6 @@ export default function ResearchRepositoryPage({
           </div>
         )}
       </div>
-    </div>
+    </Page>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { ChevronDown, FileOutput, Check } from "lucide-react";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_SIDEBAR, SIZE, WEIGHT, MOTION, SPEC_STATUS_OPTIONS, SPEC_STATUS_COLOR } from "./lib/theme";
-import { eyebrow, editArea, pageTitleInput } from "./ui/text";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_APP, SIZE, WEIGHT, MOTION, SPEC_STATUS_OPTIONS, SPEC_STATUS_COLOR } from "./lib/theme";
+import { Eyebrow, PageTitle } from "./ui/text";
 import { buildSpecBrief } from "./lib/buildBrief";
 import { useCopy } from "./lib/useCopy";
 import ChecklistEditor from "./ChecklistEditor";
@@ -9,10 +9,9 @@ import AutoTextarea from "./ui/AutoTextarea";
 import SwapIcon from "./ui/SwapIcon";
 import MarkdownEditor from "./MarkdownEditor";
 import DesignTab from "./DesignTab";
-import FlowMap from "./FlowMap";
-import { blankFlow, withDefaultStages } from "./lib/flowModel";
 import Board from "./Board";
 import Breadcrumbs from "./Breadcrumbs";
+import Page from "./ui/Page";
 
 // The active-tab marker is a single sliding bar (see the tablist below), not a per-tab
 // border — so a tab is just its label. Colour + hover live in .spec-tab (index.css).
@@ -21,12 +20,16 @@ const tabLinkStyle = {
   padding: "8px 2px", textDecoration: "none",
 };
 
-// Discovery / Design / Plan mirror the shape of the work itself — research, then solution,
-// then execution — with Overview as the always-there summary tying them together.
+// Discovery / Solution / Plan mirror the shape of the work itself — research, then what you're
+// going to build, then execution — with Overview as the always-there summary tying them together.
+//
+// Solution's key stays "design": it's the URL segment (#/spec/<id>/design) and it names the file
+// the tab reads and writes (design.md). Renaming those would mean migrating every folder on disk
+// for a label change, so the key is the storage name and the label is what you call it.
 const TABS = [
   { key: "overview", label: "Overview" },
   { key: "discovery", label: "Discovery" },
-  { key: "design", label: "Design" },
+  { key: "design", label: "Solution" },
   { key: "plan", label: "Plan" },
 ];
 
@@ -40,11 +43,11 @@ function SpecSidebar({ status, onStatusChange, owner, onOwnerChange, initiativeI
   return (
     <div style={{
       width: "220px", flexShrink: 0, height: "100%", overflowY: "auto", boxSizing: "border-box",
-      backgroundColor: BG_SIDEBAR, borderLeft: `1px solid ${BORDER}`, boxShadow: "-6px 0 12px rgba(0,0,0,0.04)",
+      backgroundColor: BG_APP, borderLeft: `1px solid ${BORDER}`, boxShadow: "-6px 0 12px rgba(0,0,0,0.04)",
       padding: "20px 18px", display: "flex", flexDirection: "column", gap: "18px",
     }}>
       <div>
-        <div style={eyebrow}>Status</div>
+        <Eyebrow>Status</Eyebrow>
         <div className="select-wrap" style={{ marginTop: "8px" }}>
           <select className="select" style={{ color: SPEC_STATUS_COLOR[status] }} value={status} onChange={(e) => onStatusChange(e.target.value)}>
             {SPEC_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -56,7 +59,7 @@ function SpecSidebar({ status, onStatusChange, owner, onOwnerChange, initiativeI
       <div style={{ height: "1px", backgroundColor: BORDER }} />
 
       <div>
-        <div style={eyebrow}>Initiative</div>
+        <Eyebrow>Initiative</Eyebrow>
         <div className="select-wrap" style={{ marginTop: "8px" }}>
           <select
             className="select"
@@ -76,9 +79,9 @@ function SpecSidebar({ status, onStatusChange, owner, onOwnerChange, initiativeI
       <div style={{ height: "1px", backgroundColor: BORDER }} />
 
       <div>
-        <div style={eyebrow}>Owner</div>
+        <Eyebrow>Owner</Eyebrow>
         <div style={{ marginTop: "8px" }}>
-          <input value={owner} onChange={(e) => onOwnerChange(e.target.value)} placeholder="Unassigned" style={editArea} />
+          <input value={owner} onChange={(e) => onOwnerChange(e.target.value)} placeholder="Unassigned" className="edit-area" />
         </div>
       </div>
     </div>
@@ -93,13 +96,15 @@ function SpecSidebar({ status, onStatusChange, owner, onOwnerChange, initiativeI
 //
 // Layout: a persistent right sidebar (SpecSidebar, below) holds cross-tab metadata; the main pane
 // has its own header — breadcrumbs, then a left-aligned title, then a full-width tab bar — above
-// a `flex:1` area where each tab panel owns its own sizing. Discovery needs a different shape
-// than the other three: Overview/Design/Plan are a narrow, page-scrolling reading column
-// (maxWidth 760px); Board is a full-width canvas that manages its own internal scrolling and
-// wants to fill whatever height it's given, not sit inside a taller scrollable page.
+// a `flex:1` area where each tab panel owns its own sizing. The two kinds of tab want opposite
+// shapes: Overview/Design/Plan are where you *write*, so they're a sheet of paper centred on a
+// grey desk (<Page ground="reading"> + .paper-sheet) at their own larger type scale (PAPER in
+// lib/theme.js); Discovery is a canvas that manages its own scrolling and wants to fill whatever
+// height it's given edge to edge, not sit inside a taller page.
 export default function SpecPage({
   spec, boards, signals, insights, activities, sections, initiatives, onChange, activeTab, tabHref, onOpenBoard,
   onUpdateSignal, onCreateSignal, onUpdateInsight, onCreateInsight, onToast, highlightCardId, breadcrumbs,
+  designSystem = "",
 }) {
   const [title, setTitle] = useState(spec.title);
   const [status, setStatus] = useState(spec.status);
@@ -112,18 +117,14 @@ export default function SpecPage({
   const [acceptanceCriteria, setAcceptanceCriteria] = useState(spec.acceptanceCriteria);
   const [board, setBoard] = useState(spec.board);
   const [design, setDesign] = useState(spec.design);
-  // Use cases + flow map (flow.md). Edited on the flow map page (through setFlow updaters); the
-  // Design tab only reads it for its "Open flow map" summary. A map with no stages yet gets the
-  // default few (see withDefaultStages) — saved along with the first real edit.
-  const [flow, setFlow] = useState(() => withDefaultStages(spec.flow || blankFlow()));
   const [plan, setPlan] = useState(spec.plan);
 
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
-    onChange({ title, status, owner, initiativeId, problem, goals, nonGoals, openQuestions, acceptanceCriteria, board, design, plan, flow });
+    onChange({ title, status, owner, initiativeId, problem, goals, nonGoals, openQuestions, acceptanceCriteria, board, design, plan });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, status, owner, initiativeId, problem, goals, nonGoals, openQuestions, acceptanceCriteria, board, design, plan, flow]);
+  }, [title, status, owner, initiativeId, problem, goals, nonGoals, openQuestions, acceptanceCriteria, board, design, plan]);
 
   // Assembles Standards + Product Knowledge + (if the spec is under an initiative) that
   // initiative's shared context + this spec's own content into one hand-off document (see
@@ -133,9 +134,10 @@ export default function SpecPage({
   const startBuild = () => {
     const initiative = initiativeId ? (initiatives || []).find((i) => i.id === initiativeId) : null;
     copyBrief(buildSpecBrief(
-      { title, problem, goals, nonGoals, openQuestions, acceptanceCriteria, design, plan, flow },
+      { title, problem, goals, nonGoals, openQuestions, acceptanceCriteria, design, plan },
       sections,
-      initiative
+      initiative,
+      designSystem
     ));
   };
 
@@ -144,18 +146,16 @@ export default function SpecPage({
   // measurement is applied without a transition (via a double render before paint) so it
   // doesn't slide in from the left on mount.
   const tabRefs = useRef([]);
-  // The flow map is a page within Design, not a tab of its own — the bar keeps Design marked.
-  const tabKey = activeTab === "flow" ? "design" : activeTab;
   const [underline, setUnderline] = useState({ left: 0, width: 0 });
   useLayoutEffect(() => {
     const measure = () => {
-      const el = tabRefs.current[TABS.findIndex((t) => t.key === tabKey)];
+      const el = tabRefs.current[TABS.findIndex((t) => t.key === activeTab)];
       if (el) setUnderline({ left: el.offsetLeft, width: el.offsetWidth });
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [tabKey]);
+  }, [activeTab]);
 
   return (
     <div style={{ height: "100%", display: "flex" }}>
@@ -164,11 +164,11 @@ export default function SpecPage({
 
         <div style={{ padding: "20px 40px 0", boxSizing: "border-box", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-            <input
+            <PageTitle
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Untitled spec"
-              style={{ ...pageTitleInput, flex: 1 }}
+              style={{ flex: 1 }}
             />
             <button
               className="btn btn--sm btn--subtle"
@@ -189,7 +189,7 @@ export default function SpecPage({
                 className="spec-tab"
                 href={tabHref(t.key)}
                 role="tab"
-                aria-selected={tabKey === t.key}
+                aria-selected={activeTab === t.key}
                 style={tabLinkStyle}
               >
                 {t.label}
@@ -207,33 +207,33 @@ export default function SpecPage({
           </div>
         </div>
 
-        {/* The `hidden` attribute must be the only thing controlling display on each of these —
-            an inline `display` would win over the browser's default `[hidden]{display:none}` rule
-            and the panel would never actually hide. */}
+        {/* `hidden` is what toggles these. It only wins because index.css states
+            `[hidden]{display:none!important}` — the UA's own rule loses to .page--reading's
+            `display:flex`, and would lose to an inline `display` too. */}
         <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-          <div hidden={activeTab !== "overview"} style={{ height: "100%", overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
-            <div style={{ maxWidth: "760px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "22px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={eyebrow}>Problem</div>
+          <Page ground="reading" hidden={activeTab !== "overview"}>
+            <div className="paper-sheet" style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <Eyebrow>Problem</Eyebrow>
                 <AutoTextarea className="prose-field" minRows={2} value={problem} onChange={(e) => setProblem(e.target.value)} placeholder="The problem this solves…" />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={eyebrow}>Goals</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <Eyebrow>Goals</Eyebrow>
                 <AutoTextarea className="prose-field" minRows={2} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="Success looks like…" />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={eyebrow}>Non-goals</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <Eyebrow>Non-goals</Eyebrow>
                 <AutoTextarea className="prose-field" minRows={2} value={nonGoals} onChange={(e) => setNonGoals(e.target.value)} placeholder="Explicitly out of scope…" />
               </div>
 
               <div style={{ height: "1px", backgroundColor: BORDER }} />
 
-              <ChecklistEditor label="Open questions" items={openQuestions} onChange={setOpenQuestions} />
-              <ChecklistEditor label="Acceptance criteria" items={acceptanceCriteria} onChange={setAcceptanceCriteria} />
+              <ChecklistEditor paper label="Open questions" items={openQuestions} onChange={setOpenQuestions} />
+              <ChecklistEditor paper label="Acceptance criteria" items={acceptanceCriteria} onChange={setAcceptanceCriteria} />
             </div>
-          </div>
+          </Page>
 
-          <div hidden={activeTab !== "discovery"} style={{ height: "100%", boxSizing: "border-box", padding: "12px" }}>
+          <Page bleed hidden={activeTab !== "discovery"}>
             {/* Bumping `updatedAt` here (not just on the spec — see the effect below) is what
                 makes "recently touched" mean anything: it's this timestamp Research
                 Repository's "Recent insights" sorts by, and until now nothing ever set it
@@ -253,27 +253,22 @@ export default function SpecPage({
               onToast={onToast}
               highlightCardId={activeTab === "discovery" ? highlightCardId : null}
             />
-          </div>
+          </Page>
 
-          <div hidden={activeTab !== "design"} style={{ height: "100%", overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
-            <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-              <DesignTab
-                value={spec.design} onChange={setDesign} onToast={onToast}
-                flow={flow} flowHref={tabHref("flow")}
-              />
+          <Page ground="reading" hidden={activeTab !== "design"}>
+            <div className="paper-sheet">
+              <DesignTab value={spec.design} onChange={setDesign} onToast={onToast} />
             </div>
-          </div>
+          </Page>
 
-          {/* The flow map — full width like Discovery, since it's a canvas, not a reading column. */}
-          <div hidden={activeTab !== "flow"} style={{ height: "100%", boxSizing: "border-box", padding: "12px" }}>
-            <FlowMap flow={flow} onChange={setFlow} onToast={onToast} />
-          </div>
-
-          <div hidden={activeTab !== "plan"} style={{ height: "100%", overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
-            <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-              <MarkdownEditor value={spec.plan} onChange={setPlan} placeholder="The plan, in Markdown…" />
+          {/* The Plan is one long document rather than a set of fields, so its editor takes the
+              whole sheet (`fill`) instead of claiming a fixed minimum: the syntax legend settles
+              at the foot of the page and the blank paper above it is a click target. */}
+          <Page ground="reading" hidden={activeTab !== "plan"}>
+            <div className="paper-sheet" style={{ display: "flex", flexDirection: "column" }}>
+              <MarkdownEditor fill value={spec.plan} onChange={setPlan} minHeight={0} placeholder="The plan, in Markdown…" />
             </div>
-          </div>
+          </Page>
         </div>
       </div>
 

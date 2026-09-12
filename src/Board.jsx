@@ -5,8 +5,8 @@ import { blankSignal } from "./lib/signalModel";
 import { blankInsight } from "./lib/insightModel";
 import { insertAt } from "./lib/arrays";
 import { useDismiss } from "./lib/useDismiss";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_SIDEBAR, BG_HOVER, ACCENT, SIZE, WEIGHT, SPACE, RADIUS, MOTION } from "./lib/theme";
-import { eyebrow, editArea } from "./ui/text";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, ACCENT, SIZE, WEIGHT, SPACE, RADIUS, MOTION } from "./lib/theme";
+import { Eyebrow } from "./ui/text";
 import { cardSurface, cornerBadge } from "./ui/cardStyles";
 import SignalCardBody from "./SignalCardBody";
 import InsightCardBody from "./InsightCardBody";
@@ -498,12 +498,12 @@ export default function Board({
           >
             {resolved ? (
               <>
-                <div style={eyebrow}>If we</div>
-                <div style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }}>{resolved.item.ifWe}</div>
-                <div style={eyebrow}>Then</div>
-                <div style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }}>{resolved.item.then}</div>
-                <div style={eyebrow}>Expected</div>
-                <div style={{ ...editArea, marginTop: "2px" }}>{resolved.item.expected}</div>
+                <Eyebrow>If we</Eyebrow>
+                <div className="edit-area" style={{ marginTop: "2px", marginBottom: "8px" }}>{resolved.item.ifWe}</div>
+                <Eyebrow>Then</Eyebrow>
+                <div className="edit-area" style={{ marginTop: "2px", marginBottom: "8px" }}>{resolved.item.then}</div>
+                <Eyebrow>Expected</Eyebrow>
+                <div className="edit-area" style={{ marginTop: "2px" }}>{resolved.item.expected}</div>
                 {renderRefSource(resolved.board)}
               </>
             ) : (
@@ -514,12 +514,12 @@ export default function Board({
           </div>
         ) : (
           <div ref={setRef(a.id)} data-node-id={a.id} data-node-kind="action" className={cardClass(a.id)} style={{ ...cardSurface("action"), ...targetStyle(a.id) }}>
-            <div style={eyebrow}>If we</div>
-            <textarea className="el-edit" rows={2} autoFocus={focusId === a.id} value={a.ifWe} onChange={(e) => patchAction(a.id, { ifWe: e.target.value })} placeholder="…do this" style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }} />
-            <div style={eyebrow}>Then</div>
-            <textarea className="el-edit" rows={2} value={a.then} onChange={(e) => patchAction(a.id, { then: e.target.value })} placeholder="…this happens" style={{ ...editArea, marginTop: "2px", marginBottom: "8px" }} />
-            <div style={eyebrow}>Expected</div>
-            <textarea className="el-edit" rows={2} value={a.expected} onChange={(e) => patchAction(a.id, { expected: e.target.value })} placeholder="…measurable outcome" style={{ ...editArea, marginTop: "2px" }} />
+            <Eyebrow>If we</Eyebrow>
+            <textarea className="el-edit edit-area" rows={2} autoFocus={focusId === a.id} value={a.ifWe} onChange={(e) => patchAction(a.id, { ifWe: e.target.value })} placeholder="…do this" style={{ marginTop: "2px", marginBottom: "8px" }} />
+            <Eyebrow>Then</Eyebrow>
+            <textarea className="el-edit edit-area" rows={2} value={a.then} onChange={(e) => patchAction(a.id, { then: e.target.value })} placeholder="…this happens" style={{ marginTop: "2px", marginBottom: "8px" }} />
+            <Eyebrow>Expected</Eyebrow>
+            <textarea className="el-edit edit-area" rows={2} value={a.expected} onChange={(e) => patchAction(a.id, { expected: e.target.value })} placeholder="…measurable outcome" style={{ marginTop: "2px" }} />
           </div>
         )}
         {renderHandle(a.id, "action", connections.some((c) => c.from === a.id))}
@@ -543,8 +543,8 @@ export default function Board({
           >
             {resolved ? (
               <>
-                <div style={eyebrow}>Result</div>
-                <div style={{ ...editArea, marginTop: "2px" }}>{resolved.item.text}</div>
+                <Eyebrow>Result</Eyebrow>
+                <div className="edit-area" style={{ marginTop: "2px" }}>{resolved.item.text}</div>
                 {renderRefSource(resolved.board)}
               </>
             ) : (
@@ -555,8 +555,8 @@ export default function Board({
           </div>
         ) : (
           <div ref={setRef(r.id)} data-node-id={r.id} data-node-kind="result" className={cardClass(r.id)} style={{ ...cardSurface("result"), ...targetStyle(r.id) }}>
-            <div style={eyebrow}>Result</div>
-            <textarea className="el-edit" rows={2} autoFocus={focusId === r.id} value={r.text} onChange={(e) => patchResult(r.id, { text: e.target.value })} placeholder="What actually happened…" style={{ ...editArea, marginTop: "2px" }} />
+            <Eyebrow>Result</Eyebrow>
+            <textarea className="el-edit edit-area" rows={2} autoFocus={focusId === r.id} value={r.text} onChange={(e) => patchResult(r.id, { text: e.target.value })} placeholder="What actually happened…" style={{ marginTop: "2px" }} />
           </div>
         )}
         {renderConnectTarget(r.id, "result")}
@@ -591,11 +591,13 @@ export default function Board({
       <div
         ref={boardRef}
         className={pending ? "el-dragging" : undefined}
-        // BG_SIDEBAR, not BG (white) — cards on this canvas are also BG-filled, so a white
-        // canvas left them distinguished only by their 1px border + colored left edge. Same
-        // fix already applied to the app's page background and, briefly, the discovery canvas;
-        // this was the one surface that still had it.
-        style={{ position: "relative", backgroundColor: BG_SIDEBAR, border: `1px solid ${BORDER}`, borderRadius: "10px", overflowX: "auto", overflowY: "hidden", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+        // No fill of its own: this is a framed region of the page, not a surface laid on it.
+        // It used to paint BG_APP's grey so the white cards inside had something to separate
+        // from — but the page behind it became that same grey, and a panel the colour of its
+        // own background is just a border. Inheriting the ground keeps the cards' contrast
+        // (white on grey, as everywhere else) and loses the phantom surface; the border and
+        // radius still say where the canvas ends.
+        style={{ position: "relative", border: `1px solid ${BORDER}`, borderRadius: "10px", overflowX: "auto", overflowY: "hidden", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
       >
         <div className="el-board">
           <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "visible" }}>

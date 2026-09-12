@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { SPACE } from "../lib/theme";
-import { eyebrow } from "./text";
+import { Eyebrow } from "./text";
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -58,7 +58,7 @@ export default function Modal({ title, onClose, children, width = 620 }) {
         style={{ width: `min(${width}px, 100%)` }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
-          <span style={eyebrow}>{title}</span>
+          <Eyebrow as="span">{title}</Eyebrow>
           <button className="icon-btn" onClick={onClose} title="Close" aria-label="Close">
             <X size={16} />
           </button>

@@ -3,8 +3,9 @@ import { Plus, FolderOpen } from "lucide-react";
 import {
   font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, SIZE, SPACE, RADIUS, BRAND,
 } from "./lib/theme";
-import { eyebrow, meta, wordmark } from "./ui/text";
+import { Eyebrow, Meta, Wordmark } from "./ui/text";
 import { recentlyTouched, relativeTime } from "./lib/dashboardMetrics";
+import Page from "./ui/Page";
 
 const KIND_COLOR = {
   signal: ACCENT.signal,
@@ -63,9 +64,9 @@ function RecentRow({ item, href, now, delay }) {
   const inner = (
     <>
       <span style={{ width: "7px", height: "7px", borderRadius: "50%", flexShrink: 0, background: KIND_COLOR[item.kind] || INK_FAINT }} />
-      <span style={{ ...meta, fontSize: SIZE.xs, width: "62px", flexShrink: 0, textTransform: "capitalize" }}>{item.kind}</span>
+      <Meta style={{ fontSize: SIZE.xs, width: "62px", flexShrink: 0, textTransform: "capitalize" }}>{item.kind}</Meta>
       <span style={{ flex: 1, minWidth: 0, color: INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
-      <span style={{ ...meta, fontSize: SIZE.sm, flexShrink: 0 }}>{relativeTime(item.updatedAt, now)}</span>
+      <Meta style={{ fontSize: SIZE.sm, flexShrink: 0 }}>{relativeTime(item.updatedAt, now)}</Meta>
     </>
   );
   const style = {
@@ -85,22 +86,25 @@ export default function Home({ signals = [], insights = [], activities = [], spe
   const [now] = useState(() => Date.now());
   const recent = recentlyTouched({ signals, insights, activities, specs, initiatives }, 8);
 
+  // No background: every page takes the app ground from body (see lib/theme.js).
   return (
-    <div style={{ height: "100%", overflowY: "auto", boxSizing: "border-box", padding: "10vh 40px 64px", background: "var(--bg)" }}>
+    <Page landing>
       <div style={{ maxWidth: "560px", margin: "0 auto" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <MoonMark />
-          {/* Shared with the header — see `wordmark` in ui/text.js. The negative top margin
+          {/* Shared with the header — see Wordmark in ui/text.jsx. The negative top margin
               closes the gap the crescent leaves below its own ink inside the SVG box. */}
-          <h1
+          <Wordmark
+            as="h1"
+            size="28px"
             className="enter-up"
             style={{
-              ...wordmark("28px"), marginTop: "-6px", marginBottom: 0, marginLeft: 0,
+              marginTop: "-6px", marginBottom: 0, marginLeft: 0,
               animationDelay: "980ms", animationFillMode: "backwards",
             }}
           >
             monk
-          </h1>
+          </Wordmark>
 
           {/* Which folder you're actually in, and the way out of it. Every other route carries
               this as the first breadcrumb; the start page has no breadcrumb bar, so it sat
@@ -131,7 +135,7 @@ export default function Home({ signals = [], insights = [], activities = [], spe
 
         <div className="enter-up" style={{ marginTop: "68px", animationDelay: "1180ms", animationFillMode: "backwards" }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: SPACE.lg, marginBottom: SPACE.base }}>
-            <div style={{ ...eyebrow, fontSize: SIZE.xs, letterSpacing: "0.07em" }}>Recently touched</div>
+            <Eyebrow section>Recently touched</Eyebrow>
             {onCreateSpec && (
               <button className="btn btn--sm btn--subtle" onClick={onCreateSpec} style={{ color: INK_SOFT, marginRight: "-6px" }}>
                 <Plus size={16} /> New spec
@@ -140,9 +144,9 @@ export default function Home({ signals = [], insights = [], activities = [], spe
           </div>
 
           {recent.length === 0 ? (
-            <div style={{ ...meta, fontSize: SIZE.body, lineHeight: 1.6, paddingTop: SPACE.base }}>
+            <Meta as="div" style={{ fontSize: SIZE.body, lineHeight: 1.6, paddingTop: SPACE.base }}>
               Nothing here yet. Start a spec, or capture your first signal in the research repository.
-            </div>
+            </Meta>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
               {recent.map((item, i) => (
@@ -158,6 +162,6 @@ export default function Home({ signals = [], insights = [], activities = [], spe
           )}
         </div>
       </div>
-    </div>
+    </Page>
   );
 }

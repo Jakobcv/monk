@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { FileText, Copy, Check, ChevronDown } from "lucide-react";
 import { BORDER, SPACE, INK, INK_SOFT, INK_FAINT, SIZE, ACCENT } from "./lib/theme";
-import { pageTitleInput, eyebrow } from "./ui/text";
+import { Eyebrow, PageTitle } from "./ui/text";
 import { documentToMarkdown } from "./lib/markdown";
 import { useCopy } from "./lib/useCopy";
 import MarkdownEditor from "./MarkdownEditor";
 import Card from "./ui/Card";
 import SwapIcon from "./ui/SwapIcon";
+import Page from "./ui/Page";
 
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace";
 
@@ -36,17 +37,20 @@ function MarkdownLegend() {
     return next;
   });
 
+  // A surface on the ground, so it takes Card's white — it used to paint the app ground's own
+  // grey, which left it invisible against the page behind it.
   return (
-    <Card padded style={{ background: "var(--bg-sidebar)" }}>
-      <button
+    <Card padded>
+      <Eyebrow
+        as="button"
         type="button"
         onClick={toggle}
         aria-expanded={open}
-        style={{ ...eyebrow, display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer" }}
       >
         Markdown reference
         <ChevronDown size={13} style={{ color: INK_FAINT, transition: "transform var(--motion-base) var(--ease)", transform: open ? "rotate(180deg)" : "none" }} />
-      </button>
+      </Eyebrow>
 
       <div className={`md-legend-body${open ? " open" : ""}`}>
         <div style={{ display: "flex", flexDirection: "column", gap: SPACE.lg, paddingTop: SPACE.md }}>
@@ -99,15 +103,15 @@ export default function DocumentPage({ document: doc, onChange }) {
   };
 
   return (
-    <div style={{ height: "100%", overflowY: "auto", overflowAnchor: "none", scrollbarGutter: "stable", padding: "32px 40px", boxSizing: "border-box" }}>
+    <Page style={{ overflowAnchor: "none", scrollbarGutter: "stable" }}>
       <div style={{ display: "flex", gap: "40px", justifyContent: "center", alignItems: "flex-start", flexWrap: "wrap" }}>
         <div style={{ width: "100%", maxWidth: "760px", flex: "1 1 480px", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: SPACE.base, marginBottom: SPACE.md }}>
-            <input
+            <PageTitle
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Untitled document"
-              style={{ ...pageTitleInput, flex: 1 }}
+              style={{ flex: 1 }}
             />
             <button
               className="btn btn--sm btn--subtle"
@@ -135,6 +139,6 @@ export default function DocumentPage({ document: doc, onChange }) {
           <MarkdownLegend />
         </aside>
       </div>
-    </div>
+    </Page>
   );
 }

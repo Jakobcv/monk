@@ -6,6 +6,9 @@ import { useRef, useLayoutEffect } from "react";
 // overflow:hidden keeps a scrollbar from flashing between the reset and the re-measure.
 export default function AutoTextarea({ value, minRows = 2, style, ...rest }) {
   const ref = useRef(null);
+  // Width at the last fit, so the ResizeObserver below can tell "the column changed, the text
+  // rewrapped" from "we just set the height ourselves" — reacting to the latter would loop.
+  const fittedWidth = useRef(-1);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -14,12 +17,23 @@ export default function AutoTextarea({ value, minRows = 2, style, ...rest }) {
       const h = el.scrollHeight;
       // 0 means it's in a hidden container (e.g. an inactive spec tab) — leave the row
       // count alone and re-fit once it's actually shown (the observer below).
-      if (h > 0) el.style.height = `${h}px`;
+      if (h > 0) {
+        el.style.height = `${h}px`;
+        fittedWidth.current = el.clientWidth;
+      }
     };
     fit();
     const io = new IntersectionObserver((entries) => { if (entries[0].isIntersecting) fit(); });
     io.observe(el);
-    return () => io.disconnect();
+    // A narrower column means more wrapped lines, and the height set for the old width leaves
+    // the tail of a paragraph clipped under overflow:hidden with nothing to reveal it — the
+    // field only re-measured on a value change, so the text stayed cut off until you typed in
+    // it. Anything that reflows the column lands here: the window, the sidebar, a tab's panel.
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth !== fittedWidth.current) fit();
+    });
+    ro.observe(el);
+    return () => { io.disconnect(); ro.disconnect(); };
   }, [value]);
   return (
     <textarea

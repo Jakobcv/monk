@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import { Plus, FlaskConical, Calendar } from "lucide-react";
-import { SIZE, SPACE } from "./lib/theme";
-import { editArea, meta } from "./ui/text";
+import { font, INK_FAINT, SIZE, SPACE } from "./lib/theme";
 import { metaInputStyle } from "./ui/cardStyles";
 import AutoTextarea from "./ui/AutoTextarea";
 
@@ -26,13 +25,19 @@ const activityHref = (id) => "#/activity/" + encodeURIComponent(id);
 //
 // `after` appends extra content to this same row (Research Repository uses it for "linked in N
 // specs" / "Attach to spec" — cross-spec facts about the signal rather than fields of it).
-export default function SignalCardBody({ signal, activities, onChange, autoFocus = false, missing = false, activityLink = true, after }) {
+//
+// `clamp` is for a card of fixed height (SignalCard's `fixedHeight`). A textarea can't show an
+// ellipsis, so the text reads as a clamped preview — a native button, so Tab and Enter reach it
+// with no hand-built key handling — and becomes the real textarea when activated, scrolling
+// inside the same height rather than growing the card. Leaving the field puts the preview back.
+export default function SignalCardBody({ signal, activities, onChange, autoFocus = false, missing = false, activityLink = true, after, clamp = false }) {
   // Declared before the `missing` early return: React requires every hook on every render.
   const [picking, setPicking] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   if (missing) {
     return (
-      <div style={{ fontStyle: "italic", fontSize: SIZE.ui, color: meta.color }}>
+      <div style={{ fontStyle: "italic", fontSize: SIZE.ui, color: INK_FAINT }}>
         Signal no longer exists.
       </div>
     );
@@ -46,13 +51,33 @@ export default function SignalCardBody({ signal, activities, onChange, autoFocus
 
   return (
     <>
-      <AutoTextarea
-        className="el-edit" minRows={2} autoFocus={autoFocus}
-        value={signal.text}
-        onChange={(e) => onChange({ text: e.target.value })}
-        placeholder="What you observed…"
-        style={editArea}
-      />
+      {clamp ? (
+        <div className="signal-card__text">
+          {editing ? (
+            <textarea
+              className="el-edit edit-area signal-card__editor" autoFocus
+              value={signal.text}
+              onChange={(e) => onChange({ text: e.target.value })}
+              // Caret at the end: the click that opened this landed on the preview, not on a
+              // position in this field, so there is no "where you clicked" to honour.
+              onFocus={(e) => { const end = e.target.value.length; e.target.setSelectionRange(end, end); }}
+              onBlur={() => setEditing(false)}
+              placeholder="What you observed…"
+            />
+          ) : (
+            <button type="button" className="edit-area signal-card__preview" onClick={() => setEditing(true)}>
+              {signal.text || <span style={{ color: INK_FAINT }}>What you observed…</span>}
+            </button>
+          )}
+        </div>
+      ) : (
+        <AutoTextarea
+          className="el-edit edit-area" minRows={2} autoFocus={autoFocus}
+          value={signal.text}
+          onChange={(e) => onChange({ text: e.target.value })}
+          placeholder="What you observed…"
+        />
+      )}
 
       {showRow && (
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: SPACE.lg, rowGap: SPACE.xs, marginTop: SPACE.base }}>
@@ -107,8 +132,8 @@ export default function SignalCardBody({ signal, activities, onChange, autoFocus
 // Sized like `meta` (11px) but NOT colored like it — INK_FAINT is ~2.4:1 against plain white
 // already, below WCAG's 3:1 floor even for large text, and a signal card's tint only pulls
 // that further down. metaInputStyle's own INK_SOFT (~4.5:1) is what actually stays legible on
-// a tinted surface, so only the size comes from `meta` here.
-const compactField = { width: "auto", margin: 0, padding: "1px 4px", fontSize: meta.fontSize };
+// a tinted surface, so only the size is shared.
+const compactField = { width: "auto", margin: 0, padding: "1px 4px", fontSize: SIZE.xs };
 
 // The date as a small button — "11 Sep 2026" with the calendar icon right beside it — that opens
 // the browser's own picker. Not a styled <input type="date">: Chrome gives that a fixed
@@ -158,7 +183,7 @@ function AddField({ label, onClick }) {
       onClick={onClick}
       style={{
         display: "inline-flex", alignItems: "center", gap: "3px",
-        fontFamily: meta.fontFamily, fontSize: meta.fontSize, color: metaInputStyle.color,
+        fontFamily: font, fontSize: SIZE.xs, color: metaInputStyle.color,
         background: "none", border: "none", cursor: "pointer", padding: "1px 4px", margin: "-1px -4px",
       }}
     >

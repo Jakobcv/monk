@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { BookOpen, Layers, FileText, Plus, Trash2, Library, ShieldCheck, ChartNoAxesColumn } from "lucide-react";
-import { font, INK_FAINT, BORDER, BG_SIDEBAR, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
+import { BookOpen, Layers, FileText, Plus, Trash2, Library, ShieldCheck, ChartNoAxesColumn, Palette } from "lucide-react";
+import { font, INK_FAINT, BORDER, BG_APP, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
 import { FIXED_SECTIONS, isFixedSection } from "./lib/documentModel";
 import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
@@ -35,7 +35,11 @@ const sectionLabelStyle = {
 // Product Knowledge and Standards ARE `sections` entries (freeform documents, exactly like a
 // user-created section) — they just can't be renamed or deleted, and always sort first, because
 // what belongs in them is a matter of purpose, not user choice (see documentModel.js).
-export default function Sidebar({ sections, activeView, dashboardHref, researchHref, specsHref, docHref, onCreateSection, onRenameSection, onDeleteSection, onCreateDocument, onDeleteDocument }) {
+// Workspace documents (lib/workspaceDocs.js) get an icon here rather than in the registry, which
+// stays free of React so storage and the tests can import it.
+const WORKSPACE_DOC_ICONS = { "design-system": Palette };
+
+export default function Sidebar({ sections, workspaceDocs = [], activeView, dashboardHref, researchHref, specsHref, docHref, onCreateSection, onRenameSection, onDeleteSection, onCreateDocument, onDeleteDocument }) {
   const [editingSectionId, setEditingSectionId] = useState(null);
   const [draftName, setDraftName] = useState("");
 
@@ -55,7 +59,7 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
   return (
     <div style={{
       width: "230px", flexShrink: 0, height: "100%", overflowY: "auto", overflowX: "hidden", boxSizing: "border-box",
-      backgroundColor: BG_SIDEBAR, borderRight: `1px solid ${BORDER}`, padding: "14px 10px",
+      backgroundColor: BG_APP, borderRight: `1px solid ${BORDER}`, padding: "14px 10px",
       display: "flex", flexDirection: "column", gap: "14px",
     }}>
       <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
@@ -83,6 +87,25 @@ export default function Sidebar({ sections, activeView, dashboardHref, researchH
         >
           <ChartNoAxesColumn size={16} /> Dashboard
         </a>
+        {/* Always listed, so a workspace without one can see it's missing. The link opens its page
+            either way; creating the file is a button there, never a side effect of a click here. */}
+        {workspaceDocs.map((d) => {
+          const Icon = WORKSPACE_DOC_ICONS[d.id] || FileText;
+          return (
+            <a
+              key={d.id}
+              className="nav-item"
+              href={d.href}
+              aria-current={activeView.type === "workspaceDoc" && activeView.id === d.id ? "page" : undefined}
+              style={navItemStyle}
+            >
+              <Icon size={16} style={{ flexShrink: 0 }} /> {d.label}
+              {!d.exists && (
+                <span style={{ marginLeft: "auto", fontWeight: WEIGHT.normal, fontSize: SIZE.xs, color: INK_FAINT }}>Not set up</span>
+              )}
+            </a>
+          );
+        })}
       </div>
 
       <div style={{ height: "1px", backgroundColor: BORDER }} />

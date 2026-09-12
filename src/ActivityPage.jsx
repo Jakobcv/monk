@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import { INK_FAINT, BORDER, SPACE, METHOD_OPTIONS } from "./lib/theme";
-import { eyebrow, pageTitleInput } from "./ui/text";
+import { Eyebrow, PageTitle } from "./ui/text";
 import Breadcrumbs from "./Breadcrumbs";
 import SignalCard from "./SignalCard";
 import Button from "./ui/Button";
@@ -10,6 +10,7 @@ import EmptyState from "./ui/EmptyState";
 import Modal from "./ui/Modal";
 import DialogActions from "./ui/DialogActions";
 import { blankSignal, signalsForActivity } from "./lib/signalModel";
+import Page from "./ui/Page";
 
 // `activity` only seeds local state on mount — the parent remounts this page (via
 // `key={activity.id}`) whenever the open activity changes, same pattern as SpecPage/Board.
@@ -45,79 +46,74 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
   const saveSignalForm = () => { onCreateSignal(newSignal); setFocusId(newSignal.id); closeSignalForm(); };
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <Breadcrumbs items={breadcrumbs} />
+    <Page header={<Breadcrumbs items={breadcrumbs} />}>
+      <div className="enter-up" style={{ maxWidth: "760px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "22px" }}>
+        <PageTitle
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Untitled activity"
+        />
 
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", boxSizing: "border-box", padding: `${SPACE["3xl"]} ${SPACE["5xl"]} ${SPACE["5xl"]}` }}>
-        <div className="enter-up" style={{ maxWidth: "760px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "22px" }}>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Untitled activity"
-            style={pageTitleInput}
+        <div style={{ display: "flex", gap: SPACE.lg, flexWrap: "wrap" }}>
+          <div className="select-wrap" style={{ width: "200px" }}>
+            <select
+              className="select"
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
+              style={{ color: method ? undefined : INK_FAINT }}
+            >
+              <option value="">Method</option>
+              {METHOD_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <ChevronDown size={12} className="select-chevron" />
+          </div>
+          <Field size="ui" value={link} onChange={(e) => setLink(e.target.value)} placeholder="Link" style={{ flex: 1, minWidth: "220px" }} />
+          <Field
+            size="ui" type="date"
+            value={date ? new Date(date).toISOString().slice(0, 10) : ""}
+            onChange={(e) => setDate(e.target.value ? new Date(e.target.value).getTime() : Date.now())}
           />
-
-          <div style={{ display: "flex", gap: SPACE.lg, flexWrap: "wrap" }}>
-            <div className="select-wrap" style={{ width: "200px" }}>
-              <select
-                className="select"
-                value={method}
-                onChange={(e) => setMethod(e.target.value)}
-                style={{ color: method ? undefined : INK_FAINT }}
-              >
-                <option value="">Method</option>
-                {METHOD_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
-              </select>
-              <ChevronDown size={12} className="select-chevron" />
-            </div>
-            <Field size="ui" value={link} onChange={(e) => setLink(e.target.value)} placeholder="Link" style={{ flex: 1, minWidth: "220px" }} />
-            <Field
-              size="ui" type="date"
-              value={date ? new Date(date).toISOString().slice(0, 10) : ""}
-              onChange={(e) => setDate(e.target.value ? new Date(e.target.value).getTime() : Date.now())}
-            />
-            <Field size="ui" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Author" style={{ width: "160px" }} />
-          </div>
-
-          <div style={{ height: "1px", backgroundColor: BORDER }} />
-
-          <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
-              <div style={eyebrow}>Linked signals ({linked.length})</div>
-              <Button onClick={openSignalForm}>
-                <Plus size={16} /> Add signal
-              </Button>
-            </div>
-
-            {linked.length === 0 ? (
-              <EmptyState compact>No signals collected yet.</EmptyState>
-            ) : (
-              // Same card as a Discovery board's — same tint, same quiet inline fields, same
-              // corner delete — via the shared SignalCard. A signal should look like a signal
-              // wherever you meet it.
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: SPACE.lg }}>
-                {linked.map((sig) => (
-                  <div key={sig.id} className={presentOnMount.has(sig.id) ? undefined : "enter-up"}>
-                    <SignalCard
-                      signal={sig}
-                      activities={activities}
-                      activityLink={false}
-                      autoFocus={focusId === sig.id}
-                      onChange={(patch) => onUpdateSignal(sig.id, patch)}
-                      onDelete={() => onDeleteSignal(sig.id)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div style={{ height: "1px", backgroundColor: BORDER }} />
-
-          <Button variant="danger" onClick={onDelete} style={{ alignSelf: "flex-start" }}>
-            <Trash2 size={16} /> Delete activity
-          </Button>
+          <Field size="ui" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Author" style={{ width: "160px" }} />
         </div>
+
+        <div style={{ height: "1px", backgroundColor: BORDER }} />
+
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
+            <Eyebrow>Linked signals ({linked.length})</Eyebrow>
+            <Button onClick={openSignalForm}>
+              <Plus size={16} /> Add signal
+            </Button>
+          </div>
+
+          {linked.length === 0 ? (
+            <EmptyState compact>No signals collected yet.</EmptyState>
+          ) : (
+            // Same card as a Discovery board's — same tint, same quiet inline fields, same
+            // corner delete — via the shared SignalCard. A signal should look like a signal
+            // wherever you meet it.
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: SPACE.lg }}>
+              {linked.map((sig) => (
+                <div key={sig.id} className={presentOnMount.has(sig.id) ? undefined : "enter-up"}>
+                  <SignalCard
+                    signal={sig}
+                    activities={activities}
+                    activityLink={false}
+                    autoFocus={focusId === sig.id}
+                    onChange={(patch) => onUpdateSignal(sig.id, patch)}
+                    onDelete={() => onDeleteSignal(sig.id)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ height: "1px", backgroundColor: BORDER }} />
+
+        <Button variant="danger" onClick={onDelete} style={{ alignSelf: "flex-start" }}>
+          <Trash2 size={16} /> Delete activity
+        </Button>
       </div>
 
       {newSignal && (
@@ -135,6 +131,6 @@ export default function ActivityPage({ activity, signals, activities, onChange, 
           </div>
         </Modal>
       )}
-    </div>
+    </Page>
   );
 }

@@ -24,10 +24,24 @@ export const INK_FAINT = "#A9A9A5";    // meta: dates, counts, secondary annotat
 export const INK_PLACEHOLDER = "#B9B8B3"; // hints that vanish the moment you type
 export const BORDER = "#E9E9E7";    // hairline
 export const BORDER_STRONG = "#DDDBD6";
+// The ground. One tone, under every page: lists, boards, the dashboard, a document, and the
+// desk a sheet of paper sits on. White surfaces need a ground that isn't white, which is the
+// whole reason this isn't #FFF; it doubles as the colour of the chrome (both sidebars),
+// deliberately, so the app reads as one recessed field with surfaces laid on it.
+//
+// The writing tabs are still their own kind of page — a centred sheet rather than a column of
+// cards — but that is a difference in *what sits on* the ground, not in the ground itself, and
+// it is carried by the sheet's own edge (EDGE.paper) rather than by tinting the page behind it.
+// A reading surface deeper than the rest of the app reads as a frame around the page instead of
+// a room it sits in.
+//
+// A page never paints itself white, either. BG is for surfaces *on* the ground — a card, the
+// paper sheet, a popover, a field — never for the ground. Two pages used to break that rule
+// (Home and the Dashboard, the latter with fourteen white cards on a white page), which is what
+// made the app look like it had three or four grounds depending where you stood.
 export const BG = "#FFFFFF";
-export const BG_SIDEBAR = "#FBFBFA";
+export const BG_APP = "#FBFBFA";
 export const BG_HOVER = "#F7F7F5";
-
 // the four card kinds of a Discovery board
 export const ACCENT = {
   signal: "#D9730D",  // amber
@@ -77,6 +91,24 @@ export const SPACE = {
 
 export const RADIUS = { xs: "4px", sm: "6px", md: "8px", lg: "10px", pill: "999px" };
 
+// ---------------------------------------------------------------------------
+// Page — the frame every full page sits in (ui/Page.jsx). These were seven
+// hand-written paddings before, four of which meant to be the same value and
+// drifted: 32px, 36px and 24px tops against a 40px side that everyone agreed
+// on, and three different bottoms. One set now, with the two differences that
+// are real kept as named cases: a page under a header needs less room above it
+// because the header already spaced it, and the landing drops down the
+// viewport on purpose.
+// ---------------------------------------------------------------------------
+export const PAGE = {
+  padX: "40px",
+  padTop: "32px",
+  padTopUnderHeader: "24px",
+  padBottom: "48px",
+  landingTop: "10vh",
+  bleed: "12px", // a canvas gets a margin, not padding to read against
+};
+
 export const SHADOW = {
   sm: "0 2px 6px rgba(0,0,0,0.06)",
   md: "0 4px 14px rgba(0,0,0,0.08)",
@@ -103,6 +135,35 @@ export const EDGE = {
   raised: "0 0 0 1px rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04)",
   lifted: "0 0 0 1px rgba(0,0,0,0.08), 0 2px 4px -1px rgba(0,0,0,0.06), 0 8px 16px -4px rgba(0,0,0,0.06)",
   float: "0 0 0 1px rgba(0,0,0,0.08), 0 4px 8px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.12)",
+  // A sheet of paper on the app ground. Same ring, but the lift is spread over a much wider,
+  // softer penumbra than `float`'s — a popover hovers a few millimetres over the page and wants
+  // a crisp edge shadow; a page just rests on the desk. The ring carries more weight here than
+  // in the steps above because it is doing the whole job: the ground behind the sheet is the
+  // app's own, four units off white, so the hairline is what says "edge" and the penumbra only
+  // says "lift". Weaken it and the sheet stops reading as a sheet.
+  paper: "0 0 0 1px rgba(0,0,0,0.07), 0 1px 1px rgba(0,0,0,0.04), 0 6px 14px -4px rgba(0,0,0,0.07), 0 18px 36px -12px rgba(0,0,0,0.12)",
+};
+
+// ---------------------------------------------------------------------------
+// Paper — the writing surface behind a spec's Overview, Design and Plan tabs.
+// These three are the only place in the app where you write prose at length,
+// and they run their own, larger scale: 13.5px is right for a card in a dense
+// board and wrong for a page you draft into. Everything around the sheet — the
+// title, the tab bar, the metadata sidebar — stays on the UI scale above, which
+// is what keeps the sheet reading as content and the rest as chrome.
+// ---------------------------------------------------------------------------
+export const PAPER = {
+  body: "16px",    // prose: Problem/Goals, every list row, the Plan
+  label: "14px",   // a list's number, set a step under the line it marks
+  eyebrow: "12px", // section labels — up from the 10px eyebrow used in chrome
+  leading: 1.6,
+  width: "840px",  // sheet width; ~70 characters of measure inside the padding
+  pad: "56px 64px 64px",
+  // The gutter every list row hangs its marker in — a bullet, a number, a checkbox, or the
+  // "+" of the row that adds the next one. With SPACE.base after it the text lands at 34px,
+  // which is the one indent a list gets on either tab. Four files need to agree on it, which
+  // is why it's here and not a constant in whichever of them was written first.
+  marker: "26px",
 };
 
 // ---------------------------------------------------------------------------
@@ -136,8 +197,10 @@ export const METHOD_OPTIONS = ["Interview", "Survey", "Usage metrics", "Client c
 export const SPEC_STATUS_OPTIONS = ["draft", "active", "shipped"];
 export const SPEC_STATUS_COLOR = { draft: INK_FAINT, active: ACCENT.insight, shipped: ACCENT.action };
 
-export const SAVE_STATUS_COLOR = { saved: ACCENT.action, saving: INK_FAINT, error: DANGER, idle: INK_FAINT };
-export const SAVE_STATUS_LABEL = { saved: "Saved", saving: "Saving…", error: "Save failed — retry", idle: "" };
+export const SAVE_STATUS_COLOR = { saved: ACCENT.action, saving: INK_FAINT, error: DANGER, conflict: ACCENT.signal, idle: INK_FAINT };
+// "conflict" is not an error: the save worked, it just left some files alone because
+// something outside the app had edited them since we last wrote. Amber, not red.
+export const SAVE_STATUS_LABEL = { saved: "Saved", saving: "Saving…", error: "Save failed — retry", conflict: "Kept newer changes on disk", idle: "" };
 
 // ---------------------------------------------------------------------------
 // The same tokens, as CSS custom properties. Injected once at boot so index.css
@@ -147,17 +210,23 @@ export const CSS_VARS = `:root{
   --font:${font};
   --ink:${INK}; --ink-soft:${INK_SOFT}; --ink-faint:${INK_FAINT}; --ink-placeholder:${INK_PLACEHOLDER};
   --border:${BORDER}; --border-strong:${BORDER_STRONG};
-  --bg:${BG}; --bg-sidebar:${BG_SIDEBAR}; --bg-hover:${BG_HOVER};
+  --bg:${BG}; --bg-app:${BG_APP}; --bg-hover:${BG_HOVER};
   --accent-signal:${ACCENT.signal}; --accent-insight:${ACCENT.insight};
   --accent-action:${ACCENT.action}; --accent-result:${ACCENT.result};
   --activity:${ACTIVITY}; --danger:${DANGER}; --cited:${CITED};
   --size-micro:${SIZE.micro}; --size-xs:${SIZE.xs}; --size-sm:${SIZE.sm};
   --size-ui:${SIZE.ui}; --size-body:${SIZE.body}; --size-md:${SIZE.md}; --size-lg:${SIZE.lg};
+  --size-title:${SIZE.title};
   --radius-xs:${RADIUS.xs}; --radius-sm:${RADIUS.sm}; --radius-md:${RADIUS.md};
   --radius-lg:${RADIUS.lg}; --radius-pill:${RADIUS.pill};
+  --page-pad-x:${PAGE.padX}; --page-pad-top:${PAGE.padTop};
+  --page-pad-top-header:${PAGE.padTopUnderHeader}; --page-pad-bottom:${PAGE.padBottom};
+  --page-landing-top:${PAGE.landingTop}; --page-bleed:${PAGE.bleed};
   --shadow-sm:${SHADOW.sm}; --shadow-md:${SHADOW.md}; --shadow-pop:${SHADOW.pop}; --shadow-panel:${SHADOW.panel};
   --edge-flat:${EDGE.flat}; --edge-raised:${EDGE.raised};
-  --edge-lifted:${EDGE.lifted}; --edge-float:${EDGE.float};
+  --edge-lifted:${EDGE.lifted}; --edge-float:${EDGE.float}; --edge-paper:${EDGE.paper};
+  --paper-body:${PAPER.body}; --paper-leading:${PAPER.leading}; --paper-eyebrow:${PAPER.eyebrow};
+  --paper-width:${PAPER.width}; --paper-pad:${PAPER.pad}; --paper-marker:${PAPER.marker};
   --motion-instant:${MOTION.instant}; --motion-fast:${MOTION.fast};
   --motion-base:${MOTION.base}; --motion-slow:${MOTION.slow};
   --ease:${MOTION.ease}; --ease-entrance:${MOTION.entrance}; --ease-exit:${MOTION.exit};

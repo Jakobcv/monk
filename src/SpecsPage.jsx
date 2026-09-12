@@ -1,10 +1,11 @@
 import { Plus, Trash2, Layers, FolderGit2 } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, SIZE, WEIGHT, SPACE, SPEC_STATUS_COLOR } from "./lib/theme";
-import { pageHeading, eyebrow, meta } from "./ui/text";
+import { Eyebrow, Meta, PageHeading } from "./ui/text";
 import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
 import Card from "./ui/Card";
 import EmptyState from "./ui/EmptyState";
+import Page from "./ui/Page";
 
 function SpecCard({ spec, idx = 0, href, onDelete }) {
   return (
@@ -45,15 +46,15 @@ function SpecCard({ spec, idx = 0, href, onDelete }) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: SPACE.base, marginTop: SPACE.lg }}>
-        <span style={{ ...meta, fontWeight: WEIGHT.semibold, color: SPEC_STATUS_COLOR[spec.status] || INK_FAINT }}>
+        <Meta style={{ fontWeight: WEIGHT.semibold, color: SPEC_STATUS_COLOR[spec.status] || INK_FAINT }}>
           {spec.status}
-        </span>
+        </Meta>
         {(spec.design || spec.plan) && (
           <>
             <span style={{ width: "3px", height: "3px", borderRadius: "50%", background: INK_FAINT }} />
-            <span style={meta}>
+            <Meta>
               {[spec.design && "design", spec.plan && "plan"].filter(Boolean).join(" + ")}
-            </span>
+            </Meta>
           </>
         )}
       </div>
@@ -80,10 +81,10 @@ export default function SpecsPage({ specs, initiatives, specHref, initiativeHref
   const isEmpty = specs.length === 0 && sortedInitiatives.length === 0;
 
   return (
-    <div style={{ height: "100%", overflowY: "auto", padding: `${SPACE["4xl"]} ${SPACE["5xl"]}`, boxSizing: "border-box" }}>
+    <Page>
       <div style={{ maxWidth: "880px", margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "22px", gap: SPACE.base }}>
-          <h1 style={pageHeading}>Specs</h1>
+          <PageHeading>Specs</PageHeading>
           <div style={{ display: "flex", gap: SPACE.base }}>
             <Button size="md" onClick={onCreateInitiative}>
               <FolderGit2 size={16} /> New initiative
@@ -113,9 +114,9 @@ export default function SpecsPage({ specs, initiatives, specHref, initiativeHref
                   >
                     <FolderGit2 size={16} style={{ color: INK_FAINT }} />
                     {ini.title || "Untitled initiative"}
-                    <span style={{ ...meta, fontWeight: WEIGHT.normal }}>
+                    <Meta style={{ fontWeight: WEIGHT.normal }}>
                       {members.length} spec{members.length === 1 ? "" : "s"} · {ini.status}
-                    </span>
+                    </Meta>
                   </a>
                   {members.length === 0 ? (
                     <EmptyState compact>Nothing in this initiative yet.</EmptyState>
@@ -129,7 +130,7 @@ export default function SpecsPage({ specs, initiatives, specHref, initiativeHref
             {loose.length > 0 && (
               <div>
                 {sortedInitiatives.length > 0 && (
-                  <div style={{ ...eyebrow, marginBottom: SPACE.lg }}>Not in an initiative</div>
+                  <Eyebrow style={{ marginBottom: SPACE.lg }}>Not in an initiative</Eyebrow>
                 )}
                 <SpecGrid specs={loose} specHref={specHref} onDelete={onDelete} />
               </div>
@@ -137,6 +138,6 @@ export default function SpecsPage({ specs, initiatives, specHref, initiativeHref
           </div>
         )}
       </div>
-    </div>
+    </Page>
   );
 }

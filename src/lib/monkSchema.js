@@ -58,8 +58,7 @@ every record; set \`updatedAt\` to now when you change something.
 
   <spec-uuid>/               ← a spec (folder marker: spec.md)
     spec.md                     see "Spec" below
-    design.md                   markdown in fixed ## sections, NO frontmatter (the Design tab)
-    flow.md                     use cases + flow map: JSON frontmatter, generated outline body
+    solution.md                 markdown in fixed ## sections, NO frontmatter (the Solution tab)
     plan.md                     plain markdown, NO frontmatter (the Plan tab)
     board/                      the Discovery board
       board.md                  { id, createdAt, updatedAt }, no body
@@ -68,6 +67,7 @@ every record; set \`updatedAt\` to now when you change something.
       actions/<int>.md          local card
       results/<int>.md          local card
 
+  DESIGN.md                   ← optional: this product's design system (see below)
   signals/<uuid>.md           ← global signal (see "Signal")
   insights/<uuid>.md          ← global insight (see "Insight")
   activities/<uuid>.md        ← global activity (see "Activity")
@@ -103,35 +103,42 @@ repo.
 ...
 \`\`\`
 
-\`design.md\` and \`plan.md\` are sibling files, no frontmatter. \`initiativeId\` links up to
+\`solution.md\` and \`plan.md\` are sibling files, no frontmatter. \`initiativeId\` links up to
 \`initiatives/<id>.md\` (or \`null\`). \`plan.md\` is plain markdown. \`design.md\` is the feature's
 design intent (not visual language — that belongs in Standards), in any of these \`##\` sections,
 in this order, each omitted when empty — one item per line:
 
 \`\`\`
-## Principles             1. text
+## Solution               freeform markdown — what is being built
+## Design principles      1. text
 ## Constraints            - text
-## Edge cases             - when → then                     (then = _agent decides_ if left open)
-## Decisions              - **Decision**
-                              - Because: …   - Rejected: …     (each optional, nested)
-## Artefacts              - [Title](url) — <link|prototype|design|diagram|persona>, <match exactly|follow direction|background>
+## Decisions              - text
+## Artefacts              - [Title](url)
 ## Notes                  freeform markdown
 \`\`\`
 
-Text before the first heading, or under any other \`##\` heading, is kept as Notes.
+Text before the first heading, or under any other \`##\` heading, is kept as Notes — which is also
+where sections Monk has since dropped end up, heading and all, rather than being discarded:
+\`## Use cases\` and \`## Edge cases\` (both retired), and \`## Experience qualities\`. Renamed
+sections keep parsing under their old heading — \`## Principles\` is read as Design principles.
+Older specs tagged an artefact after an em dash with its kind and how closely to follow it
+(\`— prototype, match exactly\`); neither is stored any more, and both are ignored on read.
+Older specs also called this file \`design.md\`; it is still read under that name and
+rewritten as \`solution.md\` on the next save.
 
-\`flow.md\` holds the spec's use cases and its flow map. The frontmatter is the data:
+### Design system — \`DESIGN.md\` (optional, workspace root)
 
-\`\`\`
-{"useCases":[{"id","tier","text"}],"stages":[{"id","name"}],
- "steps":[{"id","useCase","stage","text"}],"links":[{"id","from","to","label"}]}
-\`\`\`
+The visual language for everything built here: design tokens as YAML front matter, then the
+reasoning as prose, in the format at <https://github.com/google-labs-code/design.md> — \`##\`
+sections in the order Overview, Colors, Typography, Layout, Elevation & Depth, Shapes,
+Components, Do's and Don'ts, any of which may be omitted.
 
-\`tier\` is 0 = Primary, 1 = Secondary, 2 = Tertiary. Each use case is a row and each stage a
-column; a step sits in one of each, and links go from step to step (a label is the branch
-condition). The body is a readable outline of every path, regenerated on each save — edit the
-frontmatter, not the outline. Older specs kept use cases in design.md's \`## Use cases\`; Monk moves
-them here on load.
+Monk creates this file only when asked (the Design system entry in its sidebar), and then only
+as a skeleton: every section, guidance in HTML comments, token examples commented out, no values
+chosen — a visual language is decided, not generated. However it gets written, every spec's
+build brief carries it as a contract, above the spec itself, because it is true of everything in
+the product rather than of one feature. The brief leaves out comments and any section with
+nothing written under it, so an unfilled skeleton contributes nothing.
 
 ### Board cards — \`<spec-uuid>/board/<kind>/<id>.md\`
 

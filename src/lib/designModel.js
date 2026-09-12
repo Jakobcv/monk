@@ -8,39 +8,43 @@
 //
 // Parsing is forgiving on purpose: anything it doesn't recognise — text before the first heading,
 // an unknown `## Heading`, a pre-structure freeform design.md — lands in Notes rather than being
-// dropped, so migrating an existing spec is lossless. Sections are written in this order — intent
-// first, then what must be covered, then reference material — one item per line:
+// dropped, so migrating an existing spec is lossless. Sections are written in this order — the
+// solution first, then the intent behind it, then what must be covered, then reference material —
+// one item per line except the two freeform ones:
 //
-//   (## Use cases — no longer written here; still read, so older files migrate into the spec's
-//    flow, where use cases now live with ids — see flowModel.js)
-//   ## Principles           1. text
+//   ## Solution             freeform markdown
+//   ## Design principles    1. text
 //   ## Constraints          - text
-//   ## Edge cases          - when → then                ("_agent decides_" when no outcome given)
-//   ## Decisions            - **Decision**               (nested "  - Because: …", "  - Rejected: …")
-//   ## Artefacts            - [Title](url) — prototype, match exactly
+//   ## Decisions            - text
+//   ## Artefacts            - [Title](url)
 //   ## Notes                freeform markdown
 
-export const TIERS = ["Primary", "Secondary", "Tertiary"];
-export const ARTEFACT_TYPES = ["link", "prototype", "design", "diagram", "persona"];
-export const AUTHORITIES = { exact: "Match exactly", direction: "Follow direction", context: "Background" };
-
-// There used to be an "Experience qualities" section; it was dropped. A file that still has one
-// keeps it — as an unknown heading it lands in Notes verbatim, so nothing is lost.
+// Sections that were dropped along the way — "Experience qualities", "Use cases" (with the flow
+// map) and "Edge cases" — aren't listed here, which is exactly how they survive: an unrecognised
+// `##` heading lands in Notes verbatim, title and all, so a file written before the change loses
+// nothing and the writer decides what to do with it.
 const TITLES = {
-  artefacts: "Artefacts", useCases: "Use cases", principles: "Principles", constraints: "Constraints",
-  edgeCases: "Edge cases", decisions: "Decisions", notes: "Notes",
+  artefacts: "Artefacts", solution: "Solution", principles: "Design principles", constraints: "Constraints",
+  decisions: "Decisions", notes: "Notes",
 };
-const KEY_BY_TITLE = Object.fromEntries(Object.entries(TITLES).map(([k, t]) => [t.toLowerCase(), k]));
+// Headings a section has been known by, beyond its current title — a file written before a rename
+// still parses into the same key rather than falling through to Notes as an unknown heading.
+const ALIASES = { principles: "principles" };
+const KEY_BY_TITLE = {
+  ...ALIASES,
+  ...Object.fromEntries(Object.entries(TITLES).map(([k, t]) => [t.toLowerCase(), k])),
+};
 
-const AGENT_DECIDES = "_agent decides_";
+// The two sections that are prose rather than a list: their body is kept and written back as
+// typed, and they have no per-line parser below.
+const FREEFORM = new Set(["solution", "notes"]);
 
 export function blankDesign() {
-  return { artefacts: [], useCases: [], principles: [], constraints: [], edgeCases: [], decisions: [], notes: "" };
+  return { artefacts: [], solution: "", principles: [], constraints: [], decisions: [], notes: "" };
 }
 
 // List items are one line each in the file; a stray newline typed into a field is collapsed.
 const oneLine = (s) => (s || "").replace(/\s+/g, " ").trim();
-const splitFlow = (s) => (s || "").split(/\s*(?:→|->)\s*/).map(oneLine).filter(Boolean);
 const bullet = (l) => l.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, "").trim();
 
 // The non-empty sections, in canonical order, each rendered to its markdown body. Shared by
@@ -52,29 +56,17 @@ export function designSections(d) {
     if (body.trim()) out.push({ key, title: TITLES[key], body });
   };
 
+  // The solution leads: it's the one section that says what is actually being built, and
+  // everything under it qualifies that.
+  add("solution", [(d.solution || "").trim()]);
   add("principles", d.principles.map(oneLine).filter(Boolean).map((p, i) => `${i + 1}. ${p}`));
   add("constraints", d.constraints.map(oneLine).filter(Boolean).map((c) => `- ${c}`));
-
-  add("edgeCases", d.edgeCases
-    .filter((e) => oneLine(e.when))
-    .map((e) => `- ${oneLine(e.when)} → ${oneLine(e.then) || AGENT_DECIDES}`));
-
-  add("decisions", d.decisions
-    .filter((x) => oneLine(x.decision) || oneLine(x.why) || oneLine(x.rejected))
-    .flatMap((x) => [
-      `- **${oneLine(x.decision)}**`,
-      oneLine(x.why) ? `  - Because: ${oneLine(x.why)}` : "",
-      oneLine(x.rejected) ? `  - Rejected: ${oneLine(x.rejected)}` : "",
-    ]));
+  add("decisions", d.decisions.map(oneLine).filter(Boolean).map((x) => `- ${x}`));
 
   // Reference material comes after the intent and coverage it supports.
   add("artefacts", d.artefacts
     .filter((a) => oneLine(a.title) || oneLine(a.url))
-    .map((a) => {
-      const type = ARTEFACT_TYPES.includes(a.type) ? a.type : "link";
-      const authority = (AUTHORITIES[a.authority] || AUTHORITIES.context).toLowerCase();
-      return `- [${oneLine(a.title)}](${oneLine(a.url).replace(/\s/g, "")}) — ${type}, ${authority}`;
-    }));
+    .map((a) => `- [${oneLine(a.title)}](${oneLine(a.url).replace(/\s/g, "")})`));
 
   add("notes", [(d.notes || "").trim()]);
   return out;
@@ -88,43 +80,31 @@ export function serializeDesign(d) {
 }
 
 const PARSERS = {
+  // An artefact is a title and a link. It used to carry trailing tags after an em dash — a kind
+  // (prototype, diagram, persona…) the title already said out loud, and an authority saying how
+  // closely to follow it — and the regex still tolerates them so an older line parses, but they
+  // aren't read and aren't written back.
   artefacts(d, lines) {
     for (const l of lines) {
-      const m = /^\s*[-*+]\s+\[(.*)\]\(([^)]*)\)\s*(?:[—–-]\s*(.*))?$/.exec(l);
-      if (!m) { d.artefacts.push({ type: "link", title: bullet(l), url: "", authority: "context" }); continue; }
-      const tags = (m[3] || "").toLowerCase().split(",").map((s) => s.trim());
-      d.artefacts.push({
-        type: ARTEFACT_TYPES.find((t) => tags.includes(t)) || "link",
-        title: m[1], url: m[2],
-        authority: Object.keys(AUTHORITIES).find((k) => tags.includes(AUTHORITIES[k].toLowerCase())) || "context",
-      });
-    }
-  },
-  useCases(d, lines) {
-    for (const l of lines) {
-      const flow = /^\s+[-*+]\s+Flow:\s*(.*)$/i.exec(l);
-      if (flow && d.useCases.length) { d.useCases[d.useCases.length - 1].flow = splitFlow(flow[1]).join(" → "); continue; }
-      const m = /^\s*[-*+]\s+\*\*(\w+):\*\*\s*(.*)$/.exec(l);
-      const tier = m ? TIERS.findIndex((t) => t.toLowerCase() === m[1].toLowerCase()) : -1;
-      d.useCases.push({ tier: Math.max(tier, 0), text: tier !== -1 ? m[2] : bullet(l), flow: null });
+      const m = /^\s*[-*+]\s+\[(.*)\]\(([^)]*)\)\s*(?:[—–-]\s*.*)?$/.exec(l);
+      d.artefacts.push(m ? { title: m[1], url: m[2] } : { title: bullet(l), url: "" });
     }
   },
   principles(d, lines) { for (const l of lines) d.principles.push(bullet(l)); },
   constraints(d, lines) { for (const l of lines) d.constraints.push(bullet(l)); },
-  edgeCases(d, lines) {
-    for (const l of lines) {
-      const [when, ...rest] = bullet(l).split(" → ");
-      const then = rest.join(" → ").trim();
-      d.edgeCases.push({ when: when.trim(), then: then === AGENT_DECIDES ? "" : then });
-    }
-  },
+  // A plain list now, but a decision used to be a three-part record — `- **Decided**` with
+  // nested `- Because: …` / `- Rejected: …` under it. Rather than let those nested lines become
+  // three separate decisions, they fold back onto the line they belong to, so a file written in
+  // the old shape reads as one sentence per decision instead of shattering.
   decisions(d, lines) {
     for (const l of lines) {
-      const sub = /^\s+[-*+]\s+(Because|Rejected):\s*(.*)$/i.exec(l);
-      const last = d.decisions[d.decisions.length - 1];
-      if (sub && last) { last[sub[1].toLowerCase() === "because" ? "why" : "rejected"] = sub[2]; continue; }
-      const m = /^\s*[-*+]\s+\*\*(.*)\*\*\s*$/.exec(l);
-      d.decisions.push({ decision: m ? m[1] : bullet(l), why: "", rejected: "" });
+      const part = /^\s+[-*+]\s+(Because|Rejected):\s*(.*)$/i.exec(l);
+      if (part && d.decisions.length) {
+        const label = part[1][0].toUpperCase() + part[1].slice(1).toLowerCase();
+        d.decisions[d.decisions.length - 1] += ` — ${label}: ${part[2].trim()}`;
+        continue;
+      }
+      d.decisions.push(bullet(l).replace(/^\*\*(.*)\*\*$/, "$1"));
     }
   },
 };
@@ -140,7 +120,8 @@ export function parseDesign(md) {
   }
   for (const { title, lines } of chunks) {
     const key = title ? KEY_BY_TITLE[title.toLowerCase()] : null;
-    if (key && key !== "notes") { PARSERS[key](d, lines.filter((l) => l.trim())); continue; }
+    if (key && !FREEFORM.has(key)) { PARSERS[key](d, lines.filter((l) => l.trim())); continue; }
+    if (key === "solution") { d.solution = lines.join("\n").trim(); continue; }
     // Notes, preamble, or an unknown heading — kept verbatim (unknown headings keep their title).
     const body = lines.join("\n").trim();
     const raw = title && !key ? [`## ${title}`, body].filter(Boolean).join("\n\n") : body;

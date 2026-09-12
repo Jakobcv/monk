@@ -1,85 +1,96 @@
 import { useState, useRef } from "react";
-import { Plus, X, ExternalLink, Workflow } from "lucide-react";
-import { font, INK, INK_SOFT, BORDER, SIZE, WEIGHT, SPACE } from "./lib/theme";
-import { eyebrow, meta } from "./ui/text";
-import { parseDesign, serializeDesign, ARTEFACT_TYPES, AUTHORITIES } from "./lib/designModel";
+import { Plus, X, ExternalLink } from "lucide-react";
+import { font, INK_SOFT, BORDER, PAPER, SIZE, SPACE } from "./lib/theme";
+import { Eyebrow } from "./ui/text";
+import { parseDesign, serializeDesign } from "./lib/designModel";
 import { insertAt } from "./lib/arrays";
 import AutoTextarea from "./ui/AutoTextarea";
-import Button from "./ui/Button";
+import PaperButton from "./ui/PaperButton";
 import IconButton from "./ui/IconButton";
 
-// A spec's Design tab: the feature's design intent, in structured sections, built from the same
-// parts as Overview — an eyebrow per section, borderless prose fields, a subtle "+ Add". No helper
-// text or treatment labels on screen: how each section is framed for an agent (intent / binding /
-// coverage / reference) lives in the build brief (buildBrief.js).
+// A spec's Solution tab (design.md on disk, and DesignTab here — the storage name outlived the
+// label): what's being built and the intent around it, in structured sections, built from the
+// same parts as Overview — an eyebrow per section, borderless prose fields, a subtle "+ Add".
+// No helper text or treatment labels on screen: how each section is framed for an agent
+// (the brief / intent / binding / reference) lives in the build brief (buildBrief.js).
 //
-// Every row is the same three-column grid — a label column, the text, the trailing controls — so
-// text starts at one x down the whole page, whatever the section. Every text is an auto-growing
-// prose field, so nothing long is ever silently cut off. Order runs intent → coverage → reference.
+// The page runs on two indents and no more: Solution and Notes are prose, flush with the section
+// headings and with Overview's fields, and everything between them is a plain list in one marker
+// gutter — MARKER_W + 8px, the same 34px a checkbox and its label take on Overview, so a list
+// indents identically on either tab. Every text is an auto-growing prose field, so nothing long is
+// ever silently cut off.
 //
 // `value` is the design.md string; it seeds local structured state once, and every edit is
-// serialized back out through `onChange` (see lib/designModel.js). Use cases aren't here: they
-// live solely on the flow map (flow.md, see lib/flowModel.js), which this tab only links to —
-// `flow` is read for a one-line count, `flowHref` opens the map. SpecPage remounts this per spec.
-// Rows still empty stay on screen but aren't written to the file.
+// serialized back out through `onChange` (see lib/designModel.js). SpecPage remounts this per
+// spec. Rows still empty stay on screen but aren't written to the file.
 
-const ARTEFACT_LABEL = { link: "Link", prototype: "Prototype", design: "Design file", diagram: "Diagram", persona: "Persona" };
 // What the Undo toast calls a removed row.
 const ROW_NOUN = {
-  principles: "principle", constraints: "constraint",
-  edgeCases: "edge case", decisions: "decision", artefacts: "artefact",
+  principles: "principle", constraints: "constraint", decisions: "decision", artefacts: "artefact",
 };
 const hasContent = (x) =>
   typeof x === "string" ? !!x.trim() : Object.values(x).some((v) => typeof v === "string" && v.trim());
 
 const withScheme = (url) => (/^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`);
-const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 // List items are one line each in the file, so Enter shouldn't start a second line the save would
 // only collapse again.
 const singleLine = (e) => { if (e.key === "Enter" && !e.shiftKey) e.preventDefault(); };
 
-// The label column. 13px at the prose field's 1.5 line-height and 3px top padding puts its text on
-// the same baseline as the row's text. INK_SOFT, not INK_FAINT — these labels carry meaning.
-const LABEL_W = "88px";
-const labelText = { fontFamily: font, fontSize: SIZE.ui, lineHeight: 1.5, color: INK_SOFT, paddingTop: "3px" };
-// Numbers and bullets sit at the right of the label column, next to the text they mark, rather
-// than stranded 88px away at its left edge.
-const bullet = { width: "4px", height: "4px", borderRadius: "50%", background: INK_SOFT, marginTop: "11px", marginLeft: "auto" };
+// The gutter a row's marker sits in (PAPER.marker), right-hand-aligned against the text it marks
+// rather than stretched to the column, which is why a 4px bullet in it still reads as attached to
+// its line. + SPACE.base puts the text at 34px, Overview's checklist indent.
 
-// Label-column dropdown (priority, artefact type) and the artefact's authority: a real <select>,
-// so every option is visible and one click away, dressed as plain text (see .design-select).
-const labelSelect = { ...labelText, padding: "3px 0", minHeight: "26px", width: "100%" };
+// A principle's number: a step below the row's prose (PAPER.label under PAPER.body) so it reads as
+// the annotation it is, with the top padding set to put the two on a shared baseline — at 16px/1.6
+// in a field padded 4px the row's first baseline falls 24.3px down, and a 14px/1.6 number's falls
+// 17.8px, so it owes ~7px.
+const labelText = { fontFamily: font, fontSize: PAPER.label, lineHeight: PAPER.leading, color: INK_SOFT, paddingTop: "7px" };
+// Numbers and bullets sit at the right of their gutter, next to the text they mark rather than
+// stranded at its left edge. 15px centres the dot on the row's first line.
+const bullet = { width: "4px", height: "4px", borderRadius: "50%", background: INK_SOFT, marginTop: "15px", marginLeft: "auto" };
 
-// Same rhythm as Overview: eyebrow, 8px, content.
+// An artefact's link, on its own line under the title it belongs to — smaller and softer, the
+// way a citation sits under what it supports.
+const linkLine = {
+  fontFamily: font, fontSize: SIZE.ui, lineHeight: PAPER.leading,
+  padding: "2px 0", color: INK_SOFT,
+};
+
+// Same rhythm as Overview: eyebrow, 10px, content.
 function Section({ title, children }) {
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ ...eyebrow, minHeight: "16px", display: "flex", alignItems: "center" }}>{title}</div>
+    <section style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+      <Eyebrow style={{ minHeight: "18px", display: "flex", alignItems: "center" }}>{title}</Eyebrow>
       {children}
     </section>
   );
 }
 
-// One row: label column, text, trailing controls.
+// One row: marker gutter, text, trailing controls.
 function Row({ label, children, trailing }) {
   return (
-    <div className="reveal-group" style={{ display: "grid", gridTemplateColumns: `${LABEL_W} 1fr auto`, columnGap: SPACE.xl, alignItems: "start" }}>
+    <div className="reveal-group" style={{
+      display: "grid",
+      gridTemplateColumns: `${PAPER.marker} 1fr auto`,
+      columnGap: SPACE.base,
+      alignItems: "start",
+    }}>
       <div style={{ minWidth: 0 }}>{label}</div>
       <div style={{ minWidth: 0 }}>{children}</div>
-      <div style={{ display: "flex", alignItems: "center", gap: SPACE.base, minWidth: "24px", marginTop: "1px" }}>{trailing}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: SPACE.base, minWidth: "24px", marginTop: "3px" }}>{trailing}</div>
     </div>
   );
 }
 
-const rows = { display: "flex", flexDirection: "column", gap: SPACE.sm };
+const rows = { display: "flex", flexDirection: "column", gap: SPACE.md };
 
-// Same as ChecklistEditor's "+ Add".
+// Same as ChecklistEditor's "+ Add" — a ghost row at the foot of the list (see ui/PaperButton).
 function AddRow({ onClick }) {
   return (
-    <Button variant="subtle" onClick={onClick} style={{ alignSelf: "flex-start", marginTop: "4px", marginLeft: "-6px" }}>
-      <Plus size={16} /> Add
-    </Button>
+    <div style={{ marginTop: "2px" }}>
+      <PaperButton icon={Plus} onClick={onClick}>Add</PaperButton>
+    </div>
   );
 }
 
@@ -102,7 +113,7 @@ function RowText({ value, onChange, placeholder, label, autoFocus, className, st
   );
 }
 
-export default function DesignTab({ value, onChange, onToast, flow, flowHref }) {
+export default function DesignTab({ value, onChange, onToast }) {
   const [d, setD] = useState(() => parseDesign(value));
   // "section:index" of the row just added — it mounts with autoFocus, so you can type straight away.
   const [fresh, setFresh] = useState(null);
@@ -131,26 +142,20 @@ export default function DesignTab({ value, onChange, onToast, flow, flowHref }) 
     });
   };
 
-  // A quiet one-line summary of what's on the flow map, beside the link to it.
-  const useCaseCount = flow?.useCases?.length || 0;
-  const stepCount = flow?.steps?.length || 0;
-  const flowSummary = useCaseCount ? `${plural(useCaseCount, "use case")} · ${plural(stepCount, "step")}` : "";
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
-      {/* Use cases and their flows live solely on the flow map — this is only the way in. */}
-      {flowHref && (
-        <Section title="Flow map">
-          <div style={{ display: "flex", alignItems: "center", gap: SPACE.lg }}>
-            <a className="btn btn--sm btn--subtle" href={flowHref} style={{ textDecoration: "none", marginLeft: "-6px", color: INK_SOFT }}>
-              <Workflow size={16} /> Open flow map
-            </a>
-            {flowSummary && <span style={{ ...meta, color: INK_SOFT }}>{flowSummary}</span>}
-          </div>
-        </Section>
-      )}
+    <div style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
+      {/* What's being built, in your own words. Flush with the section headings, like Overview's
+          fields — it's the brief, and every section under it only qualifies it. */}
+      <Section title="Solution">
+        <AutoTextarea
+          className="prose-field" minRows={3} placeholder="What we're building, and how it works…"
+          aria-label="Solution" value={d.solution} onChange={(e) => set("solution", e.target.value)}
+        />
+      </Section>
 
-      <Section title="Principles">
+      <div style={{ height: "1px", backgroundColor: BORDER }} />
+
+      <Section title="Design principles">
         {d.principles.length > 0 && (
           <div style={rows}>
             {d.principles.map((p, i) => (
@@ -186,99 +191,45 @@ export default function DesignTab({ value, onChange, onToast, flow, flowHref }) 
         <AddRow onClick={() => append("constraints", "")} />
       </Section>
 
-      <div style={{ height: "1px", backgroundColor: BORDER }} />
-
-      <Section title="Edge cases">
-        {d.edgeCases.length > 0 && (
+      <Section title="Decisions">
+        {d.decisions.length > 0 && (
           <div style={rows}>
-            {d.edgeCases.map((e, i) => (
-              <Row key={i} label={<div aria-hidden="true" style={bullet} />} trailing={<RemoveBtn onClick={() => removeAt("edgeCases", i)} />}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 12px 1fr", columnGap: SPACE.xl, alignItems: "start" }}>
-                  <RowText
-                    value={e.when} onChange={(v) => patchAt("edgeCases", i, { when: v })}
-                    placeholder="When…" label={`Edge case ${i + 1}: when`} autoFocus={isFresh("edgeCases", i)}
-                  />
-                  <span aria-hidden="true" style={{ ...labelText, textAlign: "center" }}>→</span>
-                  <RowText
-                    className="design-then"
-                    value={e.then} onChange={(v) => patchAt("edgeCases", i, { then: v })}
-                    placeholder="Agent decides" label={`Edge case ${i + 1}: then`}
-                  />
-                </div>
+            {d.decisions.map((x, i) => (
+              <Row key={i} label={<div aria-hidden="true" style={bullet} />} trailing={<RemoveBtn onClick={() => removeAt("decisions", i)} />}>
+                <RowText
+                  value={x} onChange={(v) => patchAt("decisions", i, v)}
+                  placeholder="A decision…" label={`Decision ${i + 1}`} autoFocus={isFresh("decisions", i)}
+                />
               </Row>
             ))}
           </div>
         )}
-        <AddRow onClick={() => append("edgeCases", { when: "", then: "" })} />
+        <AddRow onClick={() => append("decisions", "")} />
       </Section>
 
-      <Section title="Decisions">
-        {d.decisions.length > 0 && (
-          <div style={{ ...rows, gap: SPACE.lg }}>
-            {d.decisions.map((x, i) => (
-              <div key={i} style={rows}>
-                {[["Decided", "decision", "What was decided…"], ["Because", "why", "Why…"], ["Rejected", "rejected", "What was rejected…"]].map(([label, key, ph], r) => (
-                  <Row
-                    key={key}
-                    label={<div style={labelText}>{label}</div>}
-                    trailing={r === 0 ? <RemoveBtn onClick={() => removeAt("decisions", i)} /> : null}
-                  >
-                    <AutoTextarea
-                      className="prose-field" minRows={1} placeholder={ph} aria-label={`Decision ${i + 1}: ${label}`}
-                      autoFocus={r === 0 && isFresh("decisions", i)}
-                      value={x[key]} onChange={(e) => patchAt("decisions", i, { [key]: e.target.value })}
-                      style={{ fontWeight: r === 0 ? WEIGHT.medium : WEIGHT.normal }}
-                    />
-                  </Row>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-        <AddRow onClick={() => append("decisions", { decision: "", why: "", rejected: "" })} />
-      </Section>
+      <div style={{ height: "1px", backgroundColor: BORDER }} />
 
       {/* Reference material last — it supports the intent above rather than leading it. */}
       <Section title="Artefacts">
         {d.artefacts.length > 0 && (
-          <div style={{ ...rows, gap: SPACE.md }}>
+          <div style={{ ...rows, gap: SPACE.lg }}>
             {d.artefacts.map((a, i) => (
               <Row
                 key={i}
-                label={
-                  <select
-                    className="design-select" aria-label="Artefact type"
-                    value={ARTEFACT_TYPES.includes(a.type) ? a.type : "link"}
-                    onChange={(e) => patchAt("artefacts", i, { type: e.target.value })}
-                    style={labelSelect}
-                  >
-                    {ARTEFACT_TYPES.map((t) => <option key={t} value={t}>{ARTEFACT_LABEL[t]}</option>)}
-                  </select>
-                }
+                label={<div aria-hidden="true" style={bullet} />}
                 trailing={<RemoveBtn onClick={() => removeAt("artefacts", i)} />}
               >
                 <RowText
                   value={a.title} onChange={(v) => patchAt("artefacts", i, { title: v })}
-                  placeholder="Title" label={`Artefact ${i + 1} title`} autoFocus={isFresh("artefacts", i)}
+                  placeholder="What it is…" label={`Artefact ${i + 1} title`} autoFocus={isFresh("artefacts", i)}
                 />
-                {/* Authority sits directly under the title it qualifies — it's what tells an agent
-                    how closely to follow this — then the link it points at. */}
+                {/* The link sits directly under the title it belongs to. */}
                 <div style={{ display: "flex", alignItems: "center", gap: SPACE.base, marginTop: "-2px" }}>
-                  <select
-                    className="design-select" aria-label="How closely an agent should follow this"
-                    value={a.authority} onChange={(e) => patchAt("artefacts", i, { authority: e.target.value })}
-                    // field-sizing: without it a select reserves its longest option's width, which
-                    // left a gap between "Background" and the link.
-                    style={{ ...labelSelect, width: "auto", fieldSizing: "content", fontSize: SIZE.sm, color: a.authority === "exact" ? INK : INK_SOFT, fontWeight: a.authority === "exact" ? WEIGHT.semibold : WEIGHT.normal }}
-                  >
-                    {Object.entries(AUTHORITIES).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-                  </select>
-                  <span aria-hidden="true" style={{ ...labelText, paddingTop: 0 }}>·</span>
                   <input
                     value={a.url} onChange={(e) => patchAt("artefacts", i, { url: e.target.value })}
                     placeholder="Paste a link…" aria-label={`Artefact ${i + 1} link`}
                     className="design-link"
-                    style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "none", padding: "3px 0", fontFamily: font, fontSize: SIZE.sm, color: INK_SOFT }}
+                    style={{ ...linkLine, flex: 1, minWidth: 0, border: "none", outline: "none", background: "none" }}
                   />
                   {a.url.trim() && (
                     <a
@@ -293,7 +244,7 @@ export default function DesignTab({ value, onChange, onToast, flow, flowHref }) 
             ))}
           </div>
         )}
-        <AddRow onClick={() => append("artefacts", { type: "link", title: "", url: "", authority: "context" })} />
+        <AddRow onClick={() => append("artefacts", { title: "", url: "" })} />
       </Section>
 
       {/* Always there — the catch-all for anything the sections above don't hold. */}

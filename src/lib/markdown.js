@@ -1,4 +1,3 @@
-import { flowOutline, normalizeFlow } from "./flowModel.js";
 
 // Frontmatter here is a single line of JSON between `---` fences, not YAML — the data is
 // always simple (strings/numbers/an array/a small object or null), so JSON's own
@@ -18,8 +17,17 @@ function stringifyFrontmatter(data, body) {
   return `---\n${JSON.stringify(data)}\n---\n${body}`;
 }
 
+// Pulls one `## Heading` section's body out of a spec.md.
+//
+// The whitespace after the heading is deliberately horizontal-only. It used to be `\s*\n`,
+// which for an *empty* section swallowed the blank line separating it from the next heading —
+// so the lookahead never saw `\n##`, and the section read back as the literal text of the
+// heading below it. An empty Goals came back as "## Non-goals", was written into the file on
+// the next save, and the duplicate compounded every round trip. Nothing surfaced it because
+// the file was rewritten identically-corrupted every 700ms; it only became visible once saves
+// started skipping unchanged files and this one refused to settle.
 function extractSection(body, heading) {
-  const re = new RegExp(`##\\s*${heading}\\s*\\n([\\s\\S]*?)(?=\\n##\\s|$)`, "i");
+  const re = new RegExp(`(?:^|\\n)##\\s*${heading}[^\\S\\n]*\\n([\\s\\S]*?)(?=\\n##\\s|$)`, "i");
   const match = body.match(re);
   return match ? match[1].trim() : "";
 }
@@ -262,26 +270,6 @@ export function markdownToSpec(content) {
     goals: extractSection(body, "Goals"),
     nonGoals: extractSection(body, "Non-goals"),
   };
-}
-
-// A spec's flow map (flow.md, see flowModel.js): the structure is the frontmatter, and the body is
-// a readable outline of every path — regenerated on each save and ignored on load, so it can never
-// drift from the data it describes.
-export function flowToMarkdown(flow) {
-  const f = normalizeFlow(flow);
-  const body = [
-    "# Flow map",
-    "",
-    "_Generated from the frontmatter on every save — edit the map in Monk (or the frontmatter), not this outline._",
-    "",
-    flowOutline(f) || "_No use cases yet._",
-    "",
-  ].join("\n");
-  return stringifyFrontmatter(f, body);
-}
-
-export function markdownToFlow(content) {
-  return normalizeFlow(parseFrontmatter(content).data);
 }
 
 // An initiative is a flat top-level record like a signal/insight/activity — title/status in

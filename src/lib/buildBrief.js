@@ -12,16 +12,16 @@
 // still unresolved gets surfaced as a stop condition, not folded into the background: silently
 // picking an answer and moving on is the one thing this brief explicitly rules out.
 import { parseDesign, designSections } from "./designModel.js";
-import { flowOutline, normalizeFlow } from "./flowModel.js";
+import { designSystemForBrief } from "./designSystem.js";
 
-// Each Design section tells the agent how to treat it — goals it can solve its own way, limits it
-// can't cross, cases it must cover, material to consult. This is what lets a spec state intent
-// rather than pixel instructions without the agent guessing where its latitude ends.
+// Each Design section tells the agent how to treat it — what to build, goals it can solve its own
+// way, limits it can't cross, material to consult. This is what lets a spec state intent rather
+// than pixel instructions without the agent guessing where its latitude ends.
 const DESIGN_FRAMING = {
-  artefacts: "Consult these. Each notes its authority: match exactly = reproduce it; follow direction = keep the intent, the execution is yours; background = context only.",
+  solution: "What to build. The sections below qualify this one; where they're silent, this is the brief.",
+  artefacts: "Consult these — they are the reference for what is described above.",
   principles: "Intent — optimise for these. How to achieve them is your call.",
   constraints: "Binding. Do not violate any of these; if one can't be met, stop and flag it.",
-  edgeCases: "Coverage — every item must be handled; treat them as test cases. Where no outcome is given, choose one and note what you chose.",
   decisions: "Settled. Do not reverse one without flagging it.",
   notes: "Background.",
 };
@@ -47,7 +47,7 @@ function renderChecklist(items, emptyText) {
   return list.map((it) => `- [${it.checked ? "x" : " "}] ${it.text}`).join("\n");
 }
 
-export function buildSpecBrief(spec, sections, initiative) {
+export function buildSpecBrief(spec, sections, initiative, designSystem = "") {
   const standards = sectionDocs(sections, "standards");
   const productKnowledge = sectionDocs(sections, "product-knowledge");
   const title = spec.title || "Untitled spec";
@@ -62,7 +62,7 @@ export function buildSpecBrief(spec, sections, initiative) {
     "flagged assumption) rather than deciding silently.",
     "",
     "## Standards",
-    "_Contracts to build to — design system, accessibility, and any other house rules below. Non-negotiable._",
+    "_Contracts to build to — accessibility and any other house rules below. Non-negotiable._",
     "",
     renderDocs(standards),
     "",
@@ -72,6 +72,23 @@ export function buildSpecBrief(spec, sections, initiative) {
     renderDocs(productKnowledge),
     "",
   ];
+
+  // The workspace's design system, if one has been written. It goes with Standards rather than
+  // with context because it is the same kind of thing — a contract, in a format an agent can read
+  // literally (github.com/google-labs-code/design.md) — and it belongs above the spec because it
+  // is true of everything built here, not just this feature. Guidance comments and unwritten
+  // sections are stripped first (see designSystem.js), so a skeleton nobody has filled in yet adds
+  // nothing rather than a contract made of placeholders.
+  const design = designSystemForBrief(designSystem);
+  if (design) {
+    lines.push(
+      "## Design system",
+      "_The visual language for everything in this product: tokens first, then the reasoning. Use these values rather than inventing your own, and where a component is specified, match it._",
+      "",
+      design.trim(),
+      "",
+    );
+  }
 
   if (initiative) {
     lines.push(
@@ -109,11 +126,6 @@ export function buildSpecBrief(spec, sections, initiative) {
   }
 
   lines.push(
-    "",
-    "### Use cases & flows",
-    "_Ranked — when use cases pull in different directions, the higher tier wins. Under each, its steps by stage and where each leads; a label in parentheses is the condition for that branch, and (back) marks a return to an earlier stage._",
-    "",
-    spec.flow && normalizeFlow(spec.flow).useCases.length ? flowOutline(normalizeFlow(spec.flow)) : "_(not written)_",
     "",
     "### Design",
     renderDesign(spec.design),

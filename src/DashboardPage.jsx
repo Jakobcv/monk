@@ -5,7 +5,7 @@ import {
   font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, CITED, SIZE, WEIGHT, SPACE, RADIUS,
   SPEC_STATUS_COLOR,
 } from "./lib/theme";
-import { pageHeading, eyebrow, meta } from "./ui/text";
+import { Eyebrow, Meta, PageHeading } from "./ui/text";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
 import Sparkline from "./ui/Sparkline";
@@ -16,6 +16,7 @@ import {
   INITIATIVE_STATUS_ORDER, acceptanceProgress, openQuestions, momentum, staleSpecs,
   recentlyTouched, relativeTime, countPerWeek, cumulative,
 } from "./lib/dashboardMetrics";
+import Page from "./ui/Page";
 
 const FUNNEL_COLOR = { signal: ACCENT.signal, insight: ACCENT.insight, spec: ACTIVITY, shipped: ACCENT.action };
 const INITIATIVE_COLOR = { active: ACCENT.action, paused: CITED, done: INK_FAINT };
@@ -29,8 +30,8 @@ const sum = (a) => a.reduce((x, y) => x + y, 0);
 function CardHead({ children, note }) {
   return (
     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: SPACE.base, marginBottom: SPACE.xl }}>
-      <div style={{ ...eyebrow, fontSize: SIZE.xs, letterSpacing: "0.07em" }}>{children}</div>
-      {note && <span style={{ ...meta, fontSize: SIZE.sm }}>{note}</span>}
+      <Eyebrow section>{children}</Eyebrow>
+      {note && <Meta style={{ fontSize: SIZE.sm }}>{note}</Meta>}
     </div>
   );
 }
@@ -39,10 +40,10 @@ function CardHead({ children, note }) {
 function Stat({ label, value, accent = INK, spark, sub }) {
   return (
     <Card padded style={{ flex: 1, minWidth: 0, padding: "18px 20px" }}>
-      <div style={{ ...eyebrow, fontSize: SIZE.xs, letterSpacing: "0.07em" }}>{label}</div>
+      <Eyebrow section>{label}</Eyebrow>
       <div style={{ ...NUM, fontSize: "44px", color: accent, marginTop: SPACE.base }}>{value}</div>
       {spark && <div style={{ marginTop: SPACE.md }}><Sparkline data={spark.data} color={spark.color} height={40} strokeWidth={2} /></div>}
-      {sub && <div style={{ ...meta, fontSize: SIZE.sm, marginTop: spark ? SPACE.md : SPACE.sm }}>{sub}</div>}
+      {sub && <Meta as="div" style={{ fontSize: SIZE.sm, marginTop: spark ? SPACE.md : SPACE.sm }}>{sub}</Meta>}
     </Card>
   );
 }
@@ -65,7 +66,7 @@ function MiniStat({ label, value, accent = INK }) {
   return (
     <div style={{ flex: 1, minWidth: "120px" }}>
       <div style={{ ...NUM, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: accent }}>{value}</div>
-      <div style={{ ...meta, fontSize: SIZE.sm, marginTop: "3px" }}>{label}</div>
+      <Meta as="div" style={{ fontSize: SIZE.sm, marginTop: "3px" }}>{label}</Meta>
     </div>
   );
 }
@@ -131,7 +132,7 @@ export default function DashboardPage({ signals = [], insights = [], activities 
       <CardHead note={`${pct(syn.synthesisRate)} synthesised`}>Signal synthesis</CardHead>
       <div style={{ display: "flex", alignItems: "baseline", gap: SPACE.md, marginBottom: SPACE.lg }}>
         <span style={{ ...NUM, fontSize: "44px", color: syn.unsynthesized > 0 ? CITED : ACCENT.action }}>{syn.unsynthesized}</span>
-        <span style={{ ...meta, fontSize: SIZE.body }}>of {syn.totalSignals} signals not yet in an insight</span>
+        <Meta style={{ fontSize: SIZE.body }}>of {syn.totalSignals} signals not yet in an insight</Meta>
       </div>
       <div style={{ display: "flex", height: "14px", borderRadius: RADIUS.pill, overflow: "hidden", background: "var(--bg-hover)" }}>
         {[{ v: syn.synthesized, c: ACCENT.insight }, { v: syn.unsynthesized, c: "var(--border-strong)" }].map((s, i) => s.v > 0 && (
@@ -169,7 +170,7 @@ export default function DashboardPage({ signals = [], insights = [], activities 
             segments={specStatus.map((s) => ({ value: s.value, color: SPEC_STATUS_COLOR[s.key] }))}
             center={<>
               <span style={{ ...NUM, fontSize: "26px", color: INK }}>{data.specs.length}</span>
-              <span style={{ ...meta, fontSize: SIZE.sm }}>specs</span>
+              <Meta style={{ fontSize: SIZE.sm }}>specs</Meta>
             </>}
           />
           <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md, minWidth: "120px" }}>
@@ -199,7 +200,7 @@ export default function DashboardPage({ signals = [], insights = [], activities 
         sub={oq.open > 0 ? `unresolved across ${oq.specs} spec${oq.specs === 1 ? "" : "s"}` : "nothing outstanding"}
       />
       <Card padded style={{ flex: 1, minWidth: 0, padding: "18px 20px" }}>
-        <div style={{ ...eyebrow, fontSize: SIZE.xs, letterSpacing: "0.07em", marginBottom: SPACE.lg }}>Initiatives</div>
+        <Eyebrow section style={{ marginBottom: SPACE.lg }}>Initiatives</Eyebrow>
         <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md }}>
           {iniStatus.map((s) => <LegendRow key={s.key} big color={INITIATIVE_COLOR[s.key]} label={s.key} value={s.value} />)}
         </div>
@@ -209,13 +210,13 @@ export default function DashboardPage({ signals = [], insights = [], activities 
     <Card key="stale" padded style={{ padding: "22px 24px" }}>
       <CardHead>Stale active specs</CardHead>
       {stale.length === 0 ? (
-        <div style={{ ...meta, fontSize: SIZE.body, lineHeight: 1.5 }}>Every active spec was touched in the last three weeks.</div>
+        <Meta as="div" style={{ fontSize: SIZE.body, lineHeight: 1.5 }}>Every active spec was touched in the last three weeks.</Meta>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md }}>
           {stale.slice(0, 6).map((s) => (
             <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.lg, fontFamily: font, fontSize: SIZE.body }}>
               <span style={{ color: INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title || "Untitled spec"}</span>
-              <span style={{ ...meta, fontSize: SIZE.sm, flexShrink: 0 }}>{relativeTime(s.updatedAt, now)}</span>
+              <Meta style={{ fontSize: SIZE.sm, flexShrink: 0 }}>{relativeTime(s.updatedAt, now)}</Meta>
             </div>
           ))}
         </div>
@@ -228,35 +229,37 @@ export default function DashboardPage({ signals = [], insights = [], activities 
         {recent.map((r, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: SPACE.md, fontFamily: font, fontSize: SIZE.body }}>
             <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: KIND_COLOR[r.kind] || INK_FAINT, flexShrink: 0 }} />
-            <span style={{ ...meta, fontSize: SIZE.xs, width: "58px", flexShrink: 0, textTransform: "capitalize" }}>{r.kind}</span>
+            <Meta style={{ fontSize: SIZE.xs, width: "58px", flexShrink: 0, textTransform: "capitalize" }}>{r.kind}</Meta>
             <span style={{ color: INK, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.label}</span>
-            <span style={{ ...meta, fontSize: SIZE.sm, flexShrink: 0 }}>{relativeTime(r.updatedAt, now)}</span>
+            <Meta style={{ fontSize: SIZE.sm, flexShrink: 0 }}>{relativeTime(r.updatedAt, now)}</Meta>
           </div>
         ))}
       </div>
     </Card>,
   ];
 
+  // No background: every page takes the app ground from body (see lib/theme.js). This page
+  // painted itself white, which put fourteen white cards on a white page.
   return (
-    <div style={{ height: "100%", overflowY: "auto", boxSizing: "border-box", padding: "36px 40px 64px", background: "var(--bg)" }}>
+    <Page>
       <div style={{ maxWidth: "760px", margin: "0 auto" }}>
         <div className="enter-up" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: SPACE.lg, flexWrap: "wrap", marginBottom: "28px" }}>
           <div>
-            <h1 style={{ ...pageHeading, fontSize: "26px", letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: SPACE.base }}>
+            <PageHeading style={{ fontSize: "26px", letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: SPACE.base }}>
               Overview
               {sample && (
                 <button
                   onClick={() => !demo && setSample(false)}
                   title={demo ? "Sample data" : "Switch back to your data"}
-                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", ...meta, fontSize: SIZE.xs, color: ACCENT.insight, background: "none", border: `1px solid ${ACCENT.insight}44`, borderRadius: RADIUS.pill, padding: "2px 9px", cursor: demo ? "default" : "pointer" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontFamily: font, fontSize: SIZE.xs, color: ACCENT.insight, background: "none", border: `1px solid ${ACCENT.insight}44`, borderRadius: RADIUS.pill, padding: "2px 9px", cursor: demo ? "default" : "pointer" }}
                 >
                   <Sparkles size={11} /> Sample data{!demo && " ✕"}
                 </button>
               )}
-            </h1>
-            <div style={{ ...meta, fontSize: SIZE.sm, marginTop: "6px" }}>
+            </PageHeading>
+            <Meta as="div" style={{ fontSize: SIZE.sm, marginTop: "6px" }}>
               {inv.specs} specs · {inv.signals} signals · {inv.insights} insights · {inv.activities} activities
-            </div>
+            </Meta>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: SPACE.lg }}>
             {!sample && (
@@ -284,7 +287,7 @@ export default function DashboardPage({ signals = [], insights = [], activities 
           ))}
         </div>
       </div>
-    </div>
+    </Page>
   );
 }
 

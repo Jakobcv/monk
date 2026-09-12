@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { FolderOpen } from "lucide-react";
-import { loadWorkspace, saveWorkspace } from "./lib/storage";
+import { FolderOpen, RefreshCw, FileText } from "lucide-react";
+import { loadWorkspace, saveWorkspace, watchWorkspace, canWatchWorkspace, entityIdsFor, ensureAgentGuides, addAgentSection, createWorkspaceDoc, removeWorkspaceDoc } from "./lib/storage";
+import { WORKSPACE_DOCS, workspaceDocById } from "./lib/workspaceDocs";
 import { blankBoard, bumpNextId } from "./lib/boardModel";
 import { blankSection, blankDocument, ensureFixedSections, isFixedSection } from "./lib/documentModel";
 import { blankSpec } from "./lib/specModel";
@@ -12,6 +13,7 @@ import { font, INK, INK_SOFT, SIZE, WEIGHT, SPACE } from "./lib/theme";
 import { insertAt } from "./lib/arrays";
 import Button from "./ui/Button";
 import Toast from "./ui/Toast";
+import Notice from "./ui/Notice";
 import Header from "./Header";
 import Home from "./Home";
 import DashboardPage from "./DashboardPage";
@@ -19,14 +21,14 @@ import ResearchRepositoryPage from "./ResearchRepositoryPage";
 import Sidebar from "./Sidebar";
 import Breadcrumbs from "./Breadcrumbs";
 import DocumentPage from "./DocumentPage";
+import WorkspaceDocPage from "./WorkspaceDocPage";
 import SpecsPage from "./SpecsPage";
 import SpecPage from "./SpecPage";
 import InitiativePage from "./InitiativePage";
 import ActivityPage from "./ActivityPage";
 import DesignTab from "./DesignTab";
-import FlowMap from "./FlowMap";
-import { SAMPLE_FLOW } from "./lib/sampleFlow";
 import Board from "./Board";
+import Page from "./ui/Page";
 import { SAMPLE_DESIGN_MD } from "./lib/sampleDesign";
 
 const DOC_PREFIX = "#/doc/";
@@ -36,6 +38,7 @@ const SPECS_ROUTE = "#/specs";
 const SPEC_PREFIX = "#/spec/";
 const INITIATIVE_PREFIX = "#/initiative/";
 const ACTIVITY_PREFIX = "#/activity/";
+const WORKSPACE_DOC_PREFIX = "#/workspace/";
 
 // href builders — the single source for every route string. Nav renders these as real
 // `<a href>` (so Cmd/Ctrl/middle-click open a new tab); `goTo*` just assigns the same string
@@ -46,7 +49,6 @@ const hrefDocument = (sectionId, docId) => DOC_PREFIX + encodeURIComponent(secti
 const hrefSpecs = () => SPECS_ROUTE;
 const hrefSpec = (id) => SPEC_PREFIX + encodeURIComponent(id);
 const hrefSpecDesign = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/design";
-const hrefSpecFlow = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/flow";
 
 // A card id from a deep link. Signal and insight ids are text (UUIDs); action and result ids are
 // numbers — and the board compares ids with ===, so an all-digit id has to come back as a number
@@ -61,6 +63,7 @@ const hrefSpecPlan = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/plan";
 const hrefSpecDiscovery = (id, cardId) => SPEC_PREFIX + encodeURIComponent(id) + "/discovery" + (cardId != null ? "/" + encodeURIComponent(cardId) : "");
 const hrefInitiative = (id) => INITIATIVE_PREFIX + encodeURIComponent(id);
 const hrefActivity = (id) => ACTIVITY_PREFIX + encodeURIComponent(id);
+const hrefWorkspaceDoc = (id) => WORKSPACE_DOC_PREFIX + encodeURIComponent(id);
 // Research Repository keeps its search query + kind filter in the URL so a filtered view is
 // linkable and survives a refresh.
 const hrefResearch = (q, kind) => {
@@ -108,7 +111,7 @@ function useRoute() {
   if (hash.startsWith(SPEC_PREFIX)) {
     const [idRaw, sub, cardIdRaw] = hash.slice(SPEC_PREFIX.length).split("/");
     return {
-      name: sub === "design" ? "specDesign" : sub === "flow" ? "specFlow" : sub === "plan" ? "specPlan" : sub === "discovery" ? "specDiscovery" : "spec",
+      name: sub === "design" ? "specDesign" : sub === "plan" ? "specPlan" : sub === "discovery" ? "specDiscovery" : "spec",
       id: decodeURIComponent(idRaw),
       cardId: parseCardId(cardIdRaw),
     };
@@ -119,6 +122,15 @@ function useRoute() {
   if (hash.startsWith(ACTIVITY_PREFIX)) {
     return { name: "activity", id: decodeURIComponent(hash.slice(ACTIVITY_PREFIX.length)) };
   }
+  if (hash.startsWith(WORKSPACE_DOC_PREFIX)) {
+    return { name: "workspaceDoc", id: decodeURIComponent(hash.slice(WORKSPACE_DOC_PREFIX.length)) };
+  }
+  if (hash === "#/workspace-doc-preview") {
+    return { name: "workspaceDocPreview" };
+  }
+  if (hash === "#/research-preview") {
+    return { name: "researchPreview" };
+  }
   if (hash === "#/dashboard-preview") {
     return { name: "dashboardPreview" };
   }
@@ -128,8 +140,8 @@ function useRoute() {
   if (hash === "#/design-preview") {
     return { name: "designPreview" };
   }
-  if (hash === "#/flow-preview") {
-    return { name: "flowPreview" };
+  if (hash === "#/spec-preview" || hash.startsWith("#/spec-preview/")) {
+    return { name: "specPreview", tab: hash.split("/")[2] || "overview" };
   }
   if (hash === "#/board-preview" || hash.startsWith("#/board-preview/")) {
     return { name: "boardPreview", cardId: parseCardId(hash.split("/")[2]) };
@@ -137,25 +149,140 @@ function useRoute() {
   return { name: "home" };
 }
 
-// The real flow map on sample data, for the DEV-only #/flow-preview route (the sandboxed preview
-// can't open a workspace). The current flow lands on window.__flow and the last toast on
-// window.__lastToast, for inspection.
-function FlowPreviewDemo() {
-  const [flow, setFlow] = useState(SAMPLE_FLOW);
-  useEffect(() => { window.__flow = flow; }, [flow]);
-  return <FlowMap flow={flow} onChange={setFlow} onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }} />;
-}
-
-// The real Design tab on sample content (#/design-preview), with the sample flow behind its
-// "Open flow map" summary. The serialized design.md lands on window.__designMd; the link goes to
-// the flow preview.
+// The real Solution tab on sample content (#/design-preview). The serialized design.md lands on
+// window.__designMd, and the last toast on window.__lastToast, for inspection.
 function DesignPreviewDemo() {
   return (
     <DesignTab
       value={SAMPLE_DESIGN_MD}
       onChange={(md) => { window.__designMd = md; }}
       onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
-      flow={SAMPLE_FLOW} flowHref="#/flow-preview"
+    />
+  );
+}
+
+// The whole spec page — header, tabs, metadata sidebar and all four panels — on sample content,
+// for the DEV-only #/spec-preview route (a sandboxed preview can't open a workspace folder). This
+// is where the writing tabs get looked at: Overview, Design and Plan are the app's paper surface,
+// and the only way to judge one is next to the chrome that frames it. The spec lands on
+// window.__spec after every edit.
+const PREVIEW_SPEC = {
+  id: "preview",
+  title: "Bulk export of evidence",
+  status: "active",
+  owner: "Jakob",
+  initiativeId: "ini-preview",
+  problem:
+    "Teams can read an insight on screen but can't get it anywhere else. When a researcher needs to "
+    + "put evidence in front of a stakeholder — a deck, a doc, a ticket — they retype it by hand, and "
+    + "the link back to the signals that produced it is lost in the copy.",
+  goals:
+    "Any insight, with the signals behind it, leaves the app in one gesture and arrives somewhere "
+    + "else still readable and still attributed.",
+  nonGoals:
+    "Scheduled or recurring exports. Anything that needs a server. Export of a whole board — the "
+    + "unit is the insight.",
+  openQuestions: [
+    { text: "Does a shared export need to keep working after the board changes?", checked: false },
+    { text: "Markdown only, or is PDF worth the weight?", checked: true },
+  ],
+  acceptanceCriteria: [
+    { text: "Export is reachable from the insight card without opening it", checked: true },
+    { text: "The copied text pastes cleanly into Notion, Slack and a Google Doc", checked: true },
+    { text: "Every quoted signal carries its activity and date", checked: false },
+    { text: "The whole flow is operable from the keyboard", checked: false },
+  ],
+  board: blankBoard(),
+  design: SAMPLE_DESIGN_MD,
+  plan: `# Plan
+
+## 1. Serializer
+
+Pull the insight-to-markdown shaping out of the card body and into \`lib/exportInsight.js\`, so the dialog and the clipboard path share one implementation and there is exactly one place where the output format is decided.
+
+## 2. The dialog
+
+Reuse \`Modal\` + \`DialogActions\`. Three choices — clipboard, file, plain text — with a live preview of what's about to leave the app, because nobody should have to paste something to find out what it looks like.
+
+## 3. Attribution
+
+Each quoted signal keeps its activity name and date. This is the part that makes an export worth trusting, so it is not optional and not a setting.
+
+## Open risks
+
+- Long signal bodies make the preview unwieldy; may need a collapse at ~6 lines.
+- Clipboard permission is refused in some embedded contexts — fall back to a download.
+`,
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+};
+
+function SpecPreviewDemo({ tab }) {
+  const [spec, setSpec] = useState(PREVIEW_SPEC);
+  useEffect(() => { window.__spec = spec; }, [spec]);
+  const noop = () => {};
+  return (
+    <SpecPage
+      key="preview"
+      spec={spec}
+      onChange={(patch) => setSpec((prev) => ({ ...prev, ...patch }))}
+      activeTab={tab}
+      tabHref={(t) => `#/spec-preview/${t}`}
+      breadcrumbs={[{ label: "product-research", icon: FolderOpen }, { label: "Specs" }, { label: spec.title }]}
+      initiatives={[{ id: "ini-preview", title: "Evidence anywhere" }]}
+      boards={[]} signals={[]} insights={[]} activities={[]} sections={[]}
+      onOpenBoard={noop} onUpdateSignal={noop} onCreateSignal={noop}
+      onUpdateInsight={noop} onCreateInsight={noop}
+      onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
+      highlightCardId={null}
+    />
+  );
+}
+
+// The workspace document page with no folder behind it (#/workspace-doc-preview): starts with no
+// file, so both states — the Create button and the editor — can be looked at. The text lands on
+// window.__workspaceDoc after every change.
+function WorkspaceDocPreviewDemo() {
+  const doc = WORKSPACE_DOCS[0];
+  const [text, setText] = useState(null);
+  useEffect(() => { window.__workspaceDoc = text; }, [text]);
+  return (
+    <WorkspaceDocPage
+      doc={doc}
+      text={text}
+      onCreate={() => setText(doc.template({ workspaceName: "product-research" }))}
+      onChange={setText}
+      onRemove={() => setText(null)}
+    />
+  );
+}
+
+// Research Repository on mock data (#/research-preview) — the sandboxed preview can't open a
+// workspace folder. One deliberately long signal is added so the fixed-height card's clamp has
+// something to clamp. Signal edits land in local state; everything else is inert.
+function ResearchPreviewDemo() {
+  const [ws, setWs] = useState(() => {
+    const mock = mockWorkspace(1);
+    const now = Date.now();
+    const long = {
+      ...mock.signals[0],
+      id: "preview-long-signal",
+      text: "Three of the five researchers we spoke to keep a separate spreadsheet of quotes, because they don't trust that a signal will still be findable once it has been linked into a spec. Two of them said they re-read the whole board before every planning meeting just to be sure nothing was lost, and one described the search as \"only useful if you already remember the exact wording\".",
+      date: now, createdAt: now, updatedAt: now,
+    };
+    return { ...mock, signals: [long, ...mock.signals] };
+  });
+  const updateSignal = (id, patch) =>
+    setWs((prev) => ({ ...prev, signals: prev.signals.map((s) => (s.id === id ? { ...s, ...patch } : s)) }));
+  const noop = () => {};
+  return (
+    <ResearchRepositoryPage
+      boards={ws.specs.map((s) => ({ ...s.board, specTitle: s.title }))}
+      specs={ws.specs} signals={ws.signals} insights={ws.insights} activities={ws.activities}
+      initialQuery="" initialKind="all" onNavigate={noop}
+      activityHref={hrefActivity} specDiscoveryHref={hrefSpecDiscovery}
+      onCreateSignal={noop} onCreateActivity={noop} onCreateInsight={noop}
+      onUpdateSignal={updateSignal} onDeleteSignal={noop} onUpdateInsight={noop} onDeleteInsight={noop}
     />
   );
 }
@@ -195,6 +322,10 @@ export default function App() {
   const [dirHandle, setDirHandle] = useState(null);
   const [pendingHandle, setPendingHandle] = useState(null);
   const [saveStatus, setSaveStatus] = useState("idle");
+  // Workspace documents by id (lib/workspaceDocs.js) — DESIGN.md today. `null` or absent means the
+  // file doesn't exist; a string, even an empty one, means it does.
+  const [workspaceDocs, setWorkspaceDocs] = useState({});
+  const [loadError, setLoadError] = useState(null);
   const [sections, setSections] = useState([]);
   const [specs, setSpecs] = useState([]);
   const [signals, setSignals] = useState([]);
@@ -237,18 +368,28 @@ export default function App() {
         setInsights(record.insights);
         setActivities(record.activities);
         setInitiatives(record.initiatives);
+        setWorkspaceDocs(record.docs || {});
+        setPhase("ready");
       })
       .catch((err) => {
-        console.error("Failed to load the research folder:", err);
-      })
-      .finally(() => {
+        // Never fall through to "ready" on a failure. "Ready" means the app is showing what is on
+        // disk, and autosave believes it: an empty workspace reached that way reads as "delete
+        // everything". A load that did not finish has to be its own dead end, with nothing
+        // written until someone retries it.
         if (cancelled) return;
-        setPhase("ready");
+        console.error("Failed to load the research folder:", err);
+        setLoadError(err);
+        setPhase("loadFailed");
       });
     return () => { cancelled = true; };
   }, [phase, dirHandle]);
 
-  const workspace = useMemo(() => ({ sections, specs, signals, insights, activities, initiatives }), [sections, specs, signals, insights, activities, initiatives]);
+  const workspace = useMemo(() => ({ sections, specs, signals, insights, activities, initiatives, docs: workspaceDocs }), [sections, specs, signals, insights, activities, initiatives, workspaceDocs]);
+
+  // The one case where yanking the page out from under someone would be wrong: they are typing
+  // into the very thing that just changed. Then we don't remount — we say so and let them choose.
+  const [staleId, setStaleId] = useState(null);
+  const openEntityRef = useRef(null);
 
   // debounced autosave: skip the one save that would otherwise immediately re-write the
   // data we just loaded from disk
@@ -257,20 +398,40 @@ export default function App() {
     if (skipNextSaveRef.current) { skipNextSaveRef.current = false; return; }
     setSaveStatus("saving");
     const t = setTimeout(() => {
-      saveWorkspace(dirHandle, workspace).then(
-        () => setSaveStatus("saved"),
+      // The entity behind an unresolved "changed on disk" notice is not written until you
+      // pick a version — see the `hold` note in saveWorkspace.
+      saveWorkspace(dirHandle, workspace, { hold: staleId ? [staleId] : [] }).then(
+        (conflicts) => {
+          setSaveStatus(conflicts.length ? "conflict" : "saved");
+          if (conflicts.length) {
+            console.warn("Left alone — edited outside the app since we last wrote:", conflicts);
+            // The folder is now ahead of what's on screen for those files. Pulling them back in
+            // is exactly what the watcher does, and it is about to: the conflicting file differs
+            // from the ledger, so it counts as an external change.
+          }
+        },
         (err) => { console.error("Failed to save the research folder:", err); setSaveStatus("error"); }
       );
     }, 700);
     return () => clearTimeout(t);
-  }, [phase, dirHandle, workspace]);
+  }, [phase, dirHandle, workspace, staleId]);
 
-  const retrySave = () => {
+  // Retrying the write on its own could never fix the thing that actually goes wrong here: the
+  // folder permission lapses mid-session — Chrome drops it on its own schedule — and from then on
+  // every autosave fails while your edits live only in memory. Reload at that point and they are
+  // gone. So Retry re-asks for permission first. It can: this runs from a click, and
+  // requestPermission needs exactly that user gesture, which is why it belongs here rather than
+  // in the autosave path that has none.
+  const retrySave = async () => {
     setSaveStatus("saving");
-    saveWorkspace(dirHandle, workspace).then(
-      () => setSaveStatus("saved"),
-      (err) => { console.error("Failed to save the research folder:", err); setSaveStatus("error"); }
-    );
+    try {
+      if (!(await reconnectHandle(dirHandle))) { setSaveStatus("error"); return; }
+      const conflicts = await saveWorkspace(dirHandle, workspace, { hold: staleId ? [staleId] : [] });
+      setSaveStatus(conflicts.length ? "conflict" : "saved");
+    } catch (err) {
+      console.error("Failed to save the research folder:", err);
+      setSaveStatus("error");
+    }
   };
 
   const handleConnect = async () => {
@@ -298,6 +459,7 @@ export default function App() {
       setInsights([]);
       setActivities([]);
       setInitiatives([]);
+      setWorkspaceDocs({});
       setDirHandle(handle);
       setPhase("loading");
       goToStart();
@@ -308,6 +470,152 @@ export default function App() {
 
   const showToast = (message, onUndo) => setToast({ id: Date.now(), message, onUndo });
   const dismissToast = () => setToast(null);
+
+  // A per-entity revision, bumped when that entity's files change on disk.
+  //
+  // Every detail page copies its fields into local state on mount and is re-seeded only by
+  // remounting — that's what lets you type in one without every keystroke round-tripping through
+  // the app, and it's also why simply putting fresh data in state leaves an open page showing the
+  // old text. The revision rides in the page's `key`, so an entity that changed underneath us
+  // remounts and re-reads, and one that didn't is left alone mid-edit.
+  const [diskRev, setDiskRev] = useState({});
+  const revKey = (id) => `${id}:${diskRev[id] || 0}`;
+  const bumpRev = (ids) => setDiskRev((prev) => {
+    const next = { ...prev };
+    for (const id of ids) next[id] = (next[id] || 0) + 1;
+    return next;
+  });
+
+
+  // On attach: make sure an agent landing here cold finds the schema (MONK.md) and a briefing.
+  // Where the folder already has an AGENTS.md or CLAUDE.md of its own we write nothing and ask
+  // instead — see ensureAgentGuides. A "no" is remembered per folder, so it is a question, not a
+  // recurring prompt.
+  const [agentGuide, setAgentGuide] = useState(null);
+  const declinedKey = dirHandle ? `monk:agents-declined:${dirHandle.name}` : null;
+
+  useEffect(() => {
+    if (phase !== "ready" || !dirHandle) return;
+    let cancelled = false;
+    ensureAgentGuides(dirHandle)
+      .then((result) => {
+        if (cancelled || result.created || result.linked || !result.existing) return;
+        let declined = false;
+        try { declined = localStorage.getItem(declinedKey) === "1"; } catch { /* private mode */ }
+        if (!declined) setAgentGuide(result.existing);
+      })
+      .catch((err) => console.error("Couldn't write the agent guides:", err));
+    return () => { cancelled = true; };
+  }, [phase, dirHandle, declinedKey]);
+
+  const acceptAgentSection = () => {
+    const name = agentGuide;
+    setAgentGuide(null);
+    addAgentSection(dirHandle, name)
+      .then(() => showToast(`Added a Monk section to ${name}`))
+      .catch((err) => { console.error("Couldn't update " + name + ":", err); showToast(`Couldn't update ${name}`); });
+  };
+
+  const declineAgentSection = () => {
+    setAgentGuide(null);
+    try { localStorage.setItem(declinedKey, "1"); } catch { /* private mode — ask again next time */ }
+  };
+
+  // Any navigation retires the cue. The page it was protecting unmounts on the way out and
+  // re-seeds from current data on the way back, so by then the offer to load a newer version
+  // would be describing something that has already happened. Cleared from the event rather than
+  // from an effect on the route: this is a thing that happens *when you navigate*, not a value
+  // derived from where you are.
+  useEffect(() => {
+    const clear = () => setStaleId(null);
+    window.addEventListener("hashchange", clear);
+    return () => window.removeEventListener("hashchange", clear);
+  }, []);
+
+
+  // Someone else — an agent, an editor, a git checkout — writing into the connected folder.
+  // `watchWorkspace` waits for the writing to stop before telling us, so a run that touches six
+  // files arrives as one reload rather than six. We re-read the whole workspace rather than
+  // patching the changed paths in: loading is what the app already knows how to do, and a burst
+  // that adds a spec, edits two others and rewrites a board is one coherent state, not four.
+  //
+  // `skipNextSaveRef` matters here as much as it does on connect — without it the state we just
+  // adopted from disk would immediately be written back over the top of it.
+  useEffect(() => {
+    if (phase !== "ready" || !dirHandle) return;
+    if (!canWatchWorkspace()) {
+      // Chromium has FileSystemObserver; other engines that support the File System Access API
+      // may not. Everything else still works — the folder just won't refresh on its own.
+      console.info("This browser can't watch the research folder; changes made outside the app will appear on reload.");
+      return;
+    }
+    return watchWorkspace(dirHandle, (changed) => {
+      loadWorkspace(dirHandle)
+        .then((record) => {
+          skipNextSaveRef.current = true;
+          bumpNextId(record.specs.map((s) => s.board));
+          setSections(ensureFixedSections(record.sections));
+          setSpecs(record.specs);
+          setSignals(record.signals);
+          setInsights(record.insights);
+          setActivities(record.activities);
+          setInitiatives(record.initiatives);
+          setWorkspaceDocs(record.docs || {});
+          setSaveStatus("saved");
+
+          const touched = entityIdsFor(changed);
+          const open = openEntityRef.current;
+          const typingHere = open
+            && touched.has(open)
+            && document.activeElement
+            && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
+          if (typingHere) {
+            touched.delete(open);
+            setStaleId(open);
+          }
+          bumpRev(touched);
+          showToast(changed.length === 1 ? "Updated from disk" : `Updated ${changed.length} files from disk`);
+        })
+        .catch((err) => console.error("Failed to re-read the research folder:", err));
+    });
+  }, [phase, dirHandle]);
+
+  // Workspace documents (DESIGN.md today — see lib/workspaceDocs.js). Creating and removing one are
+  // explicit calls into storage, not state changes an autosave infers: a save only ever updates a
+  // file that already exists, so neither can happen by accident.
+  const createWorkspaceDocument = async (id, content) => {
+    const doc = workspaceDocById(id);
+    if (!doc || !dirHandle) return;
+    try {
+      const result = await createWorkspaceDoc(dirHandle, id, content ?? doc.template({ workspaceName: dirHandle.name }));
+      setWorkspaceDocs((prev) => ({ ...prev, [id]: result.text }));
+      bumpRev([id]);
+      if (!result.created) showToast(`${doc.file} already existed, so it was opened instead`);
+    } catch (err) {
+      console.error(`Couldn't create ${doc.file}:`, err);
+      showToast(`Couldn't create ${doc.file}`);
+    }
+  };
+  const updateWorkspaceDocument = (id, text) => setWorkspaceDocs((prev) => ({ ...prev, [id]: text }));
+  const removeWorkspaceDocument = async (id) => {
+    const doc = workspaceDocById(id);
+    const text = workspaceDocs[id];
+    if (!doc || !dirHandle || typeof text !== "string") return;
+    try {
+      const result = await removeWorkspaceDoc(dirHandle, id);
+      if (result === "conflict") {
+        showToast(`${doc.file} changed on disk, so it wasn't removed`);
+        return;
+      }
+      setWorkspaceDocs((prev) => ({ ...prev, [id]: null }));
+      // Undo writes back what was on screen, unsaved typing included — and like any create, yields
+      // to a file that has appeared in the meantime.
+      showToast(`Removed ${doc.file}`, () => createWorkspaceDocument(id, text));
+    } catch (err) {
+      console.error(`Couldn't remove ${doc.file}:`, err);
+      showToast(`Couldn't remove ${doc.file}`);
+    }
+  };
 
   const createSection = () => setSections((prev) => [...prev, blankSection()]);
   // Product Knowledge and Standards are fixed — the Sidebar itself doesn't offer rename/delete
@@ -355,7 +663,7 @@ export default function App() {
     );
   };
 
-  const isSpecRoute = route.name === "spec" || route.name === "specDesign" || route.name === "specFlow" || route.name === "specPlan" || route.name === "specDiscovery";
+  const isSpecRoute = route.name === "spec" || route.name === "specDesign" || route.name === "specPlan" || route.name === "specDiscovery";
 
   const createSpec = (initiativeId = null) => {
     const spec = blankSpec("Untitled spec", initiativeId);
@@ -561,7 +869,8 @@ export default function App() {
   // The initiative a spec belongs to (if any) — its title threads into the spec's breadcrumb.
   const specInitiative = activeSpec ? initiatives.find((i) => i.id === activeSpec.initiativeId) : null;
   const activeActivity = route.name === "activity" ? activities.find((a) => a.id === route.id) : null;
-  const activeSpecTab = route.name === "specDesign" ? "design" : route.name === "specFlow" ? "flow" : route.name === "specPlan" ? "plan" : route.name === "specDiscovery" ? "discovery" : "overview";
+  const activeWorkspaceDoc = route.name === "workspaceDoc" ? workspaceDocById(route.id) : null;
+  const activeSpecTab = route.name === "specDesign" ? "design" : route.name === "specPlan" ? "plan" : route.name === "specDiscovery" ? "discovery" : "overview";
   // Boards are never their own top-level thing anymore — this is the flat, board-shaped view
   // every cross-spec reference (`resolveRef`) and the Research Repository search need, each
   // one labeled with the spec that owns it since a board carries no name of its own.
@@ -575,6 +884,7 @@ export default function App() {
     : (route.name === "specs" || isSpecRoute || route.name === "initiative") ? { type: "specs" }
     : (route.name === "research" || route.name === "activity") ? { type: "research" }
     : route.name === "dashboard" ? { type: "dashboard" }
+    : route.name === "workspaceDoc" ? { type: "workspaceDoc", id: route.id }
     : { type: "home" };
 
   // Every trail is rooted in the folder the data actually lives in — everything below it is a
@@ -606,10 +916,7 @@ export default function App() {
         folderCrumb,
         { label: "Specs", href: hrefSpecs() },
         ...(specInitiative ? [{ label: specInitiative.title || "Untitled initiative", href: hrefInitiative(specInitiative.id) }] : []),
-        // The flow map sits under the spec's Design tab, so its trail links back there.
-        ...(route.name === "specFlow" && activeSpec
-          ? [{ label: activeSpec.title || "Untitled spec", href: hrefSpecDesign(activeSpec.id) }, { label: "Flow map" }]
-          : [{ label: activeSpec ? (activeSpec.title || "Untitled spec") : "Spec not found" }]),
+        { label: activeSpec ? (activeSpec.title || "Untitled spec") : "Spec not found" },
       ]
     : route.name === "initiative"
     ? [folderCrumb, { label: "Specs", href: hrefSpecs() }, { label: activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found" }]
@@ -621,7 +928,23 @@ export default function App() {
     ? [folderCrumb, { label: "Research Repository" }]
     : route.name === "dashboard"
     ? [folderCrumb, { label: "Dashboard" }]
+    : route.name === "workspaceDoc"
+    ? [folderCrumb, { label: activeWorkspaceDoc ? activeWorkspaceDoc.label : "Not found" }]
     : null;
+
+  // Which entity the detail pane is showing, for the watcher — it runs long before these are
+  // computed, so it reads them through a ref rather than closing over them. Navigating away
+  // retires any "changed on disk" cue with it: the page you were protecting isn't open now, and
+  // the reload it was offering already happened for everything else.
+  const openEntity = (activeSpec && activeSpec.id)
+    || (activeDocument && activeDocument.id)
+    || (activeInitiative && activeInitiative.id)
+    || (activeActivity && activeActivity.id)
+    || (activeWorkspaceDoc && activeWorkspaceDoc.id)
+    || null;
+  useEffect(() => {
+    openEntityRef.current = openEntity;
+  }, [openEntity]);
 
   // Keep the browser tab title current — otherwise every route reads "Monk" and the tab / a
   // shared link / a history entry can't be told apart.
@@ -634,15 +957,16 @@ export default function App() {
       : route.name === "specs" ? "Specs"
       : route.name === "dashboard" ? "Dashboard"
       : route.name === "research" ? "Research Repository"
+      : route.name === "workspaceDoc" ? (activeWorkspaceDoc ? activeWorkspaceDoc.label : "Not found")
       : "";
     document.title = name ? `${name} · Monk` : "Monk";
-  }, [route, isSpecRoute, activeDocument, activeSpec, activeInitiative, activeActivity]);
+  }, [route, isSpecRoute, activeDocument, activeSpec, activeInitiative, activeActivity, activeWorkspaceDoc]);
 
   // Dev-only: preview either page populated with mock data, no folder needed.
   if (import.meta.env.DEV && (route.name === "dashboardPreview" || route.name === "homePreview")) {
     const mock = mockWorkspace(1);
     return (
-      <div style={{ fontFamily: font, height: "100dvh", overflowY: "auto", background: "var(--bg)" }}>
+      <div style={{ fontFamily: font, height: "100dvh", overflowY: "auto" }}>
         {route.name === "homePreview"
           ? <Home {...mock} recentHref={(kind, id) => recentHref(kind, id)} folderName="product-research" onChangeFolder={() => {}} />
           : <DashboardPage {...mock} demo />}
@@ -650,17 +974,17 @@ export default function App() {
     );
   }
 
-  // The real Design tab on sample content, framed in a stand-in spec header so it reads in
+  // The real Solution tab on sample content, framed in a stand-in spec header so it reads in
   // context — the sandboxed preview can't open a workspace folder. Every edit's serialized
   // design.md lands on window.__designMd for inspection.
   // The real Discovery board on sample data — the sandboxed preview can't open a workspace
-  // folder, and the board shares its connect/rewire gestures with the flow map (src/canvas), so
-  // this is where those get exercised. Picks the sample spec with the most connections.
+  // folder. Picks the sample spec with the most connections, so the connect/rewire gestures
+  // (src/canvas) actually have something to exercise.
   if (import.meta.env.DEV && route.name === "boardPreview") {
     const mock = mockWorkspace(1);
     const spec = [...mock.specs].sort((a, b) => b.board.connections.length - a.board.connections.length)[0];
     return (
-      <div style={{ fontFamily: font, height: "100dvh", padding: "12px", boxSizing: "border-box", background: "var(--bg)" }}>
+      <Page bleed style={{ fontFamily: font, height: "100dvh" }}>
         <Board
           board={spec.board}
           onChange={(b) => { window.__board = b; }}
@@ -671,43 +995,51 @@ export default function App() {
           onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
           highlightCardId={route.cardId}
         />
+      </Page>
+    );
+  }
+
+  if (import.meta.env.DEV && route.name === "researchPreview") {
+    return (
+      <div style={{ fontFamily: font, height: "100dvh" }}>
+        <ResearchPreviewDemo />
       </div>
     );
   }
 
-  // Flow map exploration — a spec's use cases as rows, named stages as columns. Framed as the
-  // page it would be: reached from the Design tab, full-width like Discovery.
-  if (import.meta.env.DEV && route.name === "flowPreview") {
+  if (import.meta.env.DEV && route.name === "workspaceDocPreview") {
     return (
-      <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
-        <div style={{ padding: "14px 40px 0", flexShrink: 0 }}>
-          <div style={{ fontSize: SIZE.sm, color: "var(--ink-soft)", display: "flex", gap: "6px" }}>
-            <span>Bulk export of evidence</span><span style={{ color: "var(--ink-faint)" }}>›</span>
-            <span>Design</span><span style={{ color: "var(--ink-faint)" }}>›</span>
-            <span style={{ color: INK }}>Flow map</span>
-          </div>
-          <div style={{ fontSize: "26px", fontWeight: WEIGHT.semibold, color: INK, letterSpacing: "-0.01em", margin: "14px 0 16px" }}>Flow map</div>
-        </div>
-        <div style={{ flex: 1, minHeight: 0, padding: "0 12px 12px" }}><FlowPreviewDemo /></div>
+      <div style={{ fontFamily: font, height: "100dvh" }}>
+        <WorkspaceDocPreviewDemo />
+      </div>
+    );
+  }
+
+  if (import.meta.env.DEV && route.name === "specPreview") {
+    return (
+      <div style={{ fontFamily: font, height: "100dvh" }}>
+        <SpecPreviewDemo tab={route.tab} />
       </div>
     );
   }
 
   if (import.meta.env.DEV && route.name === "designPreview") {
     return (
-      <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+      <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "20px 40px 0", flexShrink: 0 }}>
           <div style={{ fontFamily: font, fontSize: "26px", fontWeight: WEIGHT.semibold, color: INK, letterSpacing: "-0.01em" }}>Bulk export of evidence</div>
           <div style={{ display: "flex", gap: "18px", borderBottom: "1px solid var(--border)", marginTop: "18px" }}>
-            {["Overview", "Discovery", "Design", "Plan"].map((t) => (
-              <span key={t} style={{ fontSize: SIZE.ui, fontWeight: WEIGHT.semibold, padding: "8px 2px", color: t === "Design" ? INK : "var(--ink-faint)", boxShadow: t === "Design" ? `inset 0 -2px 0 ${INK}` : "none" }}>{t}</span>
+            {["Overview", "Discovery", "Solution", "Plan"].map((t) => (
+              <span key={t} style={{ fontSize: SIZE.ui, fontWeight: WEIGHT.semibold, padding: "8px 2px", color: t === "Solution" ? INK : "var(--ink-faint)", boxShadow: t === "Solution" ? `inset 0 -2px 0 ${INK}` : "none" }}>{t}</span>
             ))}
           </div>
         </div>
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", boxSizing: "border-box", padding: "24px 40px 32px" }}>
-          <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-            <DesignPreviewDemo />
-          </div>
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <Page ground="reading">
+            <div className="paper-sheet">
+              <DesignPreviewDemo />
+            </div>
+          </Page>
         </div>
       </div>
     );
@@ -747,6 +1079,16 @@ export default function App() {
   if (phase === "loading") {
     return <ConnectScreen title="Monk" message="Loading your research folder…" />;
   }
+  if (phase === "loadFailed") {
+    return (
+      <ConnectScreen
+        title="Couldn't read your research folder"
+        message={`Nothing has been changed on disk. ${loadError ? loadError.message : ""}`.trim()}
+        buttonLabel="Try again"
+        onClick={() => { setLoadError(null); setPhase("loading"); }}
+      />
+    );
+  }
 
   return (
     <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column" }}>
@@ -756,6 +1098,7 @@ export default function App() {
       <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
         <Sidebar
           sections={sections}
+          workspaceDocs={WORKSPACE_DOCS.map((d) => ({ id: d.id, label: d.label, href: hrefWorkspaceDoc(d.id), exists: typeof workspaceDocs[d.id] === "string" }))}
           activeView={activeView}
           dashboardHref={hrefDashboard()}
           researchHref={RESEARCH_ROUTE}
@@ -773,13 +1116,39 @@ export default function App() {
               the same breadcrumb trail twice. `breadcrumbs` is null on the Home landing, which
               has no bar of its own either — it's a standalone page, not one you drill into. */}
           {!((isSpecRoute && activeSpec) || (route.name === "activity" && activeActivity) || (route.name === "initiative" && activeInitiative)) && breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
+          {/* The one thing the watcher won't do behind your back. Everything else on disk has
+              already been taken; this page was left as it is because you were typing in it. */}
+          {staleId && staleId === openEntity && (
+            <Notice
+              icon={RefreshCw}
+              actionLabel="Load the newer version"
+              onAction={() => { bumpRev([staleId]); setStaleId(null); }}
+              onDismiss={() => setStaleId(null)}
+            >
+              This changed on disk while you were editing.
+            </Notice>
+          )}
+          {/* Asked once per folder, and only when the folder already has agent guidance of its
+              own — which means it is probably a real repo with a real AGENTS.md in it. Declining
+              is remembered so it isn't asked again on every launch. */}
+          {agentGuide && (
+            <Notice
+              icon={FileText}
+              actionLabel={`Add a section to ${agentGuide}`}
+              onAction={acceptAgentSection}
+              onDismiss={declineAgentSection}
+            >
+              This folder already has its own {agentGuide}. Monk can add a section describing the
+              workspace so agents know their way around.
+            </Notice>
+          )}
           <main id="main" tabIndex={-1} style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
             {isSpecRoute ? (
               !activeSpec ? (
                 <NotFoundMessage text="Spec not found." backLabel="Back to specs" backHref={hrefSpecs()} />
               ) : (
                 <SpecPage
-                  key={activeSpec.id}
+                  key={revKey(activeSpec.id)}
                   spec={activeSpec}
                   boards={allBoards}
                   signals={signals}
@@ -793,7 +1162,6 @@ export default function App() {
                   activeTab={activeSpecTab}
                   tabHref={(tab) => (
                     tab === "design" ? hrefSpecDesign(activeSpec.id) :
-                    tab === "flow" ? hrefSpecFlow(activeSpec.id) :
                     tab === "plan" ? hrefSpecPlan(activeSpec.id) :
                     tab === "discovery" ? hrefSpecDiscovery(activeSpec.id) :
                     hrefSpec(activeSpec.id)
@@ -803,18 +1171,32 @@ export default function App() {
                   onUpdateSignal={updateSignal}
                   onUpdateInsight={updateInsight}
                   onToast={showToast}
+                  designSystem={workspaceDocs["design-system"] || ""}
                   breadcrumbs={breadcrumbs}
                 />
               )
             ) : route.name === "doc" ? (
               activeDocument ? (
                 <DocumentPage
-                  key={activeDocument.id}
+                  key={revKey(activeDocument.id)}
                   document={activeDocument}
                   onChange={(patch) => updateDocument(route.sectionId, activeDocument.id, patch)}
                 />
               ) : (
                 <NotFoundMessage text="Document not found." backLabel="Back to research repository" backHref={RESEARCH_ROUTE} />
+              )
+            ) : route.name === "workspaceDoc" ? (
+              activeWorkspaceDoc ? (
+                <WorkspaceDocPage
+                  key={revKey(activeWorkspaceDoc.id)}
+                  doc={activeWorkspaceDoc}
+                  text={workspaceDocs[activeWorkspaceDoc.id] ?? null}
+                  onCreate={() => createWorkspaceDocument(activeWorkspaceDoc.id)}
+                  onChange={(text) => updateWorkspaceDocument(activeWorkspaceDoc.id, text)}
+                  onRemove={() => removeWorkspaceDocument(activeWorkspaceDoc.id)}
+                />
+              ) : (
+                <NotFoundMessage text="Page not found." backLabel="Back to start" backHref={hrefStart()} />
               )
             ) : route.name === "dashboard" ? (
               <DashboardPage
@@ -841,7 +1223,7 @@ export default function App() {
                 <NotFoundMessage text="Initiative not found." backLabel="Back to specs" backHref={hrefSpecs()} />
               ) : (
                 <InitiativePage
-                  key={activeInitiative.id}
+                  key={revKey(activeInitiative.id)}
                   initiative={activeInitiative}
                   specs={specsForInitiative(specs, activeInitiative.id)}
                   specHref={hrefSpec}
@@ -877,7 +1259,7 @@ export default function App() {
                 <NotFoundMessage text="Activity not found." backLabel="Back to research repository" backHref={RESEARCH_ROUTE} />
               ) : (
                 <ActivityPage
-                  key={activeActivity.id}
+                  key={revKey(activeActivity.id)}
                   activity={activeActivity}
                   signals={signals}
                   activities={activities}

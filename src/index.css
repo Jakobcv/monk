@@ -8,6 +8,14 @@
   box-sizing: border-box;
 }
 
+/* The UA's own `[hidden] { display: none }` loses to *any* author rule, so a class (or an
+   inline style) that sets `display` silently defeats the attribute — which is how a spec's
+   four tab panels are toggled. Stated once here, with the weight to win, so a panel is free
+   to be `display: flex` when it's shown. */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body,
 #root {
@@ -75,16 +83,17 @@ input[type="radio"] {
   transform: translateY(0);
 }
 
-/* The page canvas, not quite white — reusing the same grey the Sidebar already sits on
-   (--bg-sidebar), rather than introducing a second "quiet grey" token. Every white card
-   (the generic .card, and now every board card too — see cardSurface in ui/cardStyles.js)
-   used to sit on an equally-white page, told apart only by a 1px border. This isn't the
-   "text on a tint" mistake the signal card's old background was: nothing renders text
-   directly against it — it only ever touches the *outside* of a card's border, giving a
-   second, independent cue for "this is a surface" alongside the border, at zero cost to
-   the legibility of anything drawn on top of it. */
+/* Ground 1 of 2 — the app ground (see the Grounds block in lib/theme.js). Set on body, so a
+   page gets it by simply not painting itself; the writing tabs are the only thing that opts
+   out, into the reading ground. Not quite white, and reusing the grey the sidebars already
+   sit on rather than introducing a second quiet grey. Every white surface (the generic .card,
+   every board card — see cardSurface in ui/cardStyles.js) used to sit on an equally-white
+   page, told apart only by a 1px border. This isn't the "text on a tint" mistake the signal
+   card's old background was: nothing renders text directly against it — it only ever touches
+   the *outside* of a surface's border, giving a second, independent cue for "this is a
+   surface", at zero cost to the legibility of anything drawn on top of it. */
 body {
-  background-color: var(--bg-sidebar);
+  background-color: var(--bg-app);
 }
 
 /* ---------------------------------------------------------------------------
@@ -444,6 +453,49 @@ body {
   color: var(--ink-soft);
 }
 
+/* A signal card of fixed height (SignalCard's `fixedHeight`) — a list meant to be scanned, where
+   every card is the same size whatever was written in it. The height is derived rather than
+   picked: --signal-lines lines of .edit-area type, the card's 11px padding top and bottom, and
+   the metadata row beneath (8px gap + its ~24px row). The text region takes whatever is left, so
+   a metadata row that wraps eats into the text rather than pushing the card taller. */
+.signal-card--fixed {
+  --signal-lines: 4;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: calc(var(--size-body) * 1.5 * var(--signal-lines) + 22px + 32px);
+}
+.signal-card__text {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+/* The read view: .edit-area's type, clamped. A <button> so it is reachable and activatable from
+   the keyboard for free — which means undoing the button look, and restoring the focus ring that
+   .edit-area's `outline: none` would otherwise take away. */
+.signal-card__preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--signal-lines);
+  line-clamp: var(--signal-lines);
+  overflow: hidden;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+.signal-card__preview:focus-visible {
+  outline: 2px solid var(--accent-signal);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+/* The edit view fills the same region and scrolls inside it instead of growing the card. */
+.signal-card__editor {
+  display: block;
+  height: 100%;
+  overflow-y: auto;
+}
+
 /* A clickable breadcrumb — including the first one, which names the connected folder and
    re-opens the folder picker. Base colour/background live here (not inline on the element)
    so :hover can actually take. */
@@ -688,7 +740,7 @@ a.recent-row:hover {
   position: relative;
   display: inline-grid;
   place-items: center;
-  width: 26px;
+  width: var(--paper-marker);
   height: 26px;
   cursor: pointer;
 }
@@ -747,6 +799,328 @@ a.recent-row:hover {
 }
 
 /* ---------------------------------------------------------------------------
+   Text primitives (ui/text.jsx). These were style *objects* spread into inline
+   styles, which is a dead end the moment context matters: an inline font-size
+   outranks every stylesheet rule, so "the same label, one step larger on the
+   paper surface" could only be expressed by threading a `paper` prop down
+   through each component that rendered one. As classes, the surface states it
+   once — see the .paper-sheet rules below — and the components stop caring.
+   --------------------------------------------------------------------------- */
+
+/* The small uppercase section label. INK_SOFT, not INK_FAINT: a label is
+   permanent structure and a field's placeholder is not, so the label has to
+   win — they were the same grey once, which left the placeholder (35% larger)
+   quietly outranking the thing naming it. */
+.eyebrow {
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: var(--size-micro);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* A step up, and opened further: the label over a block on the dashboard or the
+   start page, where it heads a region rather than naming a single field. */
+.eyebrow--section {
+  font-size: var(--size-xs);
+  letter-spacing: 0.07em;
+}
+
+/* Small grey metadata on a card's top line — a date, an author, a count. */
+.meta {
+  font-family: var(--font);
+  font-size: var(--size-xs);
+  color: var(--ink-faint);
+}
+
+/* A page's own heading ("Specs", "Insights", "Recent activity"). */
+.page-heading {
+  font-family: var(--font);
+  font-size: var(--size-lg);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+/* The big editable name at the top of a spec, an activity or a document. */
+.page-title {
+  display: block;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: var(--size-title);
+  color: var(--ink);
+  padding: 0;
+}
+
+/* The brand wordmark. Lowercase "monk", medium weight and opened up — it serves
+   the crescent rather than competing with it. The negative margin cancels the
+   trailing letterspace, which otherwise pads the box on the right and leaves
+   the glyphs sitting a hair left of wherever you centred it. Size is the one
+   thing that varies (the header's and the start page's), so it stays a prop. */
+.wordmark {
+  font-family: var(--font);
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  margin-right: -0.07em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+/* A borderless textarea/input that inherits the page rather than looking like a
+   form control — a spec's long-form fields, a board card's body. */
+.edit-area {
+  width: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  resize: none;
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: var(--size-body);
+  line-height: 1.5;
+  color: var(--ink);
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* A checklist row's text, and the rhythm of the rows. Like .edit-area, this is
+   a class rather than an inline style so the paper surface can step it up
+   without the editor being told where it is. The 4px vertical padding is
+   .prose-field's — it makes a row here exactly as tall as a row of a list on
+   the Solution tab, so the two read as one list. */
+.cl-input {
+  flex: 1;
+  border: none;
+  border-bottom: 1px solid transparent;
+  outline: none;
+  background: none;
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: var(--size-ui);
+  color: var(--ink);
+  padding: 2px 0;
+}
+.cl-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.paper-sheet .cl-input {
+  font-size: var(--paper-body);
+  line-height: var(--paper-leading);
+  padding: 4px 0;
+}
+.paper-sheet .cl-rows {
+  gap: 6px;
+}
+
+/* On paper, the same primitives run the reading scale. This is the whole reason
+   they are classes: the surface says it once, here, instead of every component
+   that renders one taking a `paper` prop to be told. A 10px eyebrow reads as a
+   heading over 13.5px UI text and as a caption over 16px prose — same glyphs,
+   different job — and tracking opens with the size to keep uppercase from
+   tightening as it grows. */
+.paper-sheet .eyebrow {
+  font-size: var(--paper-eyebrow);
+  letter-spacing: 0.08em;
+}
+.paper-sheet .edit-area {
+  font-size: var(--paper-body);
+  line-height: var(--paper-leading);
+}
+
+/* ---------------------------------------------------------------------------
+   Notice (ui/Notice.jsx). Sits between the breadcrumbs and the page, in the
+   flow rather than over it: it is not urgent, it must not cover the thing it
+   is asking about, and it should still be there when you look up from what you
+   were typing. Used for a file that changed under the cursor, and for asking
+   before editing a file the repo owns.
+   --------------------------------------------------------------------------- */
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  font-family: var(--font);
+  font-size: var(--size-ui);
+  color: var(--ink-soft);
+}
+.notice > svg {
+  color: var(--accent-signal);
+  flex-shrink: 0;
+}
+.notice > span {
+  min-width: 0;
+}
+.notice__action {
+  /* The message flexes; the action does not — it is short and must stay on one line. */
+  flex-shrink: 0;
+  white-space: nowrap;
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.notice__action:hover {
+  background: var(--bg-hover);
+}
+.notice__dismiss {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  padding: 4px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  color: var(--ink-faint);
+}
+.notice__dismiss:hover {
+  background: var(--bg-hover);
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------------------
+   Page — the frame every full page sits in (ui/Page.jsx). It owns the three
+   things each page used to decide for itself: the ground it sits on, the
+   scroll container, and the padding. A page that renders one of these cannot
+   end up on an undeclared or a white ground, which is the whole point.
+   --------------------------------------------------------------------------- */
+.page {
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom);
+  background: var(--bg-app);
+}
+
+/* A header pins above the scrolling half rather than scrolling with it, so the
+   frame is the flex column and .page becomes its growing child. */
+.page-frame {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.page-frame > .page {
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+.page--under-header {
+  padding-top: var(--page-pad-top-header);
+}
+
+.page--landing {
+  padding-top: var(--page-landing-top);
+}
+
+/* A canvas manages its own scrolling and wants the height it is given, edge to
+   edge — padding here would frame something that already has a frame. */
+.page--bleed {
+  overflow: hidden;
+  padding: var(--page-bleed);
+}
+
+/* ---------------------------------------------------------------------------
+   Paper — the reading page, and the sheet on it. A spec's Overview, Solution
+   and Plan are a sheet on a desk rather than a column of fields on a white
+   page. The desk is the app's own ground, inherited from .page and not tinted
+   any further: a reading surface darker than the rest of the app reads as a
+   frame around the page rather than a room it sits in. What makes the sheet a
+   sheet is its own edge (--edge-paper), not the tone behind it.
+
+   The sheet is `flex: 1 0 auto` inside a scrolling column, which is what makes
+   it behave like a page rather than a card: spare height under a short spec is
+   spent filling the sheet out instead of leaving it floating in the middle of
+   the desk, and the moment the writing outgrows the panel the sheet keeps its
+   content height and the desk scrolls. No JS measures anything.
+
+   Corners are 3px, not the app's usual 6–8px — paper has square corners, and
+   the radius here exists only to keep the shadow from ending in a hard point.
+   --------------------------------------------------------------------------- */
+.page--reading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 24px 40px;
+}
+.paper-sheet {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: var(--paper-width);
+  box-sizing: border-box;
+  padding: var(--paper-pad);
+  background: var(--bg);
+  border-radius: 3px;
+  box-shadow: var(--edge-paper);
+}
+
+/* Below the sheet's full width there's no desk left to show, so the margins
+   collapse to something a phone can actually hold. */
+@media (max-width: 900px) {
+  .page--reading {
+    padding: 14px 12px 24px;
+  }
+  .paper-sheet {
+    padding: 32px 24px 40px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Paper button — the "+ Add" at the foot of a list on paper (ui/PaperButton).
+   It is a row of that list, not a control beside it: the icon sits in the same
+   --paper-marker gutter as the bullets above it and the label starts on the
+   text column, at prose size and weight. The 8px gap is SPACE.base, the same
+   one the rows use, and the -10px bleed is .prose-field's, so the hover wash
+   lines up with the fields rather than hugging the words.
+   --------------------------------------------------------------------------- */
+.paper-btn {
+  display: inline-grid;
+  grid-template-columns: var(--paper-marker) auto;
+  column-gap: 8px;
+  align-items: center;
+  margin: 0 -10px;
+  padding: 4px 10px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: var(--paper-body);
+  font-weight: 400;
+  line-height: var(--paper-leading);
+  color: var(--ink-soft);
+  text-align: left;
+  transition:
+    color var(--motion-fast) var(--ease),
+    background-color var(--motion-fast) var(--ease);
+}
+.paper-btn:hover {
+  background: var(--bg-hover);
+  color: var(--ink);
+}
+.paper-btn__marker {
+  display: grid;
+  place-items: center;
+}
+
+/* ---------------------------------------------------------------------------
    Prose field — the borderless long-form inputs on a spec (Problem, Goals,
    Non-goals). Reads as page text at rest; on hover a faint tint says
    "editable"; on focus a hairline and a soft ring make the active field
@@ -777,33 +1151,17 @@ a.recent-row:hover {
   background: var(--bg-hover);
 }
 
-/* Design tab: an edge case's empty outcome isn't a hint, it's the value the agent receives
-   ("agent decides") — so it's legible like content, set apart only by the italic. */
-.design-then::placeholder {
-  color: var(--ink-soft);
-  font-style: italic;
+/* On paper the same field runs the reading scale, with the bleed widened to
+   match — 8px of overhang looks like a hairline gap beside 16px text. */
+.paper-sheet .prose-field {
+  font-size: var(--paper-body);
+  line-height: var(--paper-leading);
+  margin: 0 -10px;
+  padding: 4px 10px;
+  width: calc(100% + 20px);
 }
 
-/* Design tab's label-column dropdowns (priority, artefact type) and artefact authority: a native
-   select dressed as plain text — no box, no arrow — that shows it's a choice on hover/focus. */
-.design-select {
-  appearance: none;
-  border: none;
-  background: none;
-  outline: none;
-  cursor: pointer;
-  border-radius: var(--radius-xs);
-  text-overflow: ellipsis;
-  transition: color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
-}
-.design-select:hover {
-  color: var(--ink) !important;
-  text-decoration: underline dotted;
-  text-underline-offset: 3px;
-}
-.design-select:focus-visible {
-  box-shadow: 0 0 0 2px rgba(35, 131, 226, 0.35);
-}
+/* An artefact's link line. Softer than the title above it, the way a citation is. */
 .design-link::placeholder {
   color: var(--ink-soft);
 }

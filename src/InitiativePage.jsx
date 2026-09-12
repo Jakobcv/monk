@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Plus, Trash2, X } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, SPACE, SIZE, WEIGHT, SPEC_STATUS_COLOR } from "./lib/theme";
-import { eyebrow, pageTitleInput, meta } from "./ui/text";
+import { Eyebrow, Meta, PageTitle } from "./ui/text";
 import { INITIATIVE_STATUS_OPTIONS } from "./lib/initiativeModel";
 import Breadcrumbs from "./Breadcrumbs";
 import MarkdownEditor from "./MarkdownEditor";
@@ -9,6 +9,7 @@ import Button from "./ui/Button";
 import Card from "./ui/Card";
 import IconButton from "./ui/IconButton";
 import EmptyState from "./ui/EmptyState";
+import Page from "./ui/Page";
 
 // The layer above specs — an epic to their tickets. `initiative` only seeds local state on
 // mount (parent remounts via `key={initiative.id}`, same as SpecPage/ActivityPage). `specs`
@@ -33,102 +34,97 @@ export default function InitiativePage({
   }, [title, status]);
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <Breadcrumbs items={breadcrumbs} />
+    <Page header={<Breadcrumbs items={breadcrumbs} />}>
+      <div className="enter-up" style={{ maxWidth: "760px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "22px" }}>
+        <PageTitle
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Untitled initiative"
+        />
 
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", boxSizing: "border-box", padding: `${SPACE["3xl"]} ${SPACE["5xl"]} ${SPACE["5xl"]}` }}>
-        <div className="enter-up" style={{ maxWidth: "760px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "22px" }}>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Untitled initiative"
-            style={pageTitleInput}
-          />
-
-          <div style={{ display: "flex", gap: SPACE.lg, alignItems: "center" }}>
-            <div className="select-wrap" style={{ width: "160px" }}>
-              <select
-                className="select"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                style={{ color: SPEC_STATUS_COLOR[status] || INK }}
-              >
-                {INITIATIVE_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <ChevronDown size={12} className="select-chevron" />
-            </div>
+        <div style={{ display: "flex", gap: SPACE.lg, alignItems: "center" }}>
+          <div className="select-wrap" style={{ width: "160px" }}>
+            <select
+              className="select"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              style={{ color: SPEC_STATUS_COLOR[status] || INK }}
+            >
+              {INITIATIVE_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <ChevronDown size={12} className="select-chevron" />
           </div>
-
-          <div style={{ height: "1px", backgroundColor: BORDER }} />
-
-          <div>
-            <div style={{ ...eyebrow, marginBottom: SPACE.base }}>Description</div>
-            {/* Freeform context shared by every spec under this initiative — it flows into
-                each one's "Start build" brief as an "## Initiative" section. A short blurb,
-                not a document, so it starts near-empty and grows with the text. */}
-            <MarkdownEditor
-              value={initiative.description}
-              onChange={(description) => onChange({ description })}
-              minHeight="0"
-              placeholder="Context every spec in this initiative should carry…"
-            />
-          </div>
-
-          <div style={{ height: "1px", backgroundColor: BORDER }} />
-
-          <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
-              <div style={eyebrow}>Specs in this initiative ({specs.length})</div>
-              <Button onClick={onCreateSpec}>
-                <Plus size={16} /> New spec
-              </Button>
-            </div>
-
-            {specs.length === 0 ? (
-              <EmptyState compact>No specs yet — create one, or assign an existing spec from its own page.</EmptyState>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: SPACE.lg }}>
-                {[...specs].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).map((s) => (
-                  <Card
-                    key={s.id}
-                    as="a"
-                    href={specHref(s.id)}
-                    interactive
-                    className="reveal-group"
-                    style={{ position: "relative", textAlign: "left", padding: "12px 14px" }}
-                  >
-                    <IconButton
-                      className="reveal"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDetachSpec(s.id); }}
-                      title="Remove from this initiative (keeps the spec)"
-                      // Inset only 4px, with a 12px grid gap — 34px is what fits before two
-                      // neighbouring cards' buttons would meet in the middle.
-                      style={{ position: "absolute", top: SPACE.sm, right: SPACE.sm, "--hit": "34px" }}
-                    >
-                      <X size={16} />
-                    </IconButton>
-                    <div style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.body, color: INK, marginBottom: SPACE.sm, paddingRight: SPACE.xl, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {s.title || "Untitled spec"}
-                    </div>
-                    <div style={{ fontFamily: font, fontSize: SIZE.sm, color: INK_SOFT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {s.problem || "No problem statement yet"}
-                    </div>
-                    <div style={{ marginTop: SPACE.md }}>
-                      <span style={{ ...meta, fontWeight: WEIGHT.semibold, color: SPEC_STATUS_COLOR[s.status] || INK_FAINT }}>{s.status}</span>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div style={{ height: "1px", backgroundColor: BORDER }} />
-
-          <Button variant="danger" onClick={onDelete} style={{ alignSelf: "flex-start" }}>
-            <Trash2 size={16} /> Delete initiative
-          </Button>
         </div>
+
+        <div style={{ height: "1px", backgroundColor: BORDER }} />
+
+        <div>
+          <Eyebrow style={{ marginBottom: SPACE.base }}>Description</Eyebrow>
+          {/* Freeform context shared by every spec under this initiative — it flows into
+              each one's "Start build" brief as an "## Initiative" section. A short blurb,
+              not a document, so it starts near-empty and grows with the text. */}
+          <MarkdownEditor
+            value={initiative.description}
+            onChange={(description) => onChange({ description })}
+            minHeight="0"
+            placeholder="Context every spec in this initiative should carry…"
+          />
+        </div>
+
+        <div style={{ height: "1px", backgroundColor: BORDER }} />
+
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
+            <Eyebrow>Specs in this initiative ({specs.length})</Eyebrow>
+            <Button onClick={onCreateSpec}>
+              <Plus size={16} /> New spec
+            </Button>
+          </div>
+
+          {specs.length === 0 ? (
+            <EmptyState compact>No specs yet — create one, or assign an existing spec from its own page.</EmptyState>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: SPACE.lg }}>
+              {[...specs].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).map((s) => (
+                <Card
+                  key={s.id}
+                  as="a"
+                  href={specHref(s.id)}
+                  interactive
+                  className="reveal-group"
+                  style={{ position: "relative", textAlign: "left", padding: "12px 14px" }}
+                >
+                  <IconButton
+                    className="reveal"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDetachSpec(s.id); }}
+                    title="Remove from this initiative (keeps the spec)"
+                    // Inset only 4px, with a 12px grid gap — 34px is what fits before two
+                    // neighbouring cards' buttons would meet in the middle.
+                    style={{ position: "absolute", top: SPACE.sm, right: SPACE.sm, "--hit": "34px" }}
+                  >
+                    <X size={16} />
+                  </IconButton>
+                  <div style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.body, color: INK, marginBottom: SPACE.sm, paddingRight: SPACE.xl, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {s.title || "Untitled spec"}
+                  </div>
+                  <div style={{ fontFamily: font, fontSize: SIZE.sm, color: INK_SOFT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {s.problem || "No problem statement yet"}
+                  </div>
+                  <div style={{ marginTop: SPACE.md }}>
+                    <Meta style={{ fontWeight: WEIGHT.semibold, color: SPEC_STATUS_COLOR[s.status] || INK_FAINT }}>{s.status}</Meta>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ height: "1px", backgroundColor: BORDER }} />
+
+        <Button variant="danger" onClick={onDelete} style={{ alignSelf: "flex-start" }}>
+          <Trash2 size={16} /> Delete initiative
+        </Button>
       </div>
-    </div>
+    </Page>
   );
 }

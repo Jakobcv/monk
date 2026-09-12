@@ -1,5 +1,4 @@
-import { SIZE, SPACE, BG_HOVER, RADIUS } from "./lib/theme";
-import { editArea, meta } from "./ui/text";
+import { font, INK_FAINT, SIZE, SPACE, BG_HOVER, RADIUS } from "./lib/theme";
 import AutoTextarea from "./ui/AutoTextarea";
 
 // The editable innards of an insight card, shared by a spec's Discovery board and Research
@@ -16,7 +15,7 @@ import AutoTextarea from "./ui/AutoTextarea";
 export default function InsightCardBody({ insight, signals, onChange, autoFocus = false, missing = false, after }) {
   if (missing) {
     return (
-      <div style={{ fontStyle: "italic", fontSize: SIZE.ui, color: meta.color }}>
+      <div style={{ fontStyle: "italic", fontSize: SIZE.ui, color: INK_FAINT }}>
         Insight no longer exists.
       </div>
     );
@@ -27,11 +26,10 @@ export default function InsightCardBody({ insight, signals, onChange, autoFocus 
   return (
     <>
       <AutoTextarea
-        className="el-edit" minRows={2} autoFocus={autoFocus}
+        className="el-edit edit-area" minRows={2} autoFocus={autoFocus}
         value={insight.text}
         onChange={(e) => onChange({ text: e.target.value })}
         placeholder="The insight…"
-        style={editArea}
       />
 
       {(sourceSignals.length > 0 || after) && (
@@ -40,7 +38,7 @@ export default function InsightCardBody({ insight, signals, onChange, autoFocus 
             <span
               key={sig.id} title={sig.text}
               style={{
-                fontFamily: meta.fontFamily, fontSize: meta.fontSize, color: meta.color,
+                fontFamily: font, fontSize: SIZE.xs, color: INK_FAINT,
                 background: BG_HOVER, borderRadius: RADIUS.xs, padding: "2px 6px", maxWidth: "160px",
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}
