@@ -53,7 +53,7 @@ const bullet = (l) => l.replace(MARKER, "").trim();
 // bullets, and reading each wrapped line as its own item shattered three principles into ten.
 // Blank lines follow markdown: an indented line after a blank still belongs to the item (a second
 // paragraph of it); an unindented one after a blank is a new item rather than being lost.
-function listItems(lines) {
+export function listItems(lines) {
   const items = [];
   let afterBlank = false;
   for (const line of lines) {

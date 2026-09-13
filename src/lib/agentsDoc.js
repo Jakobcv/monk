@@ -45,6 +45,10 @@ Anything else in this folder isn't Monk's, and Monk never touches it.
 - **An answered open question** keeps the question in \`text\`, gets the answer in \`resolution\`, and
   is checked.
 - **An acceptance criterion** is one testable statement, with no reasoning attached.
+- **The work on a spec** is the task list in its \`plan.md\`. Add tasks before you build; mark one
+  \`[~]\` when you start it and \`[x]\` when it's done, and record what was built and tested in
+  \`solution.md\` Notes. If a task is blocked, mark it \`[!]\` and add an open question saying what's in
+  the way.
 
 ### Working alongside the app
 

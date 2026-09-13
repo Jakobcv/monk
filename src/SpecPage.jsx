@@ -6,7 +6,7 @@ import { buildSpecBrief } from "./lib/buildBrief";
 import { useCopy } from "./lib/useCopy";
 import ChecklistEditor from "./ChecklistEditor";
 import SwapIcon from "./ui/SwapIcon";
-import MarkdownEditor from "./MarkdownEditor";
+import PlanTab from "./PlanTab";
 import LiveMarkdown from "./ui/LiveMarkdown";
 import DesignTab from "./DesignTab";
 import Board from "./Board";
@@ -261,12 +261,12 @@ export default function SpecPage({
             </div>
           </Page>
 
-          {/* The Plan is one long document rather than a set of fields, so its editor takes the
-              whole sheet (`fill`) instead of claiming a fixed minimum: the syntax legend settles
-              at the foot of the page and the blank paper above it is a click target. */}
+          {/* The Plan: the work as tasks with a state each, then the approach, which still takes
+              the rest of the sheet (see PlanTab). Stored as one plan.md, like the Solution tab's
+              solution.md. */}
           <Page ground="reading" hidden={activeTab !== "plan"}>
             <div className="paper-sheet" style={{ display: "flex", flexDirection: "column" }}>
-              <MarkdownEditor fill value={spec.plan} onChange={setPlan} minHeight={0} placeholder="The plan, in Markdown…" />
+              <PlanTab value={spec.plan} onChange={setPlan} />
             </div>
           </Page>
         </div>

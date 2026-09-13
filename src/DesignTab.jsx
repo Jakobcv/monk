@@ -4,7 +4,6 @@ import { font, INK_SOFT, BORDER, PAPER, SIZE, SPACE } from "./lib/theme";
 import { Eyebrow } from "./ui/text";
 import { parseDesign, serializeDesign } from "./lib/designModel";
 import { insertAt } from "./lib/arrays";
-import AutoTextarea from "./ui/AutoTextarea";
 import LiveMarkdown from "./ui/LiveMarkdown";
 import PaperButton from "./ui/PaperButton";
 import IconButton from "./ui/IconButton";
@@ -33,10 +32,6 @@ const hasContent = (x) =>
   typeof x === "string" ? !!x.trim() : Object.values(x).some((v) => typeof v === "string" && v.trim());
 
 const withScheme = (url) => (/^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`);
-
-// List items are one line each in the file, so Enter shouldn't start a second line the save would
-// only collapse again.
-const singleLine = (e) => { if (e.key === "Enter" && !e.shiftKey) e.preventDefault(); };
 
 // The gutter a row's marker sits in (PAPER.marker), right-hand-aligned against the text it marks
 // rather than stretched to the column, which is why a 4px bullet in it still reads as attached to
@@ -102,14 +97,16 @@ const RemoveBtn = ({ onClick }) => (
   </IconButton>
 );
 
-// A single-line-in-the-file text, as a wrapping prose field.
+// A single-line-in-the-file text, as a wrapping prose field that formats its markdown as you type.
+// List items are one line each in the file, so Enter doesn't start a second line (`singleLine`).
 function RowText({ value, onChange, placeholder, label, autoFocus, className, style }) {
   return (
-    <AutoTextarea
+    <LiveMarkdown
+      singleLine
       className={className ? `prose-field ${className}` : "prose-field"}
-      minRows={1} autoFocus={autoFocus}
-      value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={singleLine}
-      placeholder={placeholder} aria-label={label} style={style}
+      autoFocus={autoFocus}
+      value={value} onChange={onChange}
+      placeholder={placeholder} ariaLabel={label} style={style}
     />
   );
 }

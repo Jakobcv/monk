@@ -739,6 +739,7 @@ a.recent-row:hover {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  gap: 2px;
   height: var(--cl-line);
 }
 .cl-check input {
@@ -793,6 +794,48 @@ a.recent-row:hover {
 .cl-check input:focus-visible + .cl-check__box {
   outline: 2px solid var(--accent-insight);
   outline-offset: 2px;
+}
+
+/* A task's state marker (ChecklistEditor `tasks`) — the same box as a checkbox, as a button that
+   cycles its state. Each state has its own shape as well as its colour: empty (to do), half filled
+   (in progress), filled with a tick (done), amber outline with a bar (blocked). */
+.cl-task {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.cl-task:focus-visible {
+  outline: none;
+}
+.cl-task:focus-visible .cl-check__box {
+  outline: 2px solid var(--accent-insight);
+  outline-offset: 2px;
+}
+.cl-task:active .cl-check__box {
+  transform: scale(0.9);
+}
+.cl-task--todo:hover .cl-check__box {
+  border-color: var(--ink-faint);
+  background: var(--bg-hover);
+}
+.cl-task--doing .cl-check__box {
+  border-color: var(--accent-insight);
+  background: linear-gradient(90deg, var(--accent-insight) 50%, #fff 50%);
+}
+.cl-task--done .cl-check__box {
+  background: var(--accent-insight);
+  border-color: var(--accent-insight);
+}
+.cl-task--blocked .cl-check__box {
+  border-color: var(--accent-signal);
+  color: var(--accent-signal);
+}
+.cl-task--done .cl-check__box svg,
+.cl-task--blocked .cl-check__box svg {
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* ---------------------------------------------------------------------------

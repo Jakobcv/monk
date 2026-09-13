@@ -6,8 +6,14 @@ import IconButton from "./ui/IconButton";
 import Card from "./ui/Card";
 import EmptyState from "./ui/EmptyState";
 import Page from "./ui/Page";
+import { parsePlan, taskCounts } from "./lib/planModel";
 
 function SpecCard({ spec, idx = 0, href, onDelete }) {
+  // Progress through the plan's tasks where there are any; otherwise which tabs have been written.
+  const counts = taskCounts(parsePlan(spec.plan).tasks);
+  const meta = counts.total
+    ? [`${counts.done}/${counts.total} tasks`, counts.blocked && `${counts.blocked} blocked`].filter(Boolean).join(" · ")
+    : [spec.design && "design", spec.plan && "plan"].filter(Boolean).join(" + ");
   return (
     <Card
       as="a"
@@ -49,12 +55,10 @@ function SpecCard({ spec, idx = 0, href, onDelete }) {
         <Meta style={{ fontWeight: WEIGHT.semibold, color: SPEC_STATUS_COLOR[spec.status] || INK_FAINT }}>
           {spec.status}
         </Meta>
-        {(spec.design || spec.plan) && (
+        {meta && (
           <>
             <span style={{ width: "3px", height: "3px", borderRadius: "50%", background: INK_FAINT }} />
-            <Meta>
-              {[spec.design && "design", spec.plan && "plan"].filter(Boolean).join(" + ")}
-            </Meta>
+            <Meta style={{ fontVariantNumeric: "tabular-nums" }}>{meta}</Meta>
           </>
         )}
       </div>

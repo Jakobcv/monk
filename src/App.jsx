@@ -192,7 +192,16 @@ const PREVIEW_SPEC = {
   ],
   board: blankBoard(),
   design: SAMPLE_DESIGN_MD,
-  plan: `# Plan
+  plan: `## Tasks
+
+- [x] Pull the serializer out into \`lib/exportInsight.js\`
+- [~] Export dialog with a **live preview**
+- [ ] Attribution on every quoted signal
+- [!] Download fallback when the clipboard is refused
+
+## Approach
+
+# Plan
 
 ## 1. Serializer
 

@@ -1,5 +1,5 @@
-import { useEffect, useImperativeHandle, useRef } from "react";
-import { Annotation, EditorState } from "@codemirror/state";
+import { useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
+import { Annotation, EditorState, Prec } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, keymap, placeholder as placeholderText } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { HighlightStyle, Language, LanguageSupport, defineLanguageFacet, syntaxHighlighting, syntaxTree } from "@codemirror/language";
@@ -24,6 +24,20 @@ import { tags as t } from "@lezer/highlight";
 // Marks a dispatch that brings the editor in line with a new `value` from outside, so it isn't
 // reported back up as an edit.
 const External = Annotation.define();
+
+// A list row (`singleLine`): Enter does nothing, and a newline that arrives any other way — a paste,
+// a drop, a value from outside — becomes a space, because every consumer reads an item as one line.
+const singleLineExtensions = [
+  Prec.high(keymap.of([{ key: "Enter", run: () => true, shift: () => true }])),
+  EditorState.transactionFilter.of((tr) => {
+    if (!tr.docChanged) return tr;
+    const text = tr.newDoc.toString();
+    if (!text.includes("\n")) return tr;
+    const changes = [];
+    for (let i = text.indexOf("\n"); i !== -1; i = text.indexOf("\n", i + 1)) changes.push({ from: i, to: i + 1, insert: " " });
+    return [tr, { changes, sequential: true }];
+  }),
+];
 
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace";
 
@@ -122,15 +136,21 @@ const livePreview = ViewPlugin.fromClass(class {
 }, { decorations: (v) => v.decorations });
 
 // `value`/`onChange` is the same contract as a textarea's string: onChange gets the whole new text.
-// `minLines` is the empty field's height in lines. `ref` exposes focusEnd(), for a click on blank
-// paper below the text (MarkdownEditor's `fill`).
-export default function LiveMarkdown({ value, onChange, placeholder = "", ariaLabel, className = "", minLines = 1, style, ref }) {
+// `minLines` is the empty field's height in lines. `singleLine` makes it a list row (see above).
+// `autoFocus` puts the caret at the end on mount. `ref` exposes focus() / focusEnd() — the same
+// thing, caret at the end — for a row that was just added, or a click on blank paper below the text
+// (MarkdownEditor's `fill`).
+export default function LiveMarkdown({
+  value, onChange, placeholder = "", ariaLabel, className = "", minLines = 1, singleLine = false, autoFocus = false, style, ref,
+}) {
   const hostRef = useRef(null);
   const viewRef = useRef(null);
   const onChangeRef = useRef(onChange);
   useEffect(() => { onChangeRef.current = onChange; });
 
-  useEffect(() => {
+  // A layout effect, so the editor exists before `ref` is attached: a parent that focuses a row from
+  // its ref callback the moment the row mounts (ChecklistEditor) would otherwise focus nothing.
+  useLayoutEffect(() => {
     const view = new EditorView({
       parent: hostRef.current,
       state: EditorState.create({
@@ -144,6 +164,7 @@ export default function LiveMarkdown({ value, onChange, placeholder = "", ariaLa
           EditorView.lineWrapping,
           placeholderText(placeholder),
           editorTheme,
+          singleLine ? singleLineExtensions : [],
           ariaLabel ? EditorView.contentAttributes.of({ "aria-label": ariaLabel }) : [],
           EditorView.updateListener.of((u) => {
             if (u.docChanged && !u.transactions.some((tr) => tr.annotation(External))) {
@@ -154,6 +175,10 @@ export default function LiveMarkdown({ value, onChange, placeholder = "", ariaLa
       }),
     });
     viewRef.current = view;
+    if (autoFocus) {
+      view.focus();
+      view.dispatch({ selection: { anchor: view.state.doc.length } });
+    }
     return () => { view.destroy(); viewRef.current = null; };
     // Created once; later `value` changes arrive through the effect below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -171,14 +196,15 @@ export default function LiveMarkdown({ value, onChange, placeholder = "", ariaLa
     }
   }, [value]);
 
-  useImperativeHandle(ref, () => ({
-    focusEnd() {
+  useImperativeHandle(ref, () => {
+    const focusEnd = () => {
       const view = viewRef.current;
       if (!view) return;
       view.focus();
       view.dispatch({ selection: { anchor: view.state.doc.length }, scrollIntoView: true });
-    },
-  }), []);
+    };
+    return { focus: focusEnd, focusEnd };
+  }, []);
 
   return <div ref={hostRef} className={`live-md ${className}`.trim()} style={{ "--md-min-lines": minLines, ...style }} />;
 }

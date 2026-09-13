@@ -127,7 +127,7 @@ repo.
   doesn't show it.
 
 \`solution.md\` and \`plan.md\` are sibling files, no frontmatter. \`initiativeId\` links up to
-\`initiatives/<id>.md\` (or \`null\`). \`plan.md\` is plain markdown. \`design.md\` is the feature's
+\`initiatives/<id>.md\` (or \`null\`). \`plan.md\` holds the spec's tasks and approach (see "Plan"). \`design.md\` is the feature's
 design intent (not visual language — that belongs in Standards), in any of these \`##\` sections,
 in this order, each omitted when empty — one item per line (see "Writing text"):
 
@@ -148,6 +148,33 @@ Older specs tagged an artefact after an em dash with its kind and how closely to
 (\`— prototype, match exactly\`); neither is stored any more, and both are ignored on read.
 Older specs also called this file \`design.md\`; it is still read under that name and
 rewritten as \`solution.md\` on the next save.
+
+### Plan — \`<spec-uuid>/plan.md\`
+
+No frontmatter. The work as a task list, then the approach as freeform markdown:
+
+\`\`\`
+## Tasks
+
+- [ ] A task that hasn't started
+- [~] A task in progress
+- [x] A finished task
+- [!] A blocked task
+
+## Approach
+
+Freeform markdown.
+\`\`\`
+
+- Markers: \`[ ]\` to do, \`[~]\` in progress, \`[x]\` done, \`[!]\` blocked. One line per task — a task is
+  its text and its state, nothing under it. Tasks stay in the order they were planned; changing a
+  state never moves one. Unblocking a task returns it to to do.
+- A plan.md without a \`## Tasks\` section is all approach, and is read and written back unchanged.
+- Working through a plan: add the tasks before you build. Set \`[~]\` when you start one and \`[x]\`
+  when it's done; record what was built and how it was checked in \`solution.md\` Notes. When you're
+  stuck, set \`[!]\` and add an open question to \`spec.md\` saying what's in the way — the build
+  brief lists both as stop conditions. Finishing every task doesn't make the spec \`shipped\`; a
+  person decides that.
 
 ### Design system — \`DESIGN.md\` (optional, workspace root)
 

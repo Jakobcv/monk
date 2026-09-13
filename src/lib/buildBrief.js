@@ -13,6 +13,31 @@
 // picking an answer and moving on is the one thing this brief explicitly rules out.
 import { parseDesign, designSections } from "./designModel.js";
 import { designSystemForBrief } from "./designSystem.js";
+import { parsePlan } from "./planModel.js";
+
+// The plan's tasks grouped for an agent picking the work up: what it must not work around first,
+// then what's underway, then what's left, then what's finished so it isn't done twice. The approach
+// follows.
+const TASK_GROUPS = [
+  ["blocked", "**Blocked — stop and ask; don't work around these:**"],
+  ["doing", "**In progress:**"],
+  ["todo", "**To do:**"],
+  ["done", "**Done — don't redo:**"],
+];
+
+function renderPlan(md) {
+  const { tasks, approach } = parsePlan(md);
+  const withText = tasks.filter((t) => (t.text || "").trim());
+  const out = [];
+  for (const [status, heading] of TASK_GROUPS) {
+    const group = withText.filter((t) => t.status === status);
+    if (!group.length) continue;
+    out.push(heading, "", group.map((t) => `- ${t.text.trim()}`).join("\n"), "");
+  }
+  const body = (approach || "").trim();
+  if (body) out.push(withText.length ? `#### Approach\n\n${body}` : body);
+  return out.join("\n").trim() || "_(not written)_";
+}
 
 // Each Design section tells the agent how to treat it — what to build, goals it can solve its own
 // way, limits it can't cross, material to consult. This is what lets a spec state intent rather
@@ -170,7 +195,7 @@ export function buildSpecBrief(spec, sections, initiative, designSystem = "") {
     renderDesign(spec.design),
     "",
     "### Plan",
-    (spec.plan || "").trim() || "_(not written)_",
+    renderPlan(spec.plan),
     "",
     "### Acceptance criteria",
     "_The exit condition — build until every box below can be checked._",

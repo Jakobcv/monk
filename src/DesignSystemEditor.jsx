@@ -8,6 +8,7 @@ import {
   isDimension, isNumber, isReference,
 } from "./lib/designSystemModel";
 import AutoTextarea from "./ui/AutoTextarea";
+import LiveMarkdown from "./ui/LiveMarkdown";
 import PaperButton from "./ui/PaperButton";
 import IconButton from "./ui/IconButton";
 
@@ -221,10 +222,12 @@ export default function DesignSystemEditor({ value, onChange, onToast }) {
         <div style={rows}>
           {ds[group].map((text, i) => (
             <Row key={i} marker={<span aria-hidden="true" className="ds-bullet" />} trailing={<RemoveBtn onClick={() => removeAt(group, i, noun)} />}>
-              <AutoTextarea
-                className="prose-field" minRows={1} autoFocus={isFresh(group, i)}
-                value={text} onChange={(e) => patchAt(group, i, e.target.value)} onKeyDown={singleLine}
-                placeholder={placeholder} aria-label={`${noun} ${i + 1}`}
+              {/* A rule is one line in the file (`singleLine`), and usually names tokens in
+                  backticks, so it formats its markdown as you type. */}
+              <LiveMarkdown
+                singleLine className="prose-field" autoFocus={isFresh(group, i)}
+                value={text} onChange={(v) => patchAt(group, i, v)}
+                placeholder={placeholder} ariaLabel={`${noun} ${i + 1}`}
               />
             </Row>
           ))}
