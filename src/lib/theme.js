@@ -191,8 +191,10 @@ export const MOTION = {
 // Domain constants
 // ---------------------------------------------------------------------------
 
-// how a research activity collected its signals — lives on the Activity (see signalModel.js)
-export const METHOD_OPTIONS = ["Interview", "Survey", "Usage metrics", "Client call", "Other"];
+// how a research activity collected its signals — lives on the Activity (see signalModel.js).
+// "Codebase review" is research done by reading the product's code or docs: how an agent usually
+// researches, and a different kind of evidence from talking to people.
+export const METHOD_OPTIONS = ["Interview", "Survey", "Usage metrics", "Client call", "Codebase review", "Other"];
 
 export const SPEC_STATUS_OPTIONS = ["draft", "active", "shipped"];
 export const SPEC_STATUS_COLOR = { draft: INK_FAINT, active: ACCENT.insight, shipped: ACCENT.action };

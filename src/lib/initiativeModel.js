@@ -8,9 +8,13 @@ import { genEntityId } from "./boardModel.js";
 // `description` is freeform markdown (the rich editor, like a spec's Design/Plan). It's what
 // flows into each member spec's "Start build" brief as an "## Initiative" section (see
 // lib/buildBrief.js) — broader than one spec, narrower than product-wide Standards/Knowledge.
+//
+// `openQuestions` is the same [{text, checked}] checklist a spec has — the questions that span
+// several specs and don't belong to any one of them. Unresolved ones go into each member spec's
+// brief alongside the spec's own.
 export function blankInitiative(title = "Untitled initiative") {
   const now = Date.now();
-  return { id: genEntityId(), title, status: "active", description: "", createdAt: now, updatedAt: now };
+  return { id: genEntityId(), title, status: "active", description: "", openQuestions: [], createdAt: now, updatedAt: now };
 }
 
 // Every spec whose `initiativeId` points here — computed fresh, so there's nothing to keep in

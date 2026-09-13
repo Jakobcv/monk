@@ -14,8 +14,17 @@ plain markdown so any tool — including an LLM agent — can read and write it 
 documents the layout and file formats so those reads and writes stay valid.
 
 Monk loads the whole folder when it connects and re-writes what changed (debounced ~700ms). It
-does **not** watch for external edits yet, so after you change files here, reload Monk to see
-them.
+also watches the folder: a file you write is picked up about a second after writing stops, so
+write whole files rather than streaming into one. Monk never overwrites a file that changed since
+it last read it — your version stays on disk and the app reports the divergence.
+
+## Writing text
+
+Don't hard-wrap. Write every paragraph and every list item on a single line, however long, and let
+the reader wrap it. Monk shows text exactly as it is in the file, so a line broken at 72 columns
+shows up as a ragged line in the app. In list sections (below) a wrapped continuation line is
+joined back onto its item when Monk reads the file, and written back as one line on the next save;
+prose isn't rejoined.
 
 ## Frontmatter format
 
@@ -36,9 +45,10 @@ every record; set \`updatedAt\` to now when you change something.
 
 - **Global records** (sections, documents, specs, signals, insights, activities, initiatives,
   boards) use a UUID (\`crypto.randomUUID()\`). Generate a fresh one; never reuse or collide.
-- **Board cards** (actions, results) and **connections** use small integers from a
-  workspace-wide counter. If you add one, pick an integer higher than every existing card and
-  connection id in the workspace.
+- **Board cards** (actions, results) and **connections** use integers. If you add one, use an
+  integer not taken by another card or connection **on the same board** — one higher than the
+  largest on that board is always safe. Monk re-counts every board when it reads the folder, so
+  the ids it hands out itself never collide with yours.
 - The two fixed sections use literal ids, not UUIDs: \`product-knowledge\` and \`standards\`.
 
 ## Folder layout
@@ -86,7 +96,7 @@ repo.
 ---
 {"id":"<uuid>","title":"...","status":"draft|active|shipped","owner":"...",
  "initiativeId":"<initiative-uuid> | null",
- "openQuestions":[{"text":"...","checked":false}],
+ "openQuestions":[{"text":"...","checked":false,"resolution":"..."}],
  "acceptanceCriteria":[{"text":"...","checked":false}],
  "createdAt":"...","updatedAt":"..."}
 ---
@@ -103,10 +113,23 @@ repo.
 ...
 \`\`\`
 
+- **Open questions**: \`text\` is the question and only the question. When one is answered, put the
+  answer (and why) in \`resolution\` and set \`checked\` to \`true\`. \`resolution\` is optional —
+  leave it out until there is one. The build brief lists unresolved questions as a stop condition
+  and resolved ones with their answers.
+- **Acceptance criteria**: one testable statement each. The reasoning behind a criterion belongs in
+  \`solution.md\` Decisions, not in the criterion.
+- **Status**: \`draft\` while the spec is being written, \`active\` once it's being built. An agent
+  doesn't set \`shipped\`: when the build is done and every criterion is checked, say so in
+  \`solution.md\` Notes and leave the status for a person to confirm.
+- **Other sections**: text before the first heading, and any \`##\` section other than Problem,
+  Goals and Non-goals, is kept as written below Non-goals and goes into the build brief. The app
+  doesn't show it.
+
 \`solution.md\` and \`plan.md\` are sibling files, no frontmatter. \`initiativeId\` links up to
 \`initiatives/<id>.md\` (or \`null\`). \`plan.md\` is plain markdown. \`design.md\` is the feature's
 design intent (not visual language — that belongs in Standards), in any of these \`##\` sections,
-in this order, each omitted when empty — one item per line:
+in this order, each omitted when empty — one item per line (see "Writing text"):
 
 \`\`\`
 ## Solution               freeform markdown — what is being built
@@ -144,6 +167,54 @@ most three deep (group → token → property), with single-line values — no \
 values, no lists or anchors inside \`colors\`, \`typography\`, \`rounded\`, \`spacing\` or
 \`components\`, no tabs. A file outside that still works everywhere else; Monk just opens it as
 raw Markdown and says why.
+
+A minimal file in that shape:
+
+\`\`\`
+---
+version: alpha
+name: My Product
+colors:
+  ink: "#1A1C1E"
+  accent: "#E3A44C"
+typography:
+  body:
+    fontFamily: Inter
+    fontSize: 15px
+    lineHeight: 1.45
+rounded:
+  md: 5px
+spacing:
+  md: 16px
+components:
+  button-primary:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.md}"
+    padding: "{spacing.md}"
+---
+
+## Overview
+
+What the product should feel like, one paragraph per line.
+
+## Colors
+
+Why each color exists and what it means.
+
+## Do's and Don'ts
+
+- Do read every color from its token.
+- Don't add a drop shadow to an ordinary card.
+\`\`\`
+
+Quote any value that starts with \`#\` or \`{\`. A component property is either a literal value or a
+\`{group.token}\` reference to a token defined above. The properties a component may have are
+\`backgroundColor\`, \`textColor\`, \`typography\`, \`rounded\`, \`padding\`, \`size\`, \`height\` and
+\`width\`; a variant (hover, pressed) is its own component with a related name, such as
+\`button-primary-hover\`. Under Do's and Don'ts each rule is one \`- Do …\` or \`- Don't …\` line;
+anything else there is kept as notes.
 
 However it gets written, every spec's build brief carries it as a contract, above the spec
 itself, because it is true of everything in the product rather than of one feature. The brief
@@ -216,24 +287,37 @@ The insight, as free text.
 
 \`\`\`
 ---
-{"id":"<uuid>","name":"...","method":"Interview|Survey|Usage metrics|Client call|Other",
+{"id":"<uuid>","name":"...","method":"Interview|Survey|Usage metrics|Client call|Codebase review|Other",
  "link":"...","date":"<ISO>","author":"...","createdAt":"...","updatedAt":"..."}
 ---
 \`\`\`
 
 No body. "Signals from this activity" is derived (any signal whose \`source.activityId\` matches).
 
+\`Codebase review\` is research done by reading the product's code or docs — usually how an agent
+researches. What goes where:
+
+- A finding about the **product or the people using it** — a behaviour, a gap, something users
+  can't do — is a signal, with that activity as its source. Signals are what a spec's Discovery
+  board links to, and what insights are formed from.
+- A fact about **how the code is built** — which function to reuse, where a pattern lives, what a
+  change would break — is implementation grounding. It goes in the spec's \`solution.md\` Notes.
+
 ### Initiative — \`initiatives/<uuid>.md\`
 
 \`\`\`
 ---
-{"id":"<uuid>","title":"...","status":"active|paused|done","createdAt":"...","updatedAt":"..."}
+{"id":"<uuid>","title":"...","status":"active|paused|done",
+ "openQuestions":[{"text":"...","checked":false,"resolution":"..."}],"createdAt":"...","updatedAt":"..."}
 ---
 Freeform description — shared context for every spec under this initiative.
 \`\`\`
 
 "Specs in this initiative" is derived (any spec whose \`initiativeId\` matches). An initiative is
-an epic; its specs are the tickets.
+an epic; its specs are the tickets. \`openQuestions\` are the questions that span its specs; an
+unchecked one is unresolved for every spec in the initiative. Answers go in \`resolution\`, the same
+as on a spec. When a spec settles something the initiative's description still calls open, update
+the description too.
 
 ### Section — \`<section-uuid>/section.md\`
 

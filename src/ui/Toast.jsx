@@ -3,7 +3,8 @@ import { useEffect } from "react";
 // One toast at a time, bottom-left, auto-dismissing. Deliberately plain: it reports something
 // that already happened and offers exactly one way to reverse it. A second delete replaces the
 // first toast (and with it, that first undo) — which is the standard bargain, and keeps the
-// screen from stacking up with things demanding attention.
+// screen from stacking up with things demanding attention. The one action is Undo unless the toast
+// names another (`actionLabel`) — "Show" on a reload from disk, which opens the list of files.
 const DISMISS_AFTER = 7000;
 
 export default function Toast({ toast, onDismiss }) {
@@ -27,7 +28,7 @@ export default function Toast({ toast, onDismiss }) {
           className="toast__undo"
           onClick={() => { toast.onUndo(); onDismiss(); }}
         >
-          Undo
+          {toast.actionLabel || "Undo"}
         </button>
       )}
     </div>

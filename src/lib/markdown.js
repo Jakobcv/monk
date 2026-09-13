@@ -234,6 +234,30 @@ export function markdownToDocument(content) {
 // checklists) is scalar/array data that belongs in frontmatter. `design`/`plan` are NOT part of
 // this frontmatter — they're separate sibling files (design.md/plan.md) in the spec's own
 // folder, plain markdown text with no frontmatter of their own (see storage.js).
+// Everything in a spec.md body that isn't one of its three sections — text before the first heading,
+// any other `##` section, a second copy of a known heading — as raw markdown, headings included. It
+// isn't shown in the app, but it's written back and goes into the build brief: an agent recording
+// something the format has no place for used to have it silently dropped on the next save.
+const SPEC_SECTIONS = ["problem", "goals", "non-goals"];
+function extraSpecSections(body) {
+  const chunks = [{ title: null, lines: [] }];
+  for (const line of body.replace(/\r\n?/g, "\n").split("\n")) {
+    const h = /^##\s+(.+?)\s*$/.exec(line);
+    if (h) chunks.push({ title: h[1].toLowerCase(), lines: [line] });
+    else chunks[chunks.length - 1].lines.push(line);
+  }
+  const seen = new Set();
+  return chunks
+    .filter((c) => {
+      if (!c.title || !SPEC_SECTIONS.includes(c.title) || seen.has(c.title)) return true;
+      seen.add(c.title);
+      return false;
+    })
+    .map((c) => c.lines.join("\n").trim())
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 export function specToMarkdown(spec) {
   const frontmatter = {
     id: spec.id,
@@ -246,12 +270,19 @@ export function specToMarkdown(spec) {
     createdAt: new Date(spec.createdAt || Date.now()).toISOString(),
     updatedAt: new Date(spec.updatedAt || Date.now()).toISOString(),
   };
+  // Extra text from before the first heading goes back before it; extra `##` sections go after
+  // Non-goals. Written anywhere else, loose text would be read back as part of Non-goals.
+  const extra = (spec.extraSections || "").trim();
+  const firstHeading = extra.search(/^##\s/m);
+  const lead = (firstHeading === -1 ? extra : extra.slice(0, firstHeading)).trim();
+  const tail = firstHeading === -1 ? "" : extra.slice(firstHeading).trim();
   const body = [
+    ...(lead ? [lead, ""] : []),
     "## Problem", spec.problem || "", "",
     "## Goals", spec.goals || "", "",
     "## Non-goals", spec.nonGoals || "",
   ].join("\n");
-  return stringifyFrontmatter(frontmatter, body);
+  return stringifyFrontmatter(frontmatter, tail ? `${body}\n\n${tail}\n` : body);
 }
 
 export function markdownToSpec(content) {
@@ -269,6 +300,7 @@ export function markdownToSpec(content) {
     problem: extractSection(body, "Problem"),
     goals: extractSection(body, "Goals"),
     nonGoals: extractSection(body, "Non-goals"),
+    extraSections: extraSpecSections(body),
   };
 }
 
@@ -279,6 +311,7 @@ export function initiativeToMarkdown(initiative) {
     id: initiative.id,
     title: initiative.title || "",
     status: initiative.status || "active",
+    openQuestions: initiative.openQuestions || [],
     createdAt: new Date(initiative.createdAt || Date.now()).toISOString(),
     updatedAt: new Date(initiative.updatedAt || Date.now()).toISOString(),
   };
@@ -291,6 +324,7 @@ export function markdownToInitiative(content) {
     id: data.id,
     title: data.title || "",
     status: data.status || "active",
+    openQuestions: Array.isArray(data.openQuestions) ? data.openQuestions : [],
     description: body,
     createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
     updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now(),

@@ -1,11 +1,13 @@
-import { useRef, useLayoutEffect } from "react";
+import { useRef, useLayoutEffect, useImperativeHandle } from "react";
 
 // A textarea that grows to fit its content instead of scrolling inside a fixed height.
 // `minRows` is the floor (applied via the rows attribute so the first paint is already
 // the right size); after every value change the height is set to scrollHeight exactly.
 // overflow:hidden keeps a scrollbar from flashing between the reset and the re-measure.
-export default function AutoTextarea({ value, minRows = 2, style, ...rest }) {
+// `ref` is forwarded to the textarea (a checklist row focuses the one it just added).
+export default function AutoTextarea({ value, minRows = 2, style, ref: outerRef, ...rest }) {
   const ref = useRef(null);
+  useImperativeHandle(outerRef, () => ref.current, []);
   // Width at the last fit, so the ResizeObserver below can tell "the column changed, the text
   // rewrapped" from "we just set the height ourselves" — reacting to the latter would loop.
   const fittedWidth = useRef(-1);

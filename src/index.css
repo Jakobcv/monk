@@ -579,6 +579,39 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   Disk changes (DiskChanges.jsx) — the header's log of files the watcher
+   picked up this session. Hangs under its button, right-aligned.
+   --------------------------------------------------------------------------- */
+.disk-log {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(400px, calc(100vw - 32px));
+  max-height: 60vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.disk-log__entry + .disk-log__entry {
+  border-top: 1px solid var(--border);
+}
+.disk-log__file {
+  display: block;
+  min-width: 0;
+  padding: 4px 6px;
+  margin: 0 -6px;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+a.disk-log__file {
+  transition: background-color var(--motion-fast) var(--ease);
+}
+a.disk-log__file:hover {
+  background: var(--bg-hover);
+}
+
+/* ---------------------------------------------------------------------------
    Entrance — the one shared arrival animation
    --------------------------------------------------------------------------- */
 @keyframes enter-up {
@@ -697,8 +730,16 @@ a.recent-row:hover {
   display: inline-grid;
   place-items: center;
   width: var(--paper-marker);
-  height: 26px;
+  height: var(--cl-line);
   cursor: pointer;
+}
+/* The × column — as tall as the first line, so on a wrapped row it stays level with the
+   checkbox instead of centring on the whole paragraph. */
+.cl-row__side {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: var(--cl-line);
 }
 .cl-check input {
   position: absolute;
@@ -852,8 +893,14 @@ a.recent-row:hover {
    without the editor being told where it is. The 4px vertical padding is
    .prose-field's — it makes a row here exactly as tall as a row of a list on
    the Solution tab, so the two read as one list. */
+/* A textarea, so long items wrap (see ChecklistEditor.jsx). --cl-line is the height of one
+   line of it — line-height plus vertical padding — which the checkbox and × are held to. */
 .cl-input {
   flex: 1;
+  min-width: 0;
+  display: block;
+  box-sizing: border-box;
+  resize: none;
   border: none;
   border-bottom: 1px solid transparent;
   outline: none;
@@ -861,10 +908,45 @@ a.recent-row:hover {
   font-family: var(--font);
   font-weight: 400;
   font-size: var(--size-ui);
+  line-height: 20px;
   color: var(--ink);
-  padding: 2px 0;
+  padding: 3px 0;
+  overflow-wrap: anywhere;
+}
+/* The text column of a row: the item, and under a resolved open question its resolution. */
+.cl-body {
+  flex: 1;
+  min-width: 0;
+}
+.cl-body > .cl-input {
+  width: 100%;
+}
+/* A step quieter than the question it answers, and never struck through with it. */
+.cl-resolution {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  resize: none;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: var(--font);
+  font-size: 12.5px;
+  line-height: 18px;
+  color: var(--ink-soft);
+  padding: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+.cl-resolution::placeholder {
+  color: var(--ink-placeholder);
+}
+.paper-sheet .cl-resolution {
+  font-size: 14px; /* PAPER.label */
+  line-height: var(--paper-leading);
+  padding: 0 0 6px;
 }
 .cl-rows {
+  --cl-line: 26px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -875,6 +957,7 @@ a.recent-row:hover {
   padding: 4px 0;
 }
 .paper-sheet .cl-rows {
+  --cl-line: calc(var(--paper-body) * var(--paper-leading) + 8px);
   gap: 6px;
 }
 
@@ -891,6 +974,67 @@ a.recent-row:hover {
 .paper-sheet .edit-area {
   font-size: var(--paper-body);
   line-height: var(--paper-leading);
+}
+
+/* ---------------------------------------------------------------------------
+   Live markdown (ui/LiveMarkdown.jsx) — the formatting a field picks up as you
+   type. Sizes are relative (em) so a heading steps up from whatever surface the
+   field is on. Markers (**, #, `) are hidden off the cursor's line; where they
+   show, they're faint so the formatted text still leads. Line-level styles
+   (quotes, code blocks) are in the editor's theme, which has to outrank
+   CodeMirror's own line rules.
+   --------------------------------------------------------------------------- */
+.live-md .md-strong {
+  font-weight: 600;
+}
+.live-md .md-em {
+  font-style: italic;
+}
+.live-md .md-strike {
+  text-decoration: line-through;
+  color: var(--ink-soft);
+}
+.live-md .md-h {
+  font-weight: 600;
+  color: var(--ink);
+}
+.live-md .md-h1 {
+  font-size: 1.5em;
+  line-height: 1.3;
+}
+.live-md .md-h2 {
+  font-size: 1.25em;
+  line-height: 1.35;
+}
+.live-md .md-h3 {
+  font-size: 1.1em;
+}
+.live-md .md-mark {
+  color: var(--ink-faint);
+  font-weight: 400;
+  font-style: normal;
+}
+.live-md .md-code {
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--bg-hover);
+  border-radius: var(--radius-xs);
+  padding: 1px 4px;
+}
+.live-md .md-codeblock .md-code {
+  font-size: inherit;
+  background: none;
+  padding: 0;
+}
+.live-md .md-link {
+  color: var(--accent-insight);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent-insight) 40%, transparent);
+  text-underline-offset: 2px;
+}
+.live-md .md-url {
+  color: var(--ink-faint);
+  text-decoration: none;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1106,7 +1250,9 @@ a.recent-row:hover {
     background-color var(--motion-fast) var(--ease),
     box-shadow var(--motion-fast) var(--ease);
 }
-.prose-field:hover:not(:focus) {
+/* :focus-within, not :focus — a live-markdown field (ui/LiveMarkdown.jsx) is a wrapper whose editable
+   element is inside it. For a textarea the two are the same thing. */
+.prose-field:hover:not(:focus-within) {
   background: var(--bg-hover);
 }
 
@@ -1124,7 +1270,7 @@ a.recent-row:hover {
 .design-link::placeholder {
   color: var(--ink-soft);
 }
-.prose-field:focus {
+.prose-field:focus-within {
   background: var(--bg);
   box-shadow:
     0 0 0 1px var(--border-strong),

@@ -2,10 +2,11 @@ import { FolderOpen } from "lucide-react";
 import { font, INK, INK_SOFT, BORDER, SIZE, WEIGHT, SPACE, SAVE_STATUS_COLOR, SAVE_STATUS_LABEL } from "./lib/theme";
 import { Wordmark } from "./ui/text";
 import Button from "./ui/Button";
+import DiskChanges from "./DiskChanges";
 
 // One header, identical everywhere — the home page and every board share it rather than
 // each route rendering its own top bar. The brand doubles as the way back home.
-export default function Header({ saveStatus, onRetrySave, onChangeFolder }) {
+export default function Header({ saveStatus, onRetrySave, onChangeFolder, diskLog = [], diskLogOpen = false, onDiskLogOpenChange, diskLogHref }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -18,6 +19,7 @@ export default function Header({ saveStatus, onRetrySave, onChangeFolder }) {
       </Wordmark>
 
       <div style={{ display: "flex", alignItems: "center", gap: SPACE.xl }}>
+        <DiskChanges log={diskLog} open={diskLogOpen} onOpenChange={onDiskLogOpenChange} hrefFor={diskLogHref} />
         <Button variant="subtle" onClick={onChangeFolder} title="Switch to a different research folder">
           <FolderOpen size={16} /> Change folder
         </Button>

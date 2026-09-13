@@ -84,7 +84,10 @@ function RecentRow({ item, href, now, delay }) {
 
 // The start page: the mark, and the short list of what you last touched so you can get back
 // into it.
-export default function Home({ signals = [], insights = [], activities = [], specs = [], initiatives = [], onCreateSpec, recentHref, folderName, onChangeFolder }) {
+// `folderName` is the project — the repo Monk was connected to — and `subfolder` the folder inside
+// it Monk works in (monk/). With no known project, `folderName` is the connected folder itself and
+// there is no subfolder.
+export default function Home({ signals = [], insights = [], activities = [], specs = [], initiatives = [], onCreateSpec, recentHref, folderName, subfolder, onChangeFolder }) {
   const [now] = useState(() => Date.now());
   const recent = recentlyTouched({ signals, insights, activities, specs, initiatives }, 8);
 
@@ -138,7 +141,7 @@ export default function Home({ signals = [], insights = [], activities = [], spe
             <button
               className="enter-up crumb"
               onClick={onChangeFolder}
-              title="Switch to a different research folder"
+              title={subfolder ? `Working in ${folderName}/${subfolder} — switch to a different project` : "Switch to a different research folder"}
               style={{
                 display: "inline-flex", alignItems: "center", gap: SPACE.sm,
                 marginTop: SPACE.xl, padding: "5px 11px", borderRadius: RADIUS.pill,
@@ -148,7 +151,10 @@ export default function Home({ signals = [], insights = [], activities = [], spe
               }}
             >
               <FolderOpen size={12} style={{ flexShrink: 0 }} />
-              {folderName || "Research folder"}
+              <span translate="no">
+                {folderName || "Research folder"}
+                {subfolder && <span style={{ color: INK_FAINT }}>/{subfolder}</span>}
+              </span>
             </button>
           )}
         </div>

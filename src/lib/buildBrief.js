@@ -47,11 +47,29 @@ function renderChecklist(items, emptyText) {
   return list.map((it) => `- [${it.checked ? "x" : " "}] ${it.text}`).join("\n");
 }
 
+// Answered questions, each with its answer under it. These aren't background: an answer is a
+// decision the build has to follow, and without this the brief said "None outstanding" and the
+// answers themselves never reached the agent.
+function renderResolved(items) {
+  return items
+    .map((q) => {
+      const answer = (q.resolution || "").trim();
+      return `- ${q.text.trim()}` + (answer ? `\n  - Resolution: ${answer}` : "");
+    })
+    .join("\n");
+}
+
 export function buildSpecBrief(spec, sections, initiative, designSystem = "") {
   const standards = sectionDocs(sections, "standards");
   const productKnowledge = sectionDocs(sections, "product-knowledge");
   const title = spec.title || "Untitled spec";
-  const unresolved = (spec.openQuestions || []).filter((q) => !q.checked && (q.text || "").trim());
+  const isUnresolved = (q) => !q.checked && (q.text || "").trim();
+  const unresolved = (spec.openQuestions || []).filter(isUnresolved);
+  const initiativeUnresolved = initiative ? (initiative.openQuestions || []).filter(isUnresolved) : [];
+  const isResolved = (q) => q.checked && (q.text || "").trim();
+  const resolved = (spec.openQuestions || []).filter(isResolved);
+  const initiativeResolved = initiative ? (initiative.openQuestions || []).filter(isResolved) : [];
+  const initiativeLabel = `_From the initiative "${initiative?.title || "Untitled initiative"}":_`;
 
   const lines = [
     `# Build brief: ${title}`,
@@ -115,14 +133,35 @@ export function buildSpecBrief(spec, sections, initiative, designSystem = "") {
     "",
     (spec.nonGoals || "").trim() || "_(not written)_",
     "",
-    "### Open questions"
   );
 
-  if (unresolved.length) {
+  // Sections of spec.md the app doesn't show (see markdown.js), a level down so they sit under the spec.
+  const extra = (spec.extraSections || "").trim();
+  if (extra) lines.push(extra.replace(/^##(?=\s)/gm, "###"), "");
+
+  lines.push("### Open questions");
+
+  // The initiative's own unresolved questions hold this spec up just as much as its own do, so
+  // they sit in the same stop list rather than back in the Initiative context section.
+  if (unresolved.length || initiativeUnresolved.length) {
     lines.push("**Unresolved — stop and ask, or make a documented, flagged assumption. Do not decide silently:**", "");
-    lines.push(renderChecklist(unresolved, ""));
+    if (unresolved.length) lines.push(renderChecklist(unresolved, ""));
+    if (initiativeUnresolved.length) {
+      if (unresolved.length) lines.push("");
+      lines.push(initiativeLabel, "");
+      lines.push(renderChecklist(initiativeUnresolved, ""));
+    }
   } else {
     lines.push("_None outstanding._");
+  }
+
+  if (resolved.length || initiativeResolved.length) {
+    lines.push("", "**Resolved — settled; build to these answers:**", "");
+    if (resolved.length) lines.push(renderResolved(resolved));
+    if (initiativeResolved.length) {
+      if (resolved.length) lines.push("");
+      lines.push(initiativeLabel, "", renderResolved(initiativeResolved));
+    }
   }
 
   lines.push(

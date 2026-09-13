@@ -45,7 +45,28 @@ export function blankDesign() {
 
 // List items are one line each in the file; a stray newline typed into a field is collapsed.
 const oneLine = (s) => (s || "").replace(/\s+/g, " ").trim();
-const bullet = (l) => l.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, "").trim();
+const MARKER = /^\s*(?:[-*+]|\d+[.)])\s+/;
+const bullet = (l) => l.replace(MARKER, "").trim();
+
+// A list section's lines, grouped into items. Only a line with a list marker starts an item; a
+// line without one continues the item above it, because people and agents both hard-wrap long
+// bullets, and reading each wrapped line as its own item shattered three principles into ten.
+// Blank lines follow markdown: an indented line after a blank still belongs to the item (a second
+// paragraph of it); an unindented one after a blank is a new item rather than being lost.
+function listItems(lines) {
+  const items = [];
+  let afterBlank = false;
+  for (const line of lines) {
+    if (!line.trim()) { afterBlank = true; continue; }
+    const continues = items.length && !MARKER.test(line) && (/^\s/.test(line) || !afterBlank);
+    if (continues) items[items.length - 1].push(line);
+    else items.push([line]);
+    afterBlank = false;
+  }
+  return items;
+}
+// An item's lines as one line of text, marker still on it.
+const joined = (group) => group.map((l) => l.trim()).join(" ");
 
 // The non-empty sections, in canonical order, each rendered to its markdown body. Shared by
 // serializeDesign (under `##` headings) and the build brief (under its own headings + framing).
@@ -79,32 +100,35 @@ export function serializeDesign(d) {
   return sections.length ? sections.map((s) => `## ${s.title}\n\n${s.body}`).join("\n\n") + "\n" : "";
 }
 
+// Each parser takes the section's items from listItems — arrays of the raw lines that make up one item.
 const PARSERS = {
   // An artefact is a title and a link. It used to carry trailing tags after an em dash — a kind
   // (prototype, diagram, persona…) the title already said out loud, and an authority saying how
   // closely to follow it — and the regex still tolerates them so an older line parses, but they
   // aren't read and aren't written back.
-  artefacts(d, lines) {
-    for (const l of lines) {
+  artefacts(d, items) {
+    for (const group of items) {
+      const l = joined(group);
       const m = /^\s*[-*+]\s+\[(.*)\]\(([^)]*)\)\s*(?:[—–-]\s*.*)?$/.exec(l);
       d.artefacts.push(m ? { title: m[1], url: m[2] } : { title: bullet(l), url: "" });
     }
   },
-  principles(d, lines) { for (const l of lines) d.principles.push(bullet(l)); },
-  constraints(d, lines) { for (const l of lines) d.constraints.push(bullet(l)); },
+  principles(d, items) { for (const group of items) d.principles.push(bullet(joined(group))); },
+  constraints(d, items) { for (const group of items) d.constraints.push(bullet(joined(group))); },
   // A plain list now, but a decision used to be a three-part record — `- **Decided**` with
   // nested `- Because: …` / `- Rejected: …` under it. Rather than let those nested lines become
   // three separate decisions, they fold back onto the line they belong to, so a file written in
   // the old shape reads as one sentence per decision instead of shattering.
-  decisions(d, lines) {
-    for (const l of lines) {
-      const part = /^\s+[-*+]\s+(Because|Rejected):\s*(.*)$/i.exec(l);
+  decisions(d, items) {
+    for (const group of items) {
+      const part = /^\s+[-*+]\s+(Because|Rejected):\s*(.*)$/i.exec(group[0]);
       if (part && d.decisions.length) {
         const label = part[1][0].toUpperCase() + part[1].slice(1).toLowerCase();
-        d.decisions[d.decisions.length - 1] += ` — ${label}: ${part[2].trim()}`;
+        const text = [part[2], ...group.slice(1)].map((l) => l.trim()).join(" ").trim();
+        d.decisions[d.decisions.length - 1] += ` — ${label}: ${text}`;
         continue;
       }
-      d.decisions.push(bullet(l).replace(/^\*\*(.*)\*\*$/, "$1"));
+      d.decisions.push(bullet(joined(group)).replace(/^\*\*(.*)\*\*$/, "$1"));
     }
   },
 };
@@ -120,7 +144,7 @@ export function parseDesign(md) {
   }
   for (const { title, lines } of chunks) {
     const key = title ? KEY_BY_TITLE[title.toLowerCase()] : null;
-    if (key && !FREEFORM.has(key)) { PARSERS[key](d, lines.filter((l) => l.trim())); continue; }
+    if (key && !FREEFORM.has(key)) { PARSERS[key](d, listItems(lines)); continue; }
     if (key === "solution") { d.solution = lines.join("\n").trim(); continue; }
     // Notes, preamble, or an unknown heading — kept verbatim (unknown headings keep their title).
     const body = lines.join("\n").trim();

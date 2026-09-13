@@ -5,6 +5,7 @@ import { Eyebrow } from "./ui/text";
 import Button from "./ui/Button";
 import PaperButton from "./ui/PaperButton";
 import IconButton from "./ui/IconButton";
+import AutoTextarea from "./ui/AutoTextarea";
 
 // Enter/exit timings are mirrored in index.css (@keyframes cl-row-in / cl-row-out).
 const ENTER_MS = 220;
@@ -14,14 +15,28 @@ const EXIT_MS = 140;
 // paper surface can step both up without this component being told where it is. All `paper` still
 // decides is which add control to render, which is structural rather than typographic.
 
-// Shared by Spec's Open Questions and Acceptance Criteria — no checklist UI exists elsewhere
-// in the app yet, this is new. `items` is [{text, checked}], fully controlled by the parent.
+// Shared by Spec's Open Questions and Acceptance Criteria, and an Initiative's Open Questions.
+// `items` is [{text, checked, resolution?}], fully controlled by the parent.
+//
+// `resolutions` (open questions only): a checked item gets a quieter field under it for the answer.
+// The question stays the question — answers used to get pasted onto the end of it, which made the
+// row unreadable and kept them out of the brief. It stays visible once written, even if unchecked
+// again, and the key is removed from the item while it's empty so files don't fill with "".
+//
+// Each row's text is a one-item-per-row textarea rather than an input, so a long item wraps onto
+// the next line instead of scrolling out of sight. It is still a single line of data: Enter
+// doesn't insert a newline and pasted newlines become spaces, because every consumer (the brief's
+// `- [ ] text`, the frontmatter) reads an item as one line.
 //
 // Per-row identity (needed so React animates the right node on add/remove) is assigned here
-// and never persisted — the parent still stores plain {text, checked}. SpecPage remounts this
-// editor per spec via key={spec.id}, so a local id can't outlive the spec it belongs to, and
+// and never persisted — the parent still stores plain {text, checked}. Its page remounts this
+// editor per spec or initiative via its key, so a local id can't outlive the record it belongs to, and
 // within one mount the list only ever changes through the add / remove / patch handlers below.
-export default function ChecklistEditor({ label, items, onChange, paper = false }) {
+// Every consumer reads an item as one line, so Enter never starts a second one.
+const noEnter = (e) => { if (e.key === "Enter") e.preventDefault(); };
+const oneLine = (s) => s.replace(/\r?\n/g, " ");
+
+export default function ChecklistEditor({ label, items, onChange, paper = false, resolutions = false }) {
   const idState = useRef();
   if (!idState.current) {
     let seq = 0;
@@ -40,6 +55,13 @@ export default function ChecklistEditor({ label, items, onChange, paper = false 
 
   const patch = (idx, fields) =>
     onChange(items.map((it, i) => (i === idx ? { ...it, ...fields } : it)));
+  const patchResolution = (idx, value) =>
+    onChange(items.map((it, i) => {
+      if (i !== idx) return it;
+      const next = { ...it, resolution: oneLine(value) };
+      if (!next.resolution) delete next.resolution;
+      return next;
+    }));
 
   const add = () => {
     const id = idState.current.next();
@@ -79,7 +101,8 @@ export default function ChecklistEditor({ label, items, onChange, paper = false 
             + (entering.has(id) ? " cl-row--enter" : "")
             + (exiting.has(id) ? " cl-row--exit" : "");
           return (
-            <div key={id} className={cls} style={{ display: "flex", alignItems: "center", gap: SPACE.base }}>
+            // flex-start, so on a wrapped row the checkbox and × stay beside its first line.
+            <div key={id} className={cls} style={{ display: "flex", alignItems: "flex-start", gap: SPACE.base }}>
               <label className="cl-check">
                 <input
                   type="checkbox"
@@ -90,19 +113,37 @@ export default function ChecklistEditor({ label, items, onChange, paper = false 
                   <Check size={12} strokeWidth={3.5} />
                 </span>
               </label>
-              <input
-                ref={(el) => { if (el && focusId.current === id) { el.focus(); focusId.current = null; } }}
-                value={item.text}
-                onChange={(e) => patch(idx, { text: e.target.value })}
-                placeholder="…"
-                className="cl-input"
-                style={{ textDecoration: item.checked ? "line-through" : "none", color: item.checked ? INK_FAINT : INK }}
-              />
-              {/* Bounded by the text input 8px to its left and the next row 4px below — a
-                  square 40px target would cover both. */}
-              <IconButton className="reveal" onClick={() => remove(id)} title="Remove" danger style={{ flexShrink: 0, "--hit-w": "34px", "--hit-h": "28px" }}>
-                <X size={16} />
-              </IconButton>
+              <div className="cl-body">
+                <AutoTextarea
+                  ref={(el) => { if (el && focusId.current === id) { el.focus(); focusId.current = null; } }}
+                  minRows={1}
+                  value={item.text}
+                  onChange={(e) => patch(idx, { text: oneLine(e.target.value) })}
+                  onKeyDown={noEnter}
+                  placeholder="…"
+                  aria-label={label}
+                  className="cl-input"
+                  style={{ textDecoration: item.checked ? "line-through" : "none", color: item.checked ? INK_FAINT : INK }}
+                />
+                {resolutions && (item.checked || item.resolution) && (
+                  <AutoTextarea
+                    minRows={1}
+                    value={item.resolution || ""}
+                    onChange={(e) => patchResolution(idx, e.target.value)}
+                    onKeyDown={noEnter}
+                    placeholder="Resolution…"
+                    aria-label={`${label}: resolution`}
+                    className="cl-resolution"
+                  />
+                )}
+              </div>
+              {/* Bounded by the text 8px to its left and the next row 4px below — a square 40px
+                  target would cover both. Held to the height of the first line (.cl-row__side). */}
+              <div className="cl-row__side">
+                <IconButton className="reveal" onClick={() => remove(id)} title="Remove" danger style={{ "--hit-w": "34px", "--hit-h": "28px" }}>
+                  <X size={16} />
+                </IconButton>
+              </div>
             </div>
           );
         })}

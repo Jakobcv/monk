@@ -28,9 +28,23 @@ format is documented in \`MONK.md\` — read that before writing.
   skeleton. If it's there, every build brief carries it as a contract (minus comments and empty
   sections) — so that is where tokens, type and component rules belong, not in an individual spec.
   People edit it in a structured editor, so keep its front matter to single-line \`key: value\`
-  pairs (see \`MONK.md\`), and don't rely on YAML comments — an edit in the app drops them.
+  pairs (\`MONK.md\` has a complete example), and don't rely on YAML comments — an edit in the app
+  drops them.
 
 Anything else in this folder isn't Monk's, and Monk never touches it.
+
+### Where things go
+
+- **A finding about the product or its users** — including one you made by reading the code — is a
+  signal in \`signals/\`, with a \`Codebase review\` activity as its source if that's how you found
+  it. That is what the Discovery board is for.
+- **A fact about how the code is built** — which function to reuse, where a pattern lives — is
+  implementation grounding, and goes in that spec's \`solution.md\` Notes.
+- **A decision and its reason** go in \`solution.md\` Decisions, once. Don't repeat them in open
+  questions and acceptance criteria.
+- **An answered open question** keeps the question in \`text\`, gets the answer in \`resolution\`, and
+  is checked.
+- **An acceptance criterion** is one testable statement, with no reasoning attached.
 
 ### Working alongside the app
 
@@ -48,10 +62,15 @@ The app may be open while you work.
 - Frontmatter is a single line of JSON between \`---\` fences. Not YAML. The one exception is
   \`DESIGN.md\`, whose format is YAML front matter of its own.
 - Leave \`id\` exactly as it is.
-- In \`spec.md\` and \`solution.md\`, a \`## Heading\` the schema doesn't recognise is kept rather
-  than dropped — it lands in Notes. That's the escape hatch when you need to record something
-  the format has no place for.
-- List sections are one item per line; a newline inside an item is collapsed on the next save.
+- Don't hard-wrap. Put every paragraph and every list item on one line; Monk shows text exactly as
+  it is in the file. (A wrapped list item is joined back together when read; prose isn't.)
+- A \`## Heading\` the schema doesn't recognise is kept rather than dropped. In \`solution.md\` it
+  lands in Notes; in \`spec.md\` it stays below Non-goals and goes into the build brief, but the app
+  doesn't show it. That's the escape hatch for something the format has no place for.
+- Keep records consistent: when you settle something, update every file that still calls it open,
+  such as the initiative's description.
+- Set a spec's \`status\` to \`active\` when building starts, but don't mark it \`shipped\`. When the
+  build is done, say so in \`solution.md\` Notes and leave that call to a person.
 `;
 
 // The standalone file, for a folder that has no agent guidance of its own yet. It carries the

@@ -8,7 +8,8 @@ import { blankSpec } from "./lib/specModel";
 import { blankActivity } from "./lib/signalModel";
 import { blankInitiative, specsForInitiative } from "./lib/initiativeModel";
 import { mockWorkspace } from "./lib/mockWorkspace";
-import { fsAccessSupported, getStoredHandle, pickFolder, tryReuseHandle, reconnectHandle } from "./lib/fsPersistence";
+import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, tryReuseHandle, reconnectHandle } from "./lib/fsPersistence";
+import { describeChanges } from "./lib/diskLog";
 import { font, INK, INK_SOFT, SIZE, WEIGHT, SPACE } from "./lib/theme";
 import { insertAt } from "./lib/arrays";
 import Button from "./ui/Button";
@@ -128,6 +129,12 @@ function useRoute() {
   if (hash === "#/home-preview") {
     return { name: "homePreview" };
   }
+  if (hash === "#/initiative-preview") {
+    return { name: "initiativePreview" };
+  }
+  if (hash === "#/disk-log-preview") {
+    return { name: "diskLogPreview" };
+  }
   if (hash === "#/design-preview") {
     return { name: "designPreview" };
   }
@@ -175,7 +182,7 @@ const PREVIEW_SPEC = {
     + "unit is the insight.",
   openQuestions: [
     { text: "Does a shared export need to keep working after the board changes?", checked: false },
-    { text: "Markdown only, or is PDF worth the weight?", checked: true },
+    { text: "Markdown only, or is PDF worth the weight?", checked: true, resolution: "Markdown only for v1 — every destination we checked accepts pasted markdown, and PDF would need a renderer we don't have." },
   ],
   acceptanceCriteria: [
     { text: "Export is reachable from the insight card without opening it", checked: true },
@@ -249,6 +256,66 @@ function WorkspaceDocPreviewDemo() {
   );
 }
 
+// An initiative page on sample content (#/initiative-preview). The initiative lands on
+// window.__initiative after every edit.
+function InitiativePreviewDemo() {
+  const [initiative, setInitiative] = useState(() => ({
+    id: "ini-preview",
+    title: "Evidence anywhere",
+    status: "active",
+    description: "Everything we learn should be able to leave the app with its sources attached.",
+    openQuestions: [
+      { text: "Do exports need to stay live after the board changes, or is a snapshot enough for every spec under this initiative?", checked: false },
+      { text: "Markdown only?", checked: true, resolution: "Yes, for every spec in this initiative." },
+    ],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  }));
+  useEffect(() => { window.__initiative = initiative; }, [initiative]);
+  const noop = () => {};
+  return (
+    <InitiativePage
+      key="ini-preview"
+      initiative={initiative}
+      specs={[]}
+      specHref={() => "#"}
+      onChange={(patch) => setInitiative((prev) => ({ ...prev, ...patch }))}
+      onDelete={noop} onCreateSpec={noop} onDetachSpec={noop}
+      breadcrumbs={[{ label: "product-research", icon: FolderOpen, onClick: noop }, { label: "Specs", href: "#" }, { label: initiative.title }]}
+    />
+  );
+}
+
+// The header's disk-changes log and the toast that opens it, on made-up changes
+// (#/disk-log-preview) — the watcher needs a real folder.
+function DiskLogPreviewDemo() {
+  const [open, setOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [at] = useState(() => Date.now());
+  const log = [
+    {
+      id: "2", at, files: [
+        { path: "3f2a9c1e/spec.md", kind: "spec", id: "s1", title: "Bulk export of evidence", removed: false },
+        { path: "3f2a9c1e/plan.md", kind: "spec", id: "s1", title: "Bulk export of evidence", removed: false },
+        { path: "signals/8d1b7e40.md", kind: "signal", id: "g1", title: "Three of the five researchers keep a separate spreadsheet of quotes…", removed: false },
+        { path: "insights/c0ffee12.md", kind: "insight", id: "i1", title: null, removed: true },
+      ],
+    },
+    { id: "1", at: at - 95000, files: [{ path: "DESIGN.md", kind: "workspaceDoc", id: "design-system", title: "Design system", removed: false }] },
+  ];
+  return (
+    <>
+      <Header saveStatus="saved" onRetrySave={() => {}} onChangeFolder={() => {}} diskLog={log} diskLogOpen={open} onDiskLogOpenChange={setOpen} diskLogHref={() => "#/disk-log-preview"} />
+      <div style={{ padding: "24px" }}>
+        <Button onClick={(e) => setToast({ id: e.timeStamp, message: "Updated 4 files from disk", onUndo: () => setOpen(true), actionLabel: "Show" })}>
+          Fire the toast
+        </Button>
+      </div>
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
+    </>
+  );
+}
+
 // Research Repository on mock data (#/research-preview) — the sandboxed preview can't open a
 // workspace folder. One deliberately long signal is added so the fixed-height card's clamp has
 // something to clamp. Signal edits land in local state; everything else is inert.
@@ -311,8 +378,11 @@ function NotFoundMessage({ text, backLabel, backHref }) {
 export default function App() {
   // phase: checking -> (needsConnect | needsReconnect | unsupported) -> loading -> ready
   const [phase, setPhase] = useState("checking");
+  // `dirHandle` is the workspace (monk/) every storage call works in; `rootHandle` the project it
+  // sits in, or null when the connected folder is the workspace itself — see lib/fsPersistence.js.
   const [dirHandle, setDirHandle] = useState(null);
-  const [pendingHandle, setPendingHandle] = useState(null);
+  const [rootHandle, setRootHandle] = useState(null);
+  const [pendingConnection, setPendingConnection] = useState(null);
   const [saveStatus, setSaveStatus] = useState("idle");
   // Workspace documents by id (lib/workspaceDocs.js) — DESIGN.md today. `null` or absent means the
   // file doesn't exist; a string, even an empty one, means it does.
@@ -327,6 +397,10 @@ export default function App() {
   // Deletes happen immediately and report themselves here, with one chance to reverse — rather
   // than interrupting with a confirm dialog before every one. See ui/Toast.jsx.
   const [toast, setToast] = useState(null);
+  // Every reload from disk this session, newest first — what the "Updated n files" toast is
+  // summarising. See DiskChanges.jsx.
+  const [diskLog, setDiskLog] = useState([]);
+  const [diskLogOpen, setDiskLogOpen] = useState(false);
   const skipNextSaveRef = useRef(true);
   const route = useRoute();
 
@@ -335,13 +409,14 @@ export default function App() {
   useEffect(() => {
     if (!fsAccessSupported) { setPhase("unsupported"); return; }
     (async () => {
-      const stored = await getStoredHandle();
+      const stored = await getStoredConnection();
       if (!stored) { setPhase("needsConnect"); return; }
-      if (await tryReuseHandle(stored)) {
-        setDirHandle(stored);
+      if (await tryReuseHandle(permissionHandle(stored))) {
+        setRootHandle(stored.root);
+        setDirHandle(stored.workspace);
         setPhase("loading");
       } else {
-        setPendingHandle(stored);
+        setPendingConnection(stored);
         setPhase("needsReconnect");
       }
     })();
@@ -417,7 +492,7 @@ export default function App() {
   const retrySave = async () => {
     setSaveStatus("saving");
     try {
-      if (!(await reconnectHandle(dirHandle))) { setSaveStatus("error"); return; }
+      if (!(await reconnectHandle(rootHandle || dirHandle))) { setSaveStatus("error"); return; }
       const conflicts = await saveWorkspace(dirHandle, workspace, { hold: staleId ? [staleId] : [] });
       setSaveStatus(conflicts.length ? "conflict" : "saved");
     } catch (err) {
@@ -426,24 +501,30 @@ export default function App() {
     }
   };
 
+  // A cancelled picker throws AbortError, which is just "stay where you are". Anything else — the
+  // monk/ folder couldn't be created, say — is worth a line in the console.
+  const logPickError = (err) => { if (err?.name !== "AbortError") console.error("Couldn't connect the folder:", err); };
+
   const handleConnect = async () => {
     try {
-      const handle = await pickFolder();
-      setDirHandle(handle);
+      const connection = await pickFolder();
+      setRootHandle(connection.root);
+      setDirHandle(connection.workspace);
       setPhase("loading");
-    } catch {
-      // user cancelled the picker — stay on the connect screen
+    } catch (err) {
+      logPickError(err); // stay on the connect screen
     }
   };
   const handleReconnect = async () => {
-    if (await reconnectHandle(pendingHandle)) {
-      setDirHandle(pendingHandle);
+    if (await reconnectHandle(permissionHandle(pendingConnection))) {
+      setRootHandle(pendingConnection.root);
+      setDirHandle(pendingConnection.workspace);
       setPhase("loading");
     }
   };
   const handleChangeFolder = async () => {
     try {
-      const handle = await pickFolder();
+      const connection = await pickFolder();
       skipNextSaveRef.current = true; // skip the redundant re-save right after this fresh load
       setSections([]);
       setSpecs([]);
@@ -452,15 +533,22 @@ export default function App() {
       setActivities([]);
       setInitiatives([]);
       setWorkspaceDocs({});
-      setDirHandle(handle);
+      setDiskLog([]);
+      setDiskLogOpen(false);
+      setRootHandle(connection.root);
+      setDirHandle(connection.workspace);
       setPhase("loading");
       goToStart();
-    } catch {
-      // user cancelled the picker — stay right where we are
+    } catch (err) {
+      logPickError(err); // stay right where we are
     }
   };
 
-  const showToast = (message, onUndo) => setToast({ id: Date.now(), message, onUndo });
+  // The project's name — the repo Monk was connected to — or, with no known root, the connected
+  // folder's own name.
+  const projectName = rootHandle?.name || dirHandle?.name || "";
+
+  const showToast = (message, onUndo, actionLabel) => setToast({ id: Date.now(), message, onUndo, actionLabel });
   const dismissToast = () => setToast(null);
 
   // A per-entity revision, bumped when that entity's files change on disk.
@@ -484,7 +572,9 @@ export default function App() {
   // instead — see ensureAgentGuides. A "no" is remembered per folder, so it is a question, not a
   // recurring prompt.
   const [agentGuide, setAgentGuide] = useState(null);
-  const declinedKey = dirHandle ? `monk:agents-declined:${dirHandle.name}` : null;
+  // Keyed by project as well: every connected project's workspace is called monk/, so the folder
+  // name alone would carry one project's "no" over to the next.
+  const declinedKey = dirHandle ? `monk:agents-declined:${rootHandle ? `${rootHandle.name}/` : ""}${dirHandle.name}` : null;
 
   useEffect(() => {
     if (phase !== "ready" || !dirHandle) return;
@@ -566,7 +656,12 @@ export default function App() {
             setStaleId(open);
           }
           bumpRev(touched);
-          showToast(changed.length === 1 ? "Updated from disk" : `Updated ${changed.length} files from disk`);
+          setDiskLog((prev) => [{ id: `${Date.now()}:${prev.length}`, at: Date.now(), files: describeChanges(changed, record) }, ...prev].slice(0, 50));
+          showToast(
+            changed.length === 1 ? "Updated 1 file from disk" : `Updated ${changed.length} files from disk`,
+            () => setDiskLogOpen(true),
+            "Show",
+          );
         })
         .catch((err) => console.error("Failed to re-read the research folder:", err));
     });
@@ -579,7 +674,7 @@ export default function App() {
     const doc = workspaceDocById(id);
     if (!doc || !dirHandle) return;
     try {
-      const result = await createWorkspaceDoc(dirHandle, id, content ?? doc.template({ workspaceName: dirHandle.name }));
+      const result = await createWorkspaceDoc(dirHandle, id, content ?? doc.template({ workspaceName: projectName }));
       setWorkspaceDocs((prev) => ({ ...prev, [id]: result.text }));
       bumpRev([id]);
       if (!result.created) showToast(`${doc.file} already existed, so it was opened instead`);
@@ -891,11 +986,23 @@ export default function App() {
     : RESEARCH_ROUTE
   );
 
+  // Where a row in the disk-changes log links. A section has no page of its own (its documents
+  // do), so it doesn't link.
+  const diskLogHref = (kind, id) => (
+    kind === "workspaceDoc" ? hrefWorkspaceDoc(id)
+    : kind === "section" ? null
+    : recentHref(kind, id)
+  );
+
+  // The project comes first: that's the thing you need to recognise. The monk/ folder inside it is
+  // the same in every project, so it's only in the tooltip.
   const folderCrumb = {
-    label: dirHandle?.name || "Research folder",
+    label: projectName || "Research folder",
     onClick: handleChangeFolder,
     icon: FolderOpen,
-    title: "Switch to a different research folder",
+    title: rootHandle
+      ? `Working in ${rootHandle.name}/${dirHandle?.name} — switch to a different project`
+      : "Switch to a different research folder",
   };
 
   // `null` (Home) means no breadcrumb bar at all — it's a standalone landing, not a page you
@@ -955,7 +1062,23 @@ export default function App() {
     const mock = mockWorkspace(1);
     return (
       <div style={{ fontFamily: font, height: "100dvh", overflowY: "auto" }}>
-        <Home {...mock} recentHref={(kind, id) => recentHref(kind, id)} folderName="product-research" onChangeFolder={() => {}} />
+        <Home {...mock} recentHref={(kind, id) => recentHref(kind, id)} folderName="product-research" subfolder="monk" onChangeFolder={() => {}} />
+      </div>
+    );
+  }
+
+  if (import.meta.env.DEV && route.name === "initiativePreview") {
+    return (
+      <div style={{ fontFamily: font, height: "100dvh" }}>
+        <InitiativePreviewDemo />
+      </div>
+    );
+  }
+
+  if (import.meta.env.DEV && route.name === "diskLogPreview") {
+    return (
+      <div style={{ fontFamily: font, height: "100dvh" }}>
+        <DiskLogPreviewDemo />
       </div>
     );
   }
@@ -1046,7 +1169,7 @@ export default function App() {
     return (
       <ConnectScreen
         title="Connect your research folder"
-        message="Pick a folder — ideally one inside your project's repo — where every spec is saved as plain markdown files you can read, grep, and commit like any other file."
+        message="Pick your project's repo. Monk keeps its files in a monk/ folder inside it — plain markdown you can read, grep, and commit like any other file."
         buttonLabel="Connect folder"
         onClick={handleConnect}
       />
@@ -1079,7 +1202,15 @@ export default function App() {
   return (
     <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column" }}>
       <a className="skip-link" href="#main">Skip to content</a>
-      <Header saveStatus={saveStatus} onRetrySave={retrySave} onChangeFolder={handleChangeFolder} />
+      <Header
+        saveStatus={saveStatus}
+        onRetrySave={retrySave}
+        onChangeFolder={handleChangeFolder}
+        diskLog={diskLog}
+        diskLogOpen={diskLogOpen}
+        onDiskLogOpenChange={setDiskLogOpen}
+        diskLogHref={diskLogHref}
+      />
 
       <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
         <Sidebar
@@ -1256,7 +1387,8 @@ export default function App() {
                 initiatives={initiatives}
                 onCreateSpec={createSpec}
                 recentHref={recentHref}
-                folderName={dirHandle?.name}
+                folderName={projectName}
+                subfolder={rootHandle ? dirHandle?.name : null}
                 onChangeFolder={handleChangeFolder}
               />
             )}

@@ -5,7 +5,13 @@
       "name": "evidence-loop",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 5173
+      "port": 5180
+    },
+    {
+      "name": "monk-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "app"],
+      "port": 4180
     }
   ]
 }

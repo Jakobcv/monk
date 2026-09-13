@@ -5,9 +5,9 @@ import { Eyebrow, PageTitle } from "./ui/text";
 import { buildSpecBrief } from "./lib/buildBrief";
 import { useCopy } from "./lib/useCopy";
 import ChecklistEditor from "./ChecklistEditor";
-import AutoTextarea from "./ui/AutoTextarea";
 import SwapIcon from "./ui/SwapIcon";
 import MarkdownEditor from "./MarkdownEditor";
+import LiveMarkdown from "./ui/LiveMarkdown";
 import DesignTab from "./DesignTab";
 import Board from "./Board";
 import Breadcrumbs from "./Breadcrumbs";
@@ -134,7 +134,7 @@ export default function SpecPage({
   const startBuild = () => {
     const initiative = initiativeId ? (initiatives || []).find((i) => i.id === initiativeId) : null;
     copyBrief(buildSpecBrief(
-      { title, problem, goals, nonGoals, openQuestions, acceptanceCriteria, design, plan },
+      { title, problem, goals, nonGoals, openQuestions, acceptanceCriteria, design, plan, extraSections: spec.extraSections },
       sections,
       initiative,
       designSystem
@@ -215,20 +215,20 @@ export default function SpecPage({
             <div className="paper-sheet" style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <Eyebrow>Problem</Eyebrow>
-                <AutoTextarea className="prose-field" minRows={2} value={problem} onChange={(e) => setProblem(e.target.value)} placeholder="The problem this solves…" />
+                <LiveMarkdown className="prose-field" minLines={2} value={problem} onChange={setProblem} placeholder="The problem this solves…" ariaLabel="Problem" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <Eyebrow>Goals</Eyebrow>
-                <AutoTextarea className="prose-field" minRows={2} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="Success looks like…" />
+                <LiveMarkdown className="prose-field" minLines={2} value={goals} onChange={setGoals} placeholder="Success looks like…" ariaLabel="Goals" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <Eyebrow>Non-goals</Eyebrow>
-                <AutoTextarea className="prose-field" minRows={2} value={nonGoals} onChange={(e) => setNonGoals(e.target.value)} placeholder="Explicitly out of scope…" />
+                <LiveMarkdown className="prose-field" minLines={2} value={nonGoals} onChange={setNonGoals} placeholder="Explicitly out of scope…" ariaLabel="Non-goals" />
               </div>
 
               <div style={{ height: "1px", backgroundColor: BORDER }} />
 
-              <ChecklistEditor paper label="Open questions" items={openQuestions} onChange={setOpenQuestions} />
+              <ChecklistEditor paper resolutions label="Open questions" items={openQuestions} onChange={setOpenQuestions} />
               <ChecklistEditor paper label="Acceptance criteria" items={acceptanceCriteria} onChange={setAcceptanceCriteria} />
             </div>
           </Page>

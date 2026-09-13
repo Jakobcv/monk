@@ -228,14 +228,35 @@ function parseFrontMatter(yaml, ds) {
 // A body's text without the blank lines around it; indentation inside is kept.
 const trimBlock = (lines) => lines.join("\n").replace(/^(?:[ \t]*\n)+/, "").trimEnd();
 
+// A hard-wrapped rule continues on the lines under it, and those lines are part of the rule, not
+// notes — the same rule as a spec's list sections (designModel.js listItems): a line without a list
+// marker joins the Do/Don't above it, unless a blank line comes first and it isn't indented, in
+// which case it's the start of the notes.
 function parseDos(lines, ds) {
   const notes = [];
+  let last = null; // the list the most recent rule went into, while continuation is possible
+  let afterBlank = false;
   for (const l of lines) {
+    if (!l.trim()) {
+      afterBlank = true;
+      if (!last) notes.push(l);
+      continue;
+    }
     const dont = /^\s*[-*+]\s+(?:Don['’]t|Do not)\b:?\s*(.*)$/i.exec(l);
-    if (dont) { ds.donts.push(dont[1].trim()); continue; }
-    const doIt = /^\s*[-*+]\s+Do\b(?!['’])(?:\s*:)?\s*(.*)$/i.exec(l);
-    if (doIt) { ds.dos.push(doIt[1].trim()); continue; }
-    notes.push(l);
+    const doIt = !dont && /^\s*[-*+]\s+Do\b(?!['’])(?:\s*:)?\s*(.*)$/i.exec(l);
+    if (dont || doIt) {
+      last = dont ? ds.donts : ds.dos;
+      last.push((dont || doIt)[1].trim());
+    } else if (last && !/^\s*(?:[-*+]|\d+[.)])\s+/.test(l) && (/^\s/.test(l) || !afterBlank)) {
+      last[last.length - 1] = `${last[last.length - 1]} ${l.trim()}`.trim();
+    } else {
+      // A blank line skipped while a rule could still continue still separates this note from the
+      // one before it.
+      if (afterBlank && last && notes.length && notes[notes.length - 1].trim()) notes.push("");
+      last = null;
+      notes.push(l);
+    }
+    afterBlank = false;
   }
   ds.dosNotes = trimBlock(notes);
 }

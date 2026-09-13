@@ -5,6 +5,7 @@ import { Eyebrow } from "./ui/text";
 import { parseDesign, serializeDesign } from "./lib/designModel";
 import { insertAt } from "./lib/arrays";
 import AutoTextarea from "./ui/AutoTextarea";
+import LiveMarkdown from "./ui/LiveMarkdown";
 import PaperButton from "./ui/PaperButton";
 import IconButton from "./ui/IconButton";
 
@@ -147,9 +148,9 @@ export default function DesignTab({ value, onChange, onToast }) {
       {/* What's being built, in your own words. Flush with the section headings, like Overview's
           fields — it's the brief, and every section under it only qualifies it. */}
       <Section title="Solution">
-        <AutoTextarea
-          className="prose-field" minRows={3} placeholder="What we're building, and how it works…"
-          aria-label="Solution" value={d.solution} onChange={(e) => set("solution", e.target.value)}
+        <LiveMarkdown
+          className="prose-field" minLines={3} placeholder="What we're building, and how it works…"
+          ariaLabel="Solution" value={d.solution} onChange={(v) => set("solution", v)}
         />
       </Section>
 
@@ -249,9 +250,9 @@ export default function DesignTab({ value, onChange, onToast }) {
 
       {/* Always there — the catch-all for anything the sections above don't hold. */}
       <Section title="Notes">
-        <AutoTextarea
-          className="prose-field" minRows={2} placeholder="Anything else…" aria-label="Notes"
-          value={d.notes} onChange={(e) => set("notes", e.target.value)}
+        <LiveMarkdown
+          className="prose-field" minLines={2} placeholder="Anything else…" ariaLabel="Notes"
+          value={d.notes} onChange={(v) => set("notes", v)}
         />
       </Section>
     </div>

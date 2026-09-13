@@ -8,6 +8,8 @@ export function blankSpec(title = "Untitled spec", initiativeId = null) {
   return {
     id: genEntityId(), title, status: "draft", owner: "", initiativeId, createdAt: now, updatedAt: now,
     problem: "", goals: "", nonGoals: "",
+    // Sections of spec.md the app doesn't show, kept as raw markdown (see markdown.js).
+    extraSections: "",
     openQuestions: [], acceptanceCriteria: [],
     design: "", plan: "",
   };

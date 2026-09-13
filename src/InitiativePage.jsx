@@ -5,6 +5,7 @@ import { Eyebrow, Meta, PageTitle } from "./ui/text";
 import { INITIATIVE_STATUS_OPTIONS } from "./lib/initiativeModel";
 import Breadcrumbs from "./Breadcrumbs";
 import MarkdownEditor from "./MarkdownEditor";
+import ChecklistEditor from "./ChecklistEditor";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
 import IconButton from "./ui/IconButton";
@@ -25,13 +26,14 @@ export default function InitiativePage({
 }) {
   const [title, setTitle] = useState(initiative.title);
   const [status, setStatus] = useState(initiative.status);
+  const [openQuestions, setOpenQuestions] = useState(initiative.openQuestions || []);
 
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
-    onChange({ title, status });
+    onChange({ title, status, openQuestions });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, status]);
+  }, [title, status, openQuestions]);
 
   return (
     <Page header={<Breadcrumbs items={breadcrumbs} />}>
@@ -70,6 +72,12 @@ export default function InitiativePage({
             placeholder="Context every spec in this initiative should carry…"
           />
         </div>
+
+        <div style={{ height: "1px", backgroundColor: BORDER }} />
+
+        {/* The questions that span several specs and belong to none of them. Unchecked ones join
+            each member spec's own open questions in its build brief. */}
+        <ChecklistEditor resolutions label="Open questions" items={openQuestions} onChange={setOpenQuestions} />
 
         <div style={{ height: "1px", backgroundColor: BORDER }} />
 

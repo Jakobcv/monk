@@ -1,73 +1,145 @@
-# Evidence Loop
+# Monk
 
-A repository for atomic research findings — Signal → Insight → Action → Result — meant to sit
-next to your product's codebase as the "atomic research insights" slice of a spec-driven-design
-knowledge base ([futurice.com/blog/spec-driven-design](https://www.futurice.com/blog/spec-driven-design)).
-Every board is saved as plain markdown files in a folder you pick, so both humans and coding
-agents can read prior research directly from the repo. Home page leads with search — check
-whether the answer already exists before starting new research — with the board list right below.
+Specs and the research behind them, kept as plain markdown inside your product's repo — so the
+people writing them and the coding agents building from them read the same files.
 
-## Setup
+- **Research Repository** — signals (what you observed), insights formed from them, and the
+  activities they came from.
+- **Specs** — each with an Overview (problem, goals, non-goals, open questions, acceptance
+  criteria), a Discovery board linking the signals and insights behind it, a Solution and a Plan.
+  Specs can be grouped under initiatives.
+- **Product Knowledge** and **Standards** — shared documents that go into every spec's build brief.
+- **Design system** — an optional `DESIGN.md` in the [google-labs-code/design.md](https://github.com/google-labs-code/design.md)
+  format, edited as tokens and sections, and carried into every build brief as a contract.
+- **Start build** on a spec copies a build brief — Standards, Product Knowledge, the design
+  system and the spec — ready to paste into an agent.
+
+No accounts, no server, no API keys: the app reads and writes a folder you pick.
+
+## Requirements
+
+- Node.js and npm.
+- **Chrome or Edge.** Monk needs the File System Access API. Firefox and Safari don't have it, and
+  Brave turns it off by default; the app says "browser not supported" rather than failing.
 
 ```bash
 npm install
+```
+
+## Using Monk alongside a product
+
+This is the everyday setup: Monk in one browser tab, your product's own dev server and your
+agent working in the product's repo.
+
+### 1. Run the built app
+
+```bash
+npm run app
+```
+
+This builds Monk and serves the build at **http://localhost:4180**. Open it in Chrome or Edge.
+
+> **Windows PowerShell:** if npm fails with *"running scripts is disabled on this system"*, that's
+> PowerShell's execution policy blocking `npm.ps1`, not Monk. Run `npm.cmd run app` instead (or use
+> Command Prompt or Git Bash). To make plain `npm` work in PowerShell for your account, run
+> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once.
+
+Use this — not `npm run dev` — whenever Monk is connected to real work. The dev server
+hot-reloads every open tab when Monk's code changes, and a tab connected to your folder reloading
+mid-save is exactly how a previous bug deleted spec folders. The build doesn't change until you
+rebuild it: after pulling or changing Monk, stop the server, run `npm run app` again, and reload
+the tab.
+
+The port is fixed on purpose. Chrome remembers the folder you connected, and the permission to
+write to it, per origin — and the port is part of the origin. If Monk ran on a different port it
+would forget the folder, so rather than move it fails with "port in use" if 4180 is taken.
+
+### 2. Connect the product's repo
+
+On first load Monk asks for a folder. Pick the product's repo itself — `my-product/`. Monk works
+in a `monk/` folder inside it, creating it if it isn't there, and never touches anything else in
+the repo. The repo's name is what the breadcrumbs and the start page show, so you can always see
+which project you're in.
+
+Picking a folder that is already a Monk workspace — one named `monk`, or one with a `MONK.md` in
+it — uses that folder as it is. Its project name can't be known that way (the browser can't see
+above a folder you picked), so the folder's own name is shown instead; reconnect from the repo to
+get the project name back.
+
+Monk writes these into `monk/`:
+
+```
+monk/
+  MONK.md              the file formats, for agents (rewritten on every save — don't edit)
+  AGENTS.md            a briefing for agents working in the folder
+  DESIGN.md            optional: the design system, created only when you ask
+  product-knowledge/   documents shared by every spec
+  standards/
+  <section-id>/        your own document sections
+  <spec-id>/           spec.md, solution.md, plan.md, board/
+  signals/  insights/  activities/  initiatives/
+```
+
+The full format of every file is in the generated `MONK.md`.
+
+If you do connect a folder that already has an `AGENTS.md` or `CLAUDE.md`, Monk won't touch it —
+it asks whether to append a section of its own, and remembers if you say no.
+
+### 3. Point your agent at it
+
+Agents working at the repo root read the root's `AGENTS.md` / `CLAUDE.md`, not the one inside
+`monk/`. Add a line to the repo's own file, for example:
+
+> Product specs and the research behind them live in `monk/`. Read `monk/AGENTS.md` before
+> working on a feature.
+
+### 4. Work
+
+- The product's dev server runs as usual — Monk never uses port 5173, so the two don't collide.
+- Your agent can read and write `monk/` directly. Monk watches the folder and picks changes up
+  about a second after the writing stops; if you're typing in the thing that changed, it asks
+  before replacing your text.
+- On a spec, **Start build** copies the build brief to paste into the agent.
+- Commit `monk/` with the product's code, on your own schedule. Monk never runs git.
+- After a browser restart, Monk asks you to reconnect the folder — one click.
+
+## How saving works
+
+- Edits save about 0.7s after you stop typing, and only files whose content changed are
+  written, so a file's timestamp moves only when it really changed.
+- Monk never overwrites a file that was edited outside the app since it last read it. The file
+  is left as it is, the header shows the conflict, and the folder is re-read.
+- It only ever deletes folders and files it loaded or wrote itself during the session. Anything
+  else in the connected folder — `.git`, `node_modules`, source code, a spec an agent just
+  created — is never touched.
+- A failed load shows an error screen and saves nothing, so an empty workspace can never be
+  written over a real one.
+
+## Working on Monk itself
+
+```bash
 npm run dev
 ```
 
-No accounts, no API keys — on first load you'll be asked to pick a folder (ideally one inside
-your project's repo) where boards get saved.
+The dev server runs at **http://localhost:5180** with hot reload. Don't connect it to a folder you
+care about while changing code — use a copy, or the preview routes below, which render real
+pages on sample data without any folder:
 
-**Browser requirement**: this needs the File System Access API. Confirmed working in **Chrome**
-and **Edge**. Firefox and Safari don't implement the API at all. **Brave doesn't expose it by
-default** (disabled as part of its fingerprinting protections) — the app correctly shows "browser
-not supported" there rather than failing oddly; untested whether enabling it via `brave://flags`
-actually works end-to-end.
+| Route | Shows |
+| --- | --- |
+| `#/home-preview` | the start page |
+| `#/spec-preview` | a spec, all tabs |
+| `#/design-preview` | a spec's Solution tab |
+| `#/board-preview` | a Discovery board |
+| `#/research-preview` | the Research Repository |
+| `#/workspace-doc-preview` | the Design system page, from empty |
+| `#/initiative-preview` | an initiative, with open questions |
+| `#/disk-log-preview` | the header's disk-changes log and its toast |
 
-## How persistence works
+```bash
+npm run lint
+```
 
-- On first load, you grant the app access to a folder. It's remembered (via IndexedDB) for next
-  time — Chrome will silently reuse the granted permission unless it's lapsed (e.g. after a
-  browser restart), in which case you'll see a one-click "Reconnect" prompt. **Change folder** in
-  the header switches to a different one at any time.
-- The folder doesn't need to be dedicated to Evidence Loop — it's safe to point this at a real
-  product repo's root. Saving only ever creates/rewrites/deletes directories that actually
-  contain a `board.md`; anything else already in the folder (`.git`, `node_modules`, your actual
-  source code) is never touched.
-- Every board is its own subfolder (named by an internal id, so renaming a board never touches
-  the folder path), containing a `board.md` plus one markdown file per card, grouped by kind:
-  ```
-  <your folder>/
-    <board-id>/
-      board.md
-      signals/<card-id>.md
-      insights/<card-id>.md
-      actions/<card-id>.md
-      results/<card-id>.md
-  ```
-  Each file is a small JSON frontmatter block (id, connections, cross-board reference) followed
-  by the actual text — readable, diffable, grep-able like any other file in the repo.
-- On any edit, a save is debounced ~700ms and rewrites the affected files. **Write-only**: the
-  app never runs `git add`/`git commit` — commit your research the same way you'd commit a code
-  change, on your own schedule, with your own message.
-- The top bar shows a small save-status dot: saved / saving / failed (with a manual retry link).
-
-## Cross-board references
-
-Any card can be a *live reference* to a card in another board — found via search's "Attach to
-board" action. A reference always resolves the source's current content at render time (never a
-copy), shows a dashed border and a "↗ source board" link, and shows "no longer exists" gracefully
-if the source is later deleted. This is how a signal, insight, action, or result from one study
-gets cited in another without duplicating it.
-
-## Moving or sharing a board
-
-There's no export/import feature — the markdown files *are* the shareable artifact now. To move
-or share a board, copy its folder (or `git mv` it, or send someone the folder directly); the app
-picks up whatever's in the connected folder on next load, no import step needed.
-
-## Out of scope for v1
-
-- Multi-user / realtime collaboration.
-- Save versioning/undo (git history covers this once you commit).
-- Per-card dirty-tracking — every save currently rewrites every file for every board. Fine at
-  personal scale; worth revisiting if it's ever slow with many boards.
+```bash
+npm run build
+```

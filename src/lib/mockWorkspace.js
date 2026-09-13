@@ -18,7 +18,7 @@ const DAY = 86400000;
 const NOW = Date.UTC(2026, 8, 10); // fixed "today" so buckets are stable
 const WINDOW_DAYS = 77;
 
-const METHODS = ["Interview", "Survey", "Usage metrics", "Client call", "Other"];
+const METHODS = ["Interview", "Survey", "Usage metrics", "Client call", "Codebase review", "Other"];
 const SIGNAL_TEXT = [
   "Users abandon the export dialog when it offers more than three formats.",
   "Three support tickets this week ask for CSV specifically.",
@@ -183,7 +183,7 @@ export function mockWorkspace(seed = 42) {
   // --- initiatives ---
   const initiatives = INITIATIVES.map((ini) => {
     const created = at(rand, WINDOW_DAYS, WINDOW_DAYS - 30);
-    return { id: genEntityId(rand), title: ini.title, status: ini.status, description: "", createdAt: created, updatedAt: at(rand, 44, 12) };
+    return { id: genEntityId(rand), title: ini.title, status: ini.status, description: "", openQuestions: [], createdAt: created, updatedAt: at(rand, 44, 12) };
   });
 
   // --- specs: weighted statuses, ~half under an initiative, each with a small board ---
