@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { Search as SearchIcon, X, ArrowLeft, Star, Plus, Lightbulb } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, ACCENT, RESEARCH_PLAN, DANGER, CITED, SIZE, WEIGHT, SPACE, RADIUS, PAGE, withAlpha } from "./lib/theme";
 import { blankSignal, isSignalUnlinked } from "./lib/signalModel";
-import { RESEARCH_PLAN_STATUS_COLOR, answeredCount } from "./lib/researchPlanModel";
+import { RESEARCH_PLAN_STATUS_COLOR } from "./lib/researchPlanModel";
 import { blankInsight } from "./lib/insightModel";
 import { Meta, PageHeading } from "./ui/text";
 import SignalCard from "./SignalCard";
@@ -179,23 +179,31 @@ export default function ResearchRepositoryPage({
   };
 
   // A research plan, on the landing list or in results: click through to its own page, where it's
-  // written and its questions get answered.
+  // written and its questions get answered. The card is the plan's name and the problem it exists
+  // to answer — the section heading already says these are research plans, so no kind label, and
+  // the status stays at the title's end since it's the one thing that changes week to week. The
+  // problem is clamped to two lines: this is a list you scan, the full text is one click away.
   const renderPlanRow = (plan, key = plan.id) => {
-    const signalTotal = (plan.board?.signals || []).length;
-    const activityTotal = (plan.activities || []).length;
-    const total = (plan.researchQuestions || []).length;
+    const statusColor = RESEARCH_PLAN_STATUS_COLOR[plan.status] || INK_FAINT;
+    const problem = (plan.problem || "").trim();
     return (
-      <Card key={key} as="a" href={researchPlanHref(plan.id)} interactive>
-        <div style={{ display: "flex", alignItems: "center", gap: SPACE.base, marginBottom: SPACE.sm, flexWrap: "wrap" }}>
-          <Dot color={RESEARCH_PLAN} />
-          <Meta style={{ fontWeight: WEIGHT.semibold, color: RESEARCH_PLAN }}>Research plan</Meta>
-          <Meta style={{ fontWeight: WEIGHT.semibold, color: RESEARCH_PLAN_STATUS_COLOR[plan.status] || INK_FAINT }}>{plan.status}</Meta>
-          {total > 0 && <Meta style={{ fontVariantNumeric: "tabular-nums" }}>{answeredCount(plan)} of {total} question{total === 1 ? "" : "s"} answered</Meta>}
-          <Meta style={{ fontVariantNumeric: "tabular-nums" }}>
-            {signalTotal} signal{signalTotal === 1 ? "" : "s"} · {activityTotal} activit{activityTotal === 1 ? "y" : "ies"}
+      <Card key={key} as="a" href={researchPlanHref(plan.id)} interactive style={{ padding: `14px ${SPACE.xl}` }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: SPACE.xl, marginBottom: SPACE.sm }}>
+          <div style={{ fontFamily: font, fontSize: SIZE.lg, fontWeight: WEIGHT.semibold, color: INK, lineHeight: 1.4, minWidth: 0, overflowWrap: "anywhere" }}>
+            {highlight(plan.title || "Untitled research plan", q)}
+          </div>
+          <Meta style={{ display: "flex", alignItems: "center", gap: SPACE.md, flexShrink: 0, fontWeight: WEIGHT.semibold, color: statusColor }}>
+            <Dot color={statusColor} /> {plan.status}
           </Meta>
         </div>
-        <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK, lineHeight: 1.5 }}>{highlight(plan.title || "Untitled research plan", q)}</div>
+        <div
+          style={{
+            fontFamily: font, fontSize: SIZE.body, lineHeight: 1.5, color: problem ? INK_SOFT : INK_FAINT,
+            display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden", overflowWrap: "anywhere",
+          }}
+        >
+          {problem ? highlight(problem, q) : "No problem statement yet"}
+        </div>
       </Card>
     );
   };
