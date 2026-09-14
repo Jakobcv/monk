@@ -43,7 +43,7 @@ every record; set \`updatedAt\` to now when you change something.
 
 ## Id conventions
 
-- **Global records** (sections, documents, specs, signals, insights, activities, initiatives,
+- **Global records** (sections, documents, specs, signals, insights, initiatives, research plans,
   boards) use a UUID (\`crypto.randomUUID()\`). Generate a fresh one; never reuse or collide.
 - **Board cards** (actions, results) and **connections** use integers. If you add one, use an
   integer not taken by another card or connection **on the same board** — one higher than the
@@ -62,26 +62,29 @@ every record; set \`updatedAt\` to now when you change something.
     <doc-uuid>.md              a document: { id, title, createdAt, updatedAt } + markdown body
 
   product-knowledge/          ← fixed section: shared product context
-  standards/                  ← fixed section: contracts agents build to (design system, a11y…)
-                                (both are ordinary sections with a literal id; docs inside them
-                                 feed a spec's "Start build" brief)
+  standards/                  ← fixed section: contracts agents build to (accessibility, house rules…)
+                                (both are ordinary sections with a literal id; read both before
+                                 building any spec)
 
   <spec-uuid>/               ← a spec (folder marker: spec.md)
     spec.md                     see "Spec" below
     solution.md                 markdown in fixed ## sections, NO frontmatter (the Solution tab)
     plan.md                     plain markdown, NO frontmatter (the Plan tab)
-    board/                      the Discovery board
-      board.md                  { id, createdAt, updatedAt }, no body
-      signals/<signal-uuid>.md  POINTER, see "Board cards" below
-      insights/<insight-uuid>.md POINTER
-      actions/<int>.md          local card
-      results/<int>.md          local card
 
   DESIGN.md                   ← optional: this product's design system (see below)
   signals/<uuid>.md           ← global signal (see "Signal")
   insights/<uuid>.md          ← global insight (see "Insight")
-  activities/<uuid>.md        ← global activity (see "Activity")
   initiatives/<uuid>.md       ← global initiative (see "Initiative")
+  research-plans/<uuid>.md    ← global research plan (see "Research plan")
+  research-plans/<uuid>/
+    board/                      the plan's board (its Analysis tab)
+      board.md                  { id, createdAt, updatedAt }, no body; id is the plan's
+      signals/<signal-uuid>.md  POINTER, see "Board cards" below
+      insights/<insight-uuid>.md POINTER
+      actions/<int>.md          local card
+      results/<int>.md          local card
+  activities/                 ← legacy, don't write here (see "Legacy")
+  _migrated-activities/       ← originals of migrated activities; Monk never reads it
 \`\`\`
 
 Any top-level folder without a \`section.md\` or \`spec.md\` marker (and not one of the reserved
@@ -96,6 +99,7 @@ repo.
 ---
 {"id":"<uuid>","title":"...","status":"draft|active|shipped","owner":"...",
  "initiativeId":"<initiative-uuid> | null",
+ "researchPlanIds":["<research-plan-uuid>"],   // optional
  "openQuestions":[{"text":"...","checked":false,"resolution":"..."}],
  "acceptanceCriteria":[{"text":"...","checked":false}],
  "createdAt":"...","updatedAt":"..."}
@@ -113,31 +117,34 @@ repo.
 ...
 \`\`\`
 
+- **Non-goals** are binding: they fence the scope, so don't build past them.
 - **Open questions**: \`text\` is the question and only the question. When one is answered, put the
   answer (and why) in \`resolution\` and set \`checked\` to \`true\`. \`resolution\` is optional —
-  leave it out until there is one. The build brief lists unresolved questions as a stop condition
-  and resolved ones with their answers.
+  leave it out until there is one. An unchecked question is a stop condition: don't decide it
+  silently while building — ask, or make a flagged assumption. A resolved one is settled; build to
+  its answer.
 - **Acceptance criteria**: one testable statement each. The reasoning behind a criterion belongs in
   \`solution.md\` Decisions, not in the criterion.
 - **Status**: \`draft\` while the spec is being written, \`active\` once it's being built. An agent
   doesn't set \`shipped\`: when the build is done and every criterion is checked, say so in
   \`solution.md\` Notes and leave the status for a person to confirm.
+- **Research plans**: \`researchPlanIds\` lists the research plans behind the spec, as pointers into
+  \`research-plans/\`. Leave it out when there are none.
 - **Other sections**: text before the first heading, and any \`##\` section other than Problem,
-  Goals and Non-goals, is kept as written below Non-goals and goes into the build brief. The app
-  doesn't show it.
+  Goals and Non-goals, is kept as written below Non-goals. The app doesn't show it.
 
 \`solution.md\` and \`plan.md\` are sibling files, no frontmatter. \`initiativeId\` links up to
-\`initiatives/<id>.md\` (or \`null\`). \`plan.md\` holds the spec's tasks and approach (see "Plan"). \`design.md\` is the feature's
+\`initiatives/<id>.md\` (or \`null\`). \`plan.md\` holds the spec's tasks and approach (see "Plan"). \`solution.md\` is the feature's
 design intent (not visual language — that belongs in Standards), in any of these \`##\` sections,
 in this order, each omitted when empty — one item per line (see "Writing text"):
 
 \`\`\`
-## Solution               freeform markdown — what is being built
-## Design principles      1. text
-## Constraints            - text
-## Decisions              - text
-## Artefacts              - [Title](url)
-## Notes                  freeform markdown
+## Solution               freeform markdown — what to build; the sections below qualify it
+## Design principles      1. text — intent to optimise for; how to get there is your call
+## Constraints            - text — binding; if one can't be met, stop and flag it
+## Decisions              - text — settled; don't reverse one without flagging it
+## Artefacts              - [Title](url) — reference material to consult
+## Notes                  freeform markdown — background
 \`\`\`
 
 Text before the first heading, or under any other \`##\` heading, is kept as Notes — which is also
@@ -172,9 +179,8 @@ Freeform markdown.
 - A plan.md without a \`## Tasks\` section is all approach, and is read and written back unchanged.
 - Working through a plan: add the tasks before you build. Set \`[~]\` when you start one and \`[x]\`
   when it's done; record what was built and how it was checked in \`solution.md\` Notes. When you're
-  stuck, set \`[!]\` and add an open question to \`spec.md\` saying what's in the way — the build
-  brief lists both as stop conditions. Finishing every task doesn't make the spec \`shipped\`; a
-  person decides that.
+  stuck, set \`[!]\` and add an open question to \`spec.md\` saying what's in the way — both are
+  stop conditions. Finishing every task doesn't make the spec \`shipped\`; a person decides that.
 
 ### Design system — \`DESIGN.md\` (optional, workspace root)
 
@@ -211,6 +217,7 @@ typography:
     lineHeight: 1.45
 rounded:
   md: 5px
+  full: 50%
 spacing:
   md: 16px
 components:
@@ -236,19 +243,23 @@ Why each color exists and what it means.
 - Don't add a drop shadow to an ordinary card.
 \`\`\`
 
-Quote any value that starts with \`#\` or \`{\`. A component property is either a literal value or a
+Quote any value that starts with \`#\` or \`{\`. A radius is a length (\`px\`, \`em\`, \`rem\`) or a
+percentage (\`50%\`). A component property is either a literal value or a
 \`{group.token}\` reference to a token defined above. The properties a component may have are
 \`backgroundColor\`, \`textColor\`, \`typography\`, \`rounded\`, \`padding\`, \`size\`, \`height\` and
 \`width\`; a variant (hover, pressed) is its own component with a related name, such as
 \`button-primary-hover\`. Under Do's and Don'ts each rule is one \`- Do …\` or \`- Don't …\` line;
 anything else there is kept as notes.
 
-However it gets written, every spec's build brief carries it as a contract, above the spec
-itself, because it is true of everything in the product rather than of one feature. The brief
-leaves out comments and any section with nothing written under it, so an unfilled skeleton
-contributes nothing.
+However it gets written, it's a contract for everything built in the product, not just one
+feature: use its tokens rather than inventing values, and where a component is specified, match
+it. Comments, and sections with nothing written under them, carry no rules.
 
-### Board cards — \`<spec-uuid>/board/<kind>/<id>.md\`
+### Board cards — \`research-plans/<plan-uuid>/board/<kind>/<id>.md\`
+
+A board belongs to a research plan: it's where the study's signals are collected, turned into
+insights, and followed through to actions and results.
+
 
 The board's connections are **not stored as files**. Each card lists its outgoing edges in a
 \`connectsTo\` array in its own frontmatter; Monk rebuilds the flat connection list from those on
@@ -281,23 +292,33 @@ global UUID; an action/result node id is its integer).
   ...
   \`\`\`
 - **results/** entries: same frontmatter shape; body is plain text.
-- \`ref\` (actions/results only): normally \`null\`. If set to \`{"boardId":"<spec-uuid>","itemId":<int>}\`
-  the card is a live reference to a card on another spec's board and its own body is empty.
+- \`ref\` (actions/results only): normally \`null\`. If set to \`{"boardId":"<plan-uuid>","itemId":<int>}\`
+  the card is a live reference to a card on another research plan's board and its own body is empty.
 
 ### Signal — \`signals/<uuid>.md\`
 
 \`\`\`
 ---
-{"id":"<uuid>",
- "source": null,                              // or {"type":"activity","activityId":"<activity-uuid>"}
- "date":"<ISO>","link":"...","author":"...",
+{"id":"<uuid>","date":"<ISO>","link":"...","author":"...",
  "createdAt":"...","updatedAt":"..."}
 ---
 The observation itself, as free text.
 \`\`\`
 
-\`source\` is either \`null\` (not tied to research) or an activity reference. There is no
-free-text source.
+A signal belongs to a study by being linked onto that research plan's board — a pointer in
+\`research-plans/<plan-uuid>/board/signals/\` (see "Board cards"). One signal can sit on several plans'
+boards. \`date\` is when it was observed. Older signals may carry \`source\` or \`session\`; both are
+ignored and dropped on the next save.
+
+Research done by reading the product's code or docs — usually how an agent researches — goes the
+same way. What goes where:
+
+- A finding about the **product or the people using it** — a behaviour, a gap, something users
+  can't do — is a signal, linked onto the board of the research plan it serves. With no such plan,
+  use the plan titled "Codebase review" (create it if it doesn't exist, with "Codebase review" in
+  its \`activities\`). Insights are formed from the signals on the same board.
+- A fact about **how the code is built** — which function to reuse, where a pattern lives, what a
+  change would break — is implementation grounding. It goes in the spec's \`solution.md\` Notes.
 
 ### Insight — \`insights/<uuid>.md\`
 
@@ -310,41 +331,100 @@ The insight, as free text.
 
 \`sources\` are the signal ids it was formed from.
 
-### Activity — \`activities/<uuid>.md\`
-
-\`\`\`
----
-{"id":"<uuid>","name":"...","method":"Interview|Survey|Usage metrics|Client call|Codebase review|Other",
- "link":"...","date":"<ISO>","author":"...","createdAt":"...","updatedAt":"..."}
----
-\`\`\`
-
-No body. "Signals from this activity" is derived (any signal whose \`source.activityId\` matches).
-
-\`Codebase review\` is research done by reading the product's code or docs — usually how an agent
-researches. What goes where:
-
-- A finding about the **product or the people using it** — a behaviour, a gap, something users
-  can't do — is a signal, with that activity as its source. Signals are what a spec's Discovery
-  board links to, and what insights are formed from.
-- A fact about **how the code is built** — which function to reuse, where a pattern lives, what a
-  change would break — is implementation grounding. It goes in the spec's \`solution.md\` Notes.
 
 ### Initiative — \`initiatives/<uuid>.md\`
 
 \`\`\`
 ---
 {"id":"<uuid>","title":"...","status":"active|paused|done",
+ "outcomes":[{"text":"...","metric":"...","baseline":"...","target":"...","current":"..."}],   // optional
  "openQuestions":[{"text":"...","checked":false,"resolution":"..."}],"createdAt":"...","updatedAt":"..."}
 ---
 Freeform description — shared context for every spec under this initiative.
 \`\`\`
+
+\`outcomes\` are why the initiative exists: each is a measurable change in customer behaviour or
+business value the work should produce. \`text\` states the change; \`metric\` is what's measured,
+\`baseline\` → \`target\` where it starts and where it should get to, \`current\` the latest reading.
+All are free-text strings (\`"20%"\`, \`"9/qtr"\`); only \`text\` is required. An outcome is not an
+acceptance criterion — every spec can ship without it moving.
 
 "Specs in this initiative" is derived (any spec whose \`initiativeId\` matches). An initiative is
 an epic; its specs are the tickets. \`openQuestions\` are the questions that span its specs; an
 unchecked one is unresolved for every spec in the initiative. Answers go in \`resolution\`, the same
 as on a spec. When a spec settles something the initiative's description still calls open, update
 the description too.
+
+### Research plan — \`research-plans/<uuid>.md\`
+
+\`\`\`
+---
+{"id":"<uuid>","title":"...","status":"planned|fieldwork|synthesis|done",
+ "initiativeId":"<initiative-uuid> | null",
+ "researchQuestions":[{"text":"...","insightIds":["<insight-uuid>"]}],
+ "activities":["Interview with P3","Survey wave 1"],   // optional
+ "createdAt":"...","updatedAt":"..."}
+---
+## Problem statement
+
+...
+
+## Background
+
+...
+
+## Approach
+
+...
+
+## Participants
+
+...
+
+## Discussion guide
+
+...
+\`\`\`
+
+The study behind a set of signals: why the research is being done, how, with whom, and what it has
+to find out. Each section is left out while it's empty.
+
+- **Problem statement**: the decision or problem the research serves. **Background**: what is
+  already known, and what prompted the study.
+- **Approach**: the method, and why it fits. **Participants**: who takes part, and how they're
+  recruited.
+- **Research questions** are what the team needs to learn, not what gets asked. A question is
+  answered when \`insightIds\` lists at least one insight that answers it; there is no checkbox. Link
+  an insight only when it really answers the question.
+- **Discussion guide**: what is asked or done in each session, in order — interview questions,
+  survey items, tasks. It serves the research questions rather than repeating them.
+- **Activities**: what was done for the study — "Interview with P3", "Survey wave 1" — one plain
+  string each, with nothing else to them and no link to signals. Leave the key out when there are none.
+- **Board** (\`research-plans/<uuid>/board/\`, the Analysis tab): the signals the study collected, the
+  insights formed from them, and the actions and results they lead to — see "Board cards". Research
+  questions are answered by insights, which are usually, but don't have to be, on this board.
+- **Specs informed by this plan** are derived too: any spec whose \`researchPlanIds\` includes it.
+- **Status**: \`planned\` before any activity, \`fieldwork\` while they run, \`synthesis\`
+  while signals are being turned into insights, \`done\` when the questions are answered or dropped.
+- Any other \`##\` section, and text before the first heading, is kept as written. The app doesn't
+  show it.
+
+### Legacy
+
+**Activities — \`activities/<uuid>.md\`.** Older workspaces recorded research as activity files, with
+signals pointing at them (\`"source":{"type":"activity","activityId":"..."}\`). Monk no longer writes
+this folder; don't create files in it. When Monk finds one, it moves it into the current format and
+keeps the original file in \`_migrated-activities/\`:
+
+- An activity with a \`planId\` becomes a line in that plan's \`activities\`, and its signals are linked
+  onto that plan's board.
+- An activity without one becomes a research plan with the same id (its method becomes Approach),
+  and its signals are linked onto that plan's board.
+- \`source\` is dropped from every signal.
+
+**Spec boards — \`<spec-uuid>/board/\`.** Specs used to have their own Discovery board. The board now
+belongs to research plans, and Monk removes a spec's \`board/\` folder when it finds one. Don't write
+there — link the spec to the research plan behind it instead (\`researchPlanIds\`).
 
 ### Section — \`<section-uuid>/section.md\`
 

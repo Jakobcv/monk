@@ -26,11 +26,10 @@ import SignalCardBody from "./SignalCardBody";
 //
 // `fixedHeight` gives every card the same height — four lines of observation, ellipsised, above
 // its metadata row — for a list meant to be scanned (Research Repository). Off by default: on a
-// board or an activity page a signal is read in full, and the "New signal" dialog is where it is
-// being written.
+// board a signal is read in full, and the "New signal" dialog is where it is being written.
 export default function SignalCard({
-  signal, activities, onChange, onDelete, deleteTitle = "Delete this signal everywhere",
-  autoFocus = false, missing = false, selected = false, onToggleSelect, header, footer, metaExtra, activityLink, style,
+  signal, onChange, onDelete, deleteTitle = "Delete this signal everywhere",
+  autoFocus = false, missing = false, selected = false, onToggleSelect, header, footer, metaExtra, style,
   fixedHeight = false,
 }) {
   return (
@@ -44,8 +43,8 @@ export default function SignalCard({
       >
         {header}
         <SignalCardBody
-          signal={signal} activities={activities} onChange={onChange}
-          autoFocus={autoFocus} missing={missing} activityLink={activityLink} after={metaExtra}
+          signal={signal} onChange={onChange}
+          autoFocus={autoFocus} missing={missing} after={metaExtra}
           clamp={fixedHeight}
         />
         {footer}

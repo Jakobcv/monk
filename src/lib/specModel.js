@@ -7,6 +7,8 @@ export function blankSpec(title = "Untitled spec", initiativeId = null) {
   const now = Date.now();
   return {
     id: genEntityId(), title, status: "draft", owner: "", initiativeId, createdAt: now, updatedAt: now,
+    // The research plans behind this spec (researchPlanModel.js) — pointers, never copies.
+    researchPlanIds: [],
     problem: "", goals: "", nonGoals: "",
     // Sections of spec.md the app doesn't show, kept as raw markdown (see markdown.js).
     extraSections: "",

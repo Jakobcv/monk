@@ -14,11 +14,15 @@ const clip = (text, n = 70) => {
   return t.length > n ? t.slice(0, n - 1) + "…" : t;
 };
 
+// Keyed by folder. `key` is where the loaded workspace keeps that collection, when it isn't
+// named the same as the folder.
 const FLAT = {
   signals: { kind: "signal", title: (r) => clip(r.text) || "Empty signal" },
   insights: { kind: "insight", title: (r) => clip(r.text) || "Empty insight" },
-  activities: { kind: "activity", title: (r) => r.name || "Untitled activity" },
+  // Legacy: an activity file is migrated on the load that reports it, so there's no record to name.
+  activities: { kind: "activity", legacy: "Moved into a research plan" },
   initiatives: { kind: "initiative", title: (r) => r.title || "Untitled initiative" },
+  "research-plans": { kind: "researchPlan", key: "researchPlans", title: (r) => r.title || "Untitled research plan" },
 };
 
 export function describeChange(path, record) {
@@ -28,7 +32,8 @@ export function describeChange(path, record) {
   const find = (list) => (list || []).find((x) => x.id === id);
 
   if (FLAT[head]) {
-    const entity = find(record[head]);
+    if (FLAT[head].legacy) return { path, kind: FLAT[head].kind, id, title: FLAT[head].legacy, removed: false };
+    const entity = find(record[FLAT[head].key || head]);
     return { path, kind: FLAT[head].kind, id, title: entity ? FLAT[head].title(entity) : null, removed: !entity };
   }
   const doc = workspaceDocByFile(head);

@@ -1,3 +1,5 @@
+import { migrateActivities } from "./migrateActivities.js";
+
 // A deterministic, plausible workspace for the DEV-only preview routes (#/home-preview,
 // #/board-preview, #/research-preview), which can't open a connected folder. Shapes match the
 // real models (signalModel/insightModel/specModel/etc.); only the fields those pages read are
@@ -79,11 +81,60 @@ const SPEC_TITLES = [
   "Empty states audit",
 ];
 const INITIATIVES = [
-  { title: "Export & views overhaul", status: "active" },
+  {
+    title: "Export & views overhaul", status: "active",
+    outcomes: [
+      { text: "Teams take evidence into their own tools instead of screenshotting boards", metric: "Weekly exports per active workspace", baseline: "0.4", target: "3", current: "1.1" },
+      { text: "Fewer abandoned exports", metric: "Export dialogs closed without exporting", baseline: "62%", target: "25%", current: "" },
+    ],
+  },
   { title: "Enterprise readiness", status: "active" },
   { title: "Onboarding funnel", status: "paused" },
 ];
 const OWNERS = ["Priya", "Sam", "Dani", "Lee"];
+const RESEARCH_PLANS = [
+  {
+    title: "Why exports get abandoned",
+    status: "synthesis",
+    problem: "Half of the people who open the export dialog close it without exporting anything. We don't know whether they can't find the format they need, don't trust what they'd get, or wanted something else entirely.",
+    background: "Support tickets asking for CSV and a circulating workaround doc for scheduled exports both point at export, but neither says why the dialog itself loses people.",
+    approach: "Moderated interviews with people who abandoned an export in the last month, each followed by a short task on their own data. Usage metrics to size what we hear.",
+    participants: "Eight active users who closed the export dialog without exporting at least twice in 30 days — a mix of admins and individual contributors, recruited from the in-app prompt.",
+    discussionGuide: "1. Tell me about the last time you needed data out of the product.\n2. What did you expect to happen when you opened export?\n3. Walk me through what you did next.\n4. What did you end up doing instead?",
+    questions: [
+      "What are people trying to do when they open export?",
+      "Which part of the dialog makes them give up?",
+      "What do they use instead when they abandon it?",
+      "Would a saved view replace the export for them?",
+    ],
+    answered: 2,
+  },
+  {
+    title: "Enterprise buying blockers",
+    status: "fieldwork",
+    problem: "Enterprise deals stall after the second call, and sales can't say which requirement is the one that stops them.",
+    background: "SSO and SOC 2 come up early in almost every enterprise conversation, but we don't know which of them actually block a purchase.",
+    approach: "Client calls with prospects in late-stage deals, plus a review of lost-deal notes from the last two quarters.",
+    participants: "Six prospects with more than 200 seats, including two lost deals. Recruited through account executives.",
+    discussionGuide: "1. Who has to sign off before you can buy?\n2. What did your security review ask for?\n3. What would have made this an easy yes?",
+    questions: [
+      "Which requirements block a purchase, rather than just being asked about?",
+      "Who raises them, and at what stage of the deal?",
+    ],
+    answered: 1,
+  },
+  {
+    title: "First-week collaboration",
+    status: "planned",
+    problem: "Trial users who invite a teammate convert at three times the rate of those who don't, and we don't know what gets someone to invite.",
+    background: "",
+    approach: "",
+    participants: "",
+    discussionGuide: "",
+    questions: ["What prompts someone to invite a teammate in their first week?"],
+    answered: 0,
+  },
+];
 
 function genEntityId(rand) {
   return "m-" + Math.floor(rand() * 1e9).toString(36);
@@ -183,7 +234,7 @@ export function mockWorkspace(seed = 42) {
   // --- initiatives ---
   const initiatives = INITIATIVES.map((ini) => {
     const created = at(rand, WINDOW_DAYS, WINDOW_DAYS - 30);
-    return { id: genEntityId(rand), title: ini.title, status: ini.status, description: "", openQuestions: [], createdAt: created, updatedAt: at(rand, 44, 12) };
+    return { id: genEntityId(rand), title: ini.title, status: ini.status, description: "", outcomes: ini.outcomes || [], openQuestions: [], createdAt: created, updatedAt: at(rand, 44, 12) };
   });
 
   // --- specs: weighted statuses, ~half under an initiative, each with a small board ---
@@ -253,5 +304,44 @@ export function mockWorkspace(seed = 42) {
     { id: genEntityId(rand), name: "Discovery notes", documents: [mkDoc("Q3 interviews"), mkDoc("Support ticket digest")] },
   ];
 
-  return { signals, insights, activities, specs, initiatives, sections };
+  // --- research plans: the studies some of the activities are sessions of, with part of each
+  //     plan's questions answered by insights and a few specs pointing back at them. Built last and
+  //     without `rand`, so every preview's existing sample data comes out exactly as before. ---
+  const researchPlans = RESEARCH_PLANS.map((p, i) => ({
+    id: `m-plan-${i + 1}`,
+    title: p.title,
+    status: p.status,
+    initiativeId: initiatives[i] ? initiatives[i].id : null,
+    problem: p.problem, background: p.background, approach: p.approach,
+    participants: p.participants, discussionGuide: p.discussionGuide,
+    researchQuestions: p.questions.map((text, q) => ({
+      text,
+      insightIds: q < p.answered ? insights.slice(i * 4 + q, i * 4 + q + 1 + (q % 2)).map((x) => x.id) : [],
+    })),
+    activities: [],
+    extraSections: "",
+    createdAt: NOW - (50 - i * 12) * DAY,
+    updatedAt: NOW - (1 + i * 4) * DAY,
+  }));
+  // Boards belong to research plans: the two busiest sample boards become the first two plans'.
+  const busiest = [...specs].sort((a, b) => b.board.connections.length - a.board.connections.length);
+  researchPlans.forEach((plan, i) => {
+    const from = i < 2 ? busiest[i].board : { signals: [], insights: [], actions: [], results: [], connections: [] };
+    plan.board = {
+      id: plan.id, createdAt: plan.createdAt, updatedAt: plan.updatedAt,
+      signals: from.signals, insights: from.insights, actions: from.actions, results: from.results, connections: from.connections,
+    };
+  });
+  activities.forEach((a, i) => { a.planId = i < 3 ? researchPlans[0].id : i < 5 ? researchPlans[1].id : null; });
+  specs.forEach((s, i) => { s.researchPlanIds = i === 0 || i === 4 ? [researchPlans[0].id] : i === 6 ? [researchPlans[1].id] : []; });
+
+  // The sample is still generated with activities — that keeps its random stream, and so every
+  // preview's data, as it was — and then goes through the same migration a real workspace gets.
+  const migrated = migrateActivities({ activities, signals, researchPlans });
+  const specsWithoutBoards = specs.map((s) => {
+    const spec = { ...s };
+    delete spec.board;
+    return spec;
+  });
+  return { signals: migrated.signals, insights, specs: specsWithoutBoards, initiatives, researchPlans: migrated.researchPlans, sections };
 }

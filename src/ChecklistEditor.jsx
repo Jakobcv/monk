@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, X, Check, Minus, Ban } from "lucide-react";
+import { Plus, X, Check, Minus, Ban, FlaskConical } from "lucide-react";
 import { INK, INK_FAINT, SPACE } from "./lib/theme";
 import { Eyebrow, Meta } from "./ui/text";
 import Button from "./ui/Button";
@@ -26,14 +26,13 @@ const EXIT_MS = 140;
 //
 // `resolutions` (open questions only): a checked item gets a quieter field under it for the answer.
 // The question stays the question — answers used to get pasted onto the end of it, which made the
-// row unreadable and kept them out of the brief. It stays visible once written, even if unchecked
+// row unreadable. It stays visible once written, even if unchecked
 // again, and the key is removed from the item while it's empty so files don't fill with "".
 //
 // Each row's text is a single-line live-markdown field (ui/LiveMarkdown.jsx): a long item wraps onto
 // the next line instead of scrolling out of sight, and **bold** or `code` in it formats as you
 // type. It is still a single line of data: Enter doesn't insert a newline and pasted newlines
-// become spaces, because every consumer (the brief's `- [ ] text`, the frontmatter) reads an item
-// as one line.
+// become spaces, because the file (and any agent reading it) treats an item as one line.
 //
 // Per-row identity (needed so React animates the right node on add/remove) is assigned here
 // and never persisted — the parent still stores plain {text, checked}. Its page remounts this
@@ -47,7 +46,9 @@ const oneLine = (s) => s.replace(/\r?\n/g, " ");
 const NEXT_STATUS = { todo: "doing", doing: "done", done: "todo", blocked: "todo" };
 const STATUS_LABEL = { todo: "to do", doing: "in progress", done: "done", blocked: "blocked" };
 
-export default function ChecklistEditor({ label, items, onChange, paper = false, resolutions = false, tasks = false, summary = "" }) {
+// `onPromote(idx, button)` (a spec's open questions): a row button that hands the question on — the
+// spec page opens a picker of research plans off `button`. The question itself stays where it is.
+export default function ChecklistEditor({ label, items, onChange, paper = false, resolutions = false, tasks = false, summary = "", onPromote = null }) {
   const idState = useRef();
   if (!idState.current) {
     let seq = 0;
@@ -185,6 +186,18 @@ export default function ChecklistEditor({ label, items, onChange, paper = false,
                     style={{ "--hit-w": "30px", "--hit-h": "28px" }}
                   >
                     <Ban size={15} />
+                  </IconButton>
+                )}
+                {onPromote && !tasks && (
+                  <IconButton
+                    className="reveal"
+                    data-dismiss-ignore
+                    onClick={(e) => onPromote(idx, e.currentTarget)}
+                    title="Add to a research plan"
+                    aria-label="Add this question to a research plan"
+                    style={{ "--hit-w": "30px", "--hit-h": "28px" }}
+                  >
+                    <FlaskConical size={15} />
                   </IconButton>
                 )}
                 <IconButton className="reveal" onClick={() => remove(id)} title="Remove" danger style={{ "--hit-w": "34px", "--hit-h": "28px" }}>

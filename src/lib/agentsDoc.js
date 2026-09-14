@@ -18,15 +18,19 @@ format is documented in \`MONK.md\` — read that before writing.
 
 ### What's here
 
-- \`<uuid>/\` — one spec: \`spec.md\` (problem / goals / non-goals), \`solution.md\` (what's being
-  built), \`plan.md\`, and \`board/\` (the signals and insights it came from)
-- \`signals/\`, \`insights/\`, \`activities/\`, \`initiatives/\` — global records, one file each
-- \`product-knowledge/\`, \`standards/\` — shared context that goes into every spec's build brief
+- \`<uuid>/\` — one spec: \`spec.md\` (problem / goals / non-goals, and the research plans behind it),
+  \`solution.md\` (what's being built) and \`plan.md\`
+- \`signals/\`, \`insights/\`, \`initiatives/\`, \`research-plans/\` — global records, one file each. A
+  research plan is the study behind a set of signals: why it's being done, who takes part, and the
+  research questions it has to answer. Its \`research-plans/<id>/board/\` holds the signals it
+  collected and the insights formed from them.
+- \`activities/\` — legacy. Don't write to it; Monk migrates anything it finds there (see \`MONK.md\`).
+- \`product-knowledge/\`, \`standards/\` — shared context every spec is built against (see "Building from a spec")
 - \`MONK.md\` — the schema. Generated on save; don't edit it by hand.
 - \`DESIGN.md\` — optional: this product's design system, in the format at
   <https://github.com/google-labs-code/design.md>. Monk only creates it when asked, as an unfilled
-  skeleton. If it's there, every build brief carries it as a contract (minus comments and empty
-  sections) — so that is where tokens, type and component rules belong, not in an individual spec.
+  skeleton. If it's there, it's a contract for everything you build — so that is where tokens,
+  type and component rules belong, not in an individual spec.
   People edit it in a structured editor, so keep its front matter to single-line \`key: value\`
   pairs (\`MONK.md\` has a complete example), and don't rely on YAML comments — an edit in the app
   drops them.
@@ -36,8 +40,9 @@ Anything else in this folder isn't Monk's, and Monk never touches it.
 ### Where things go
 
 - **A finding about the product or its users** — including one you made by reading the code — is a
-  signal in \`signals/\`, with a \`Codebase review\` activity as its source if that's how you found
-  it. That is what the Discovery board is for.
+  signal in \`signals/\`, linked onto the board of the research plan it serves. With no plan to put
+  it under, use the plan titled "Codebase review" (create it if it isn't there). That board is where
+  insights get formed from it.
 - **A fact about how the code is built** — which function to reuse, where a pattern lives — is
   implementation grounding, and goes in that spec's \`solution.md\` Notes.
 - **A decision and its reason** go in \`solution.md\` Decisions, once. Don't repeat them in open
@@ -49,6 +54,23 @@ Anything else in this folder isn't Monk's, and Monk never touches it.
   \`[~]\` when you start it and \`[x]\` when it's done, and record what was built and tested in
   \`solution.md\` Notes. If a task is blocked, mark it \`[!]\` and add an open question saying what's in
   the way.
+
+### Building from a spec
+
+There's no separate hand-off document: read the spec's own files, and what they point at.
+
+- \`standards/\` and \`DESIGN.md\` are constraints. Satisfy them whether or not the spec repeats them.
+- \`product-knowledge/\` fills gaps the spec leaves. It never overrides something the spec decided.
+- If the spec is under an initiative, read the initiative's description, outcomes and open questions
+  too. Outcomes are the change the work is for: let them steer judgement calls, but they aren't
+  acceptance criteria and you don't mark them met.
+- If the spec lists research plans (\`researchPlanIds\`), read them for why the research was done and
+  what it found. A research question with no linked insight is a gap in the evidence, not a stop
+  condition — say so if the build leans on it.
+- Non-goals and \`solution.md\` Constraints are binding; Decisions are settled.
+- An unchecked open question — on the spec or its initiative — or a blocked task is a stop
+  condition: ask, or make a flagged assumption. Don't decide it silently.
+- Work through \`plan.md\`'s tasks, and build until every acceptance criterion can be checked.
 
 ### Working alongside the app
 
@@ -69,8 +91,7 @@ The app may be open while you work.
 - Don't hard-wrap. Put every paragraph and every list item on one line; Monk shows text exactly as
   it is in the file. (A wrapped list item is joined back together when read; prose isn't.)
 - A \`## Heading\` the schema doesn't recognise is kept rather than dropped. In \`solution.md\` it
-  lands in Notes; in \`spec.md\` it stays below Non-goals and goes into the build brief, but the app
-  doesn't show it. That's the escape hatch for something the format has no place for.
+  lands in Notes; in \`spec.md\` it stays below Non-goals, but the app doesn't show it. That's the escape hatch for something the format has no place for.
 - Keep records consistent: when you settle something, update every file that still calls it open,
   such as the initiative's description.
 - Set a spec's \`status\` to \`active\` when building starts, but don't mark it \`shipped\`. When the

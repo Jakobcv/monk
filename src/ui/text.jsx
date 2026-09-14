@@ -30,6 +30,17 @@ export function PageHeading({ className, ...rest }) {
   return <h1 className={cx("page-heading", className)} {...rest} />;
 }
 
+// What kind of record a paper page is — "Spec", "Research plan", "Initiative" — set just above its
+// title. The pages share one frame on purpose, so this is what names the difference outright.
+export function PageKind({ icon: Icon, className, children, ...rest }) {
+  return (
+    <div className={cx("eyebrow page-kind", className)} {...rest}>
+      {Icon && <Icon size={12} aria-hidden="true" />}
+      {children}
+    </div>
+  );
+}
+
 // The big editable name at the top of a spec, an activity or a document.
 export function PageTitle({ className, ...rest }) {
   return <input className={cx("page-title", className)} {...rest} />;

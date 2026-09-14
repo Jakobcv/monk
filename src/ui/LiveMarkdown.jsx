@@ -8,7 +8,7 @@ import { tags as t } from "@lezer/highlight";
 
 // Markdown that formats as you type: **bold** turns bold, a `# ` line grows, `code` becomes a chip.
 // The value is still the raw markdown string, character for character — nothing is converted, so
-// what's on disk is exactly what was typed and every consumer (the brief, an agent) reads the same.
+// what's on disk is exactly what was typed, and an agent reading the file sees the same.
 //
 // This is CodeMirror 6 with markdown decorations, not a WYSIWYG document model. The app had one of
 // those (Milkdown Crepe) and dropped it: 205 packages, a 1.77 MB bundle, and a document model that

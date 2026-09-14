@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from "react";
 import { Search as SearchIcon, X, ArrowLeft, Star, Plus, Lightbulb } from "lucide-react";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, ACCENT, ACTIVITY, DANGER, CITED, SIZE, WEIGHT, SPACE, RADIUS, withAlpha } from "./lib/theme";
-import { blankSignal, signalsForActivity, isSignalUnlinked } from "./lib/signalModel";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, ACCENT, RESEARCH_PLAN, DANGER, CITED, SIZE, WEIGHT, SPACE, RADIUS, withAlpha } from "./lib/theme";
+import { blankSignal, isSignalUnlinked } from "./lib/signalModel";
+import { RESEARCH_PLAN_STATUS_COLOR, answeredCount } from "./lib/researchPlanModel";
 import { blankInsight } from "./lib/insightModel";
 import { Meta, PageHeading } from "./ui/text";
 import SignalCard from "./SignalCard";
@@ -62,18 +63,17 @@ function highlight(text, query) {
   );
 }
 
-// Research Repository is a global surface for *finding and reading* insights across every
-// spec's Discovery board — boards are no longer created or managed here (that happens on the
-// spec itself), so this page is search + a recent-insights feed, PLUS the authoritative place
-// to create and manage Signals and Activities (see signalModel.js): both are global, workspace-
-// wide records, only ever *linked* into a spec's Discovery board rather than owned by one.
-// `boards` are board-shaped objects, each carrying `specTitle` (a board has no name of its own
-// — see App.jsx).
+// Research Repository is a global surface for *finding and reading* research across every
+// research plan's board — boards aren't managed here (that happens on a plan's Analysis tab), so
+// this page is search + recent feeds, PLUS the place to create Signals, Insights and Research plans
+// (see signalModel.js / insightModel.js / researchPlanModel.js).
+// `boards` are board-shaped objects, each carrying its plan's `title` (a board has no name of its
+// own — see App.jsx); `boardCardHref(boardId, cardId)` opens a card on its plan's Analysis tab.
 export default function ResearchRepositoryPage({
-  boards, signals, insights, activities,
+  boards, signals, insights, researchPlans = [],
   initialQuery = "", initialKind = "all", onNavigate,
-  specDiscoveryHref, activityHref,
-  onCreateSignal, onCreateActivity, onCreateInsight,
+  boardCardHref, researchPlanHref,
+  onCreateSignal, onCreateInsight, onCreateResearchPlan,
   onUpdateSignal, onDeleteSignal,
   onUpdateInsight, onDeleteInsight,
 }) {
@@ -88,9 +88,7 @@ export default function ResearchRepositoryPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, activeKind]);
   // Non-null while its create form is open — the draft itself, built off blankSignal()/
-  // blankInsight() the moment the form opens so it always starts with fresh id/timestamps. An
-  // activity has no form here at all — creating one (see the button below) jumps straight to
-  // its own page, same flow as creating a spec.
+  // blankInsight() the moment the form opens so it always starts with fresh id/timestamps.
   const [newSignal, setNewSignal] = useState(null);
   const [newInsight, setNewInsight] = useState(null);
   // Which signals are checked in the Signals section, waiting to be turned into an insight —
@@ -154,7 +152,6 @@ export default function ResearchRepositoryPage({
       <SignalCard
         key={m.key}
         signal={sig}
-        activities={activities}
         onChange={(patch) => onUpdateSignal(sig.id, patch)}
         onDelete={() => onDeleteSignal(sig.id)}
         fixedHeight
@@ -181,23 +178,24 @@ export default function ResearchRepositoryPage({
     );
   };
 
-  // An activity search result: click to open its own page (same flow as clicking a spec) —
-  // that's where Name/Method/Link get edited and linked signals get managed.
-  const renderActivityRow = (m) => {
-    const act = activities.find((a) => a.id === m.activityId);
-    if (!act) return null;
-    const linked = signalsForActivity(signals, act.id);
+  // A research plan, on the landing list or in results: click through to its own page, where it's
+  // written and its questions get answered.
+  const renderPlanRow = (plan, key = plan.id) => {
+    const signalTotal = (plan.board?.signals || []).length;
+    const activityTotal = (plan.activities || []).length;
+    const total = (plan.researchQuestions || []).length;
     return (
-      <Card key={m.key} as="a" href={activityHref(act.id)} interactive style={{ padding: "10px 14px" }}>
+      <Card key={key} as="a" href={researchPlanHref(plan.id)} interactive style={{ padding: "10px 14px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.sm, flexWrap: "wrap" }}>
-          <Dot color={ACTIVITY} />
-          <Meta style={{ fontWeight: WEIGHT.semibold, color: ACTIVITY }}>Activity</Meta>
-          {act.method && <Meta>{act.method}</Meta>}
-          {act.author && <Meta>by {act.author}</Meta>}
-          {act.date && <Meta>{new Date(act.date).toLocaleDateString()}</Meta>}
-          <Meta>{linked.length} signal{linked.length === 1 ? "" : "s"}</Meta>
+          <Dot color={RESEARCH_PLAN} />
+          <Meta style={{ fontWeight: WEIGHT.semibold, color: RESEARCH_PLAN }}>Research plan</Meta>
+          <Meta style={{ fontWeight: WEIGHT.semibold, color: RESEARCH_PLAN_STATUS_COLOR[plan.status] || INK_FAINT }}>{plan.status}</Meta>
+          {total > 0 && <Meta style={{ fontVariantNumeric: "tabular-nums" }}>{answeredCount(plan)} of {total} question{total === 1 ? "" : "s"} answered</Meta>}
+          <Meta style={{ fontVariantNumeric: "tabular-nums" }}>
+            {signalTotal} signal{signalTotal === 1 ? "" : "s"} · {activityTotal} activit{activityTotal === 1 ? "y" : "ies"}
+          </Meta>
         </div>
-        <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK, lineHeight: 1.5 }}>{highlight(act.name || "Untitled activity", q)}</div>
+        <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK, lineHeight: 1.5 }}>{highlight(plan.title || "Untitled research plan", q)}</div>
       </Card>
     );
   };
@@ -227,7 +225,7 @@ export default function ResearchRepositoryPage({
             if (count === 0) continue;
             const text = def.fields(item).filter(Boolean)[0] || "";
             if (q && !text.toLowerCase().includes(ql)) continue;
-            out.push({ key: `${board.id}:${item.id}`, boardId: board.id, cardId: item.id, specTitle: board.specTitle || "Untitled spec", kind: def.kind, label: def.label, text, citationCount: count });
+            out.push({ key: `${board.id}:${item.id}`, boardId: board.id, cardId: item.id, boardTitle: board.title || "Untitled research plan", kind: def.kind, label: def.label, text, citationCount: count });
           }
         }
       }
@@ -248,14 +246,16 @@ export default function ResearchRepositoryPage({
       return out;
     }
 
-    if (activeKind === "activity") {
-      for (const act of activities) {
-        const name = act.name || "";
-        if (q && !name.toLowerCase().includes(ql)) continue;
-        out.push({ key: `activity:${act.id}`, kind: "activity", label: "Activity", text: name, activityId: act.id, updatedAt: act.updatedAt || 0 });
+    if (activeKind === "researchPlan" || activeKind === "all") {
+      for (const plan of researchPlans) {
+        const text = plan.title || "";
+        if (q && ![text, plan.problem, ...(plan.researchQuestions || []).map((x) => x.text)].some((f) => (f || "").toLowerCase().includes(ql))) continue;
+        out.push({ key: `researchPlan:${plan.id}`, kind: "researchPlan", label: "Research plan", text, planId: plan.id, updatedAt: plan.updatedAt || 0 });
       }
-      if (!q) out.sort((a, b) => b.updatedAt - a.updatedAt);
-      return out;
+      if (activeKind === "researchPlan") {
+        if (!q) out.sort((a, b) => b.updatedAt - a.updatedAt);
+        return out;
+      }
     }
 
     if (activeKind === "all" || activeKind === "signal") {
@@ -286,19 +286,18 @@ export default function ResearchRepositoryPage({
           } else {
             text = def.fields(item).filter(Boolean)[0] || "";
           }
-          out.push({ key: `${board.id}:${item.id}`, boardId: board.id, cardId: item.id, specTitle: board.specTitle || "Untitled spec", kind: def.kind, label: def.label, text, specUpdatedAt: board.updatedAt || 0 });
+          out.push({ key: `${board.id}:${item.id}`, boardId: board.id, cardId: item.id, boardTitle: board.title || "Untitled research plan", kind: def.kind, label: def.label, text, specUpdatedAt: board.updatedAt || 0 });
         }
       }
     }
     if (!q) out.sort((a, b) => (b.specUpdatedAt ?? b.updatedAt ?? 0) - (a.specUpdatedAt ?? a.updatedAt ?? 0)); // browsing: most recently active first
     return out;
-  }, [activated, q, activeKind, boards, signals, insights, activities]);
+  }, [activated, q, activeKind, boards, signals, insights, researchPlans]);
 
-  // Landing view also gets a plain directory of every activity, most recently touched first —
-  // there's no search needed to just see what research efforts exist.
-  const sortedActivities = useMemo(
-    () => [...activities].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)),
-    [activities]
+  // Research plans first on the landing view: a study is planned before its signals come in.
+  const sortedPlans = useMemo(
+    () => [...researchPlans].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)),
+    [researchPlans]
   );
 
   // ...and, the same way, every signal — most recently touched first. Without this, a signal
@@ -360,15 +359,9 @@ export default function ResearchRepositoryPage({
           )}
         </div>
 
-        {/* Signal and Insight are each created from their own section on the landing page below
-            (a "+" beside the heading, same spot ActivityPage's "Linked signals" uses) — there's
-            no landing section for Activity to attach that pattern to, so it keeps its own
-            top-level button; clicking it jumps straight to a blank activity page. */}
-        <div style={{ display: "flex", gap: SPACE.base, marginBottom: "18px" }}>
-          <Button onClick={onCreateActivity} style={{ color: INK, padding: "7px 12px" }}>
-            <Plus size={16} /> New activity
-          </Button>
-        </div>
+        {/* Research plans, signals and insights are each created from their own section on the
+            landing page below, with a button beside the heading. */}
+        <div style={{ height: "10px" }} />
 
         {activated && (
         <div className="enter-up" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: SPACE.base, marginBottom: "26px" }}>
@@ -398,8 +391,8 @@ export default function ResearchRepositoryPage({
           >
             <Star size={11} fill={activeKind === "cited" ? CITED : "none"} /> Most cited
           </Pill>
-          <Pill color={ACTIVITY} active={activeKind === "activity"} onClick={() => setActiveKind("activity")}>
-            <Dot color={ACTIVITY} /> Activity
+          <Pill color={RESEARCH_PLAN} active={activeKind === "researchPlan"} onClick={() => setActiveKind("researchPlan")}>
+            <Dot color={RESEARCH_PLAN} /> Research plan
           </Pill>
         </div>
         )}
@@ -414,13 +407,13 @@ export default function ResearchRepositoryPage({
                   : activeKind === "cited"
                     ? "No cards have been cited elsewhere yet."
                     : activeKind === "all"
-                      ? "No cards yet — add some to a spec's Discovery board first."
+                      ? "No cards yet — add some to a research plan's Analysis board first."
                       : activeKind === "signal"
                         ? "No signals yet — create one above."
                         : activeKind === "insight"
                           ? "No insights yet — create one above."
-                          : activeKind === "activity"
-                            ? "No activities yet — create one above."
+                          : activeKind === "researchPlan"
+                            ? "No research plans yet — start one from the Research plans list."
                             : `No ${TYPE_DEFS.find((d) => d.kind === activeKind)?.label.toLowerCase()} cards yet.`}
             </EmptyState>
           ) : (
@@ -432,18 +425,18 @@ export default function ResearchRepositoryPage({
                 {matches.map((m) => (
                   m.kind === "signal" ? renderSignalRow(m) :
                   m.kind === "insight" ? renderInsightRow(m) :
-                  m.kind === "activity" ? renderActivityRow(m) : (
+                  m.kind === "researchPlan" ? (() => { const plan = researchPlans.find((p) => p.id === m.planId); return plan ? renderPlanRow(plan, m.key) : null; })() : (
                   <Card
                     key={m.key}
                     as="a"
-                    href={specDiscoveryHref(m.boardId, m.cardId)}
+                    href={boardCardHref(m.boardId, m.cardId)}
                     interactive
                     style={{ padding: "10px 14px" }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.sm }}>
                       <Dot color={ACCENT[m.kind]} />
                       <Meta style={{ fontWeight: WEIGHT.semibold, color: ACCENT[m.kind] }}>{m.label}</Meta>
-                      <Meta>in {m.specTitle}</Meta>
+                      <Meta>in {m.boardTitle}</Meta>
                       {m.citationCount != null && (
                         <Meta style={{ display: "flex", alignItems: "center", gap: "3px", fontWeight: WEIGHT.semibold, color: CITED }}>
                           <Star size={10} fill={CITED} /> {m.citationCount} citation{m.citationCount === 1 ? "" : "s"}
@@ -461,6 +454,25 @@ export default function ResearchRepositoryPage({
           )
         ) : (
           <div className="enter-up">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
+              <PageHeading>Research plans</PageHeading>
+              <Button onClick={onCreateResearchPlan}>
+                <Plus size={16} /> New research plan
+              </Button>
+            </div>
+
+            {sortedPlans.length === 0 ? (
+              <EmptyState compact style={{ paddingBottom: "30px" }}>
+                No research plans yet — start one to decide what a study has to find out before the signals come in.
+              </EmptyState>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: SPACE.base, marginBottom: "30px" }}>
+                {sortedPlans.map((p) => renderPlanRow(p))}
+              </div>
+            )}
+
+            <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: "30px" }} />
+
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg, gap: SPACE.base, flexWrap: "wrap" }}>
               <PageHeading>Signals</PageHeading>
               <div style={{ display: "flex", gap: SPACE.base }}>
@@ -489,7 +501,6 @@ export default function ResearchRepositoryPage({
                   <SignalCard
                     autoFocus
                     signal={newSignal}
-                    activities={activities}
                     onChange={(patch) => setNewSignal((s) => ({ ...s, ...patch }))}
                   />
                   <DialogActions onCancel={closeSignalForm} onSave={saveSignalForm} />
@@ -544,32 +555,6 @@ export default function ResearchRepositoryPage({
               </div>
             )}
 
-            <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: "30px" }} />
-
-            <PageHeading style={{ marginBottom: SPACE.lg }}>Activities</PageHeading>
-
-            {sortedActivities.length === 0 ? (
-              <EmptyState compact style={{ paddingBottom: "30px" }}>No activities yet — create one above.</EmptyState>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: SPACE.base, marginBottom: "30px" }}>
-                {sortedActivities.map((a) => {
-                  const linked = signalsForActivity(signals, a.id);
-                  return (
-                    <Card key={a.id} as="a" href={activityHref(a.id)} interactive style={{ padding: "10px 14px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.sm, flexWrap: "wrap" }}>
-                        <Dot color={ACTIVITY} />
-                        <Meta style={{ fontWeight: WEIGHT.semibold, color: ACTIVITY }}>Activity</Meta>
-                        {a.method && <Meta>{a.method}</Meta>}
-                        {a.author && <Meta>by {a.author}</Meta>}
-                        {a.date && <Meta>{new Date(a.date).toLocaleDateString()}</Meta>}
-                        <Meta>{linked.length} signal{linked.length === 1 ? "" : "s"}</Meta>
-                      </div>
-                      <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK, lineHeight: 1.5 }}>{a.name || "Untitled activity"}</div>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
           </div>
         )}
       </div>

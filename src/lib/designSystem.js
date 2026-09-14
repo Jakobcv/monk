@@ -13,32 +13,3 @@ export const DESIGN_SECTIONS = SECTIONS.map((s) => s.title);
 export function designSystemTemplate(name) {
   return serializeDesignSystem(blankDesignSystem(name || "Design system"));
 }
-
-const FRONT_MATTER = /^---[ \t]*\n([\s\S]*?)\n---[ \t]*(?:\n|$)/;
-
-// What of a DESIGN.md is worth an agent's attention: front matter without its comment lines, and
-// only the sections that have something written under them. Returns "" when nothing is left —
-// only `version` and `name` in the front matter and no section with content — which is what an
-// unfilled file reduces to, so the brief can leave the design system out entirely.
-export function designSystemForBrief(md) {
-  const text = (md || "").replace(/\r\n?/g, "\n");
-  const match = text.match(FRONT_MATTER);
-  const frontLines = match
-    ? match[1].split("\n").filter((line) => line.trim() && !/^\s*#/.test(line))
-    : [];
-  const hasTokens = frontLines.some((line) => !/^(version|name)\s*:/.test(line));
-
-  const body = (match ? text.slice(match[0].length) : text).replace(/<!--[\s\S]*?-->/g, "");
-  // Split at `## ` headings only — a `###` inside a section belongs to that section.
-  const kept = body
-    .split(/^(?=## )/m)
-    .filter((part) => {
-      const content = part.startsWith("## ") ? part.slice(part.indexOf("\n") + 1 || part.length) : part;
-      return content.trim();
-    })
-    .map((part) => part.trim().replace(/\n{3,}/g, "\n\n"));
-
-  if (!hasTokens && !kept.length) return "";
-  const front = frontLines.length ? `---\n${frontLines.join("\n")}\n---\n\n` : "";
-  return `${front}${kept.join("\n\n")}`.trim() + "\n";
-}

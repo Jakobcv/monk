@@ -1,4 +1,6 @@
 
+import { outcomesFrom } from "./initiativeModel.js";
+
 // Frontmatter here is a single line of JSON between `---` fences, not YAML — the data is
 // always simple (strings/numbers/an array/a small object or null), so JSON's own
 // unambiguous serializer is a better fit than pulling in a YAML library. Still perfectly
@@ -26,10 +28,19 @@ function stringifyFrontmatter(data, body) {
 // the next save, and the duplicate compounded every round trip. Nothing surfaced it because
 // the file was rewritten identically-corrupted every 700ms; it only became visible once saves
 // started skipping unchanged files and this one refused to settle.
+//
+// And a section never runs into the heading below it. When a heading is followed directly by another
+// on the next line, the heading's own newline has already been consumed, so the lookahead's `\n##`
+// can't see the second one and the capture took it as the section's text. A spec saved that way
+// (`## Problem` straight onto `## Goals`) came back with "## Goals" as its Problem, and every save
+// after that appended another pair of empty headings — the file grew on each keystroke. Cutting the
+// capture at the first line that is itself a heading closes that.
 function extractSection(body, heading) {
   const re = new RegExp(`(?:^|\\n)##\\s*${heading}[^\\S\\n]*\\n([\\s\\S]*?)(?=\\n##\\s|$)`, "i");
   const match = body.match(re);
-  return match ? match[1].trim() : "";
+  if (!match) return "";
+  const nextHeading = match[1].search(/^##\s/m);
+  return (nextHeading === -1 ? match[1] : match[1].slice(0, nextHeading)).trim();
 }
 
 // A board is now pure canvas — no name/goal/status/etc., that all lives on the owning spec.
@@ -103,13 +114,12 @@ export function markdownToCard(content, kind) {
   return { card, connectsTo };
 }
 
-// A signal is a global workspace record (see signalModel.js) — Source/Date/Link/Author are
-// all optional metadata in frontmatter, the observation itself is the body (same shape as a
-// document).
+// A signal is a global workspace record (see signalModel.js) — Date/Link/Author are optional
+// metadata in frontmatter, the observation itself is the body (same shape as a document). Which
+// study it belongs to isn't on the signal: that's the research plan boards linking it.
 export function signalToMarkdown(signal) {
   const frontmatter = {
     id: signal.id,
-    source: signal.source || null,
     date: new Date(signal.date || signal.createdAt || Date.now()).toISOString(),
     link: signal.link || "",
     author: signal.author || "",
@@ -124,6 +134,7 @@ export function markdownToSignal(content) {
   return {
     id: data.id,
     text: body.trim(),
+    // Legacy, read only so migrateActivities.js can follow an old activity reference; never written.
     source: data.source || null,
     date: data.date ? new Date(data.date).getTime() : Date.now(),
     link: data.link || "",
@@ -133,23 +144,8 @@ export function markdownToSignal(content) {
   };
 }
 
-// An activity has no body of its own — Name/Method/Link/Date/Author are all short scalars, so
-// everything fits in frontmatter (same call as boardMetaToMarkdown made for the old board
-// metadata). Date/Author live here rather than on the signals it collects — see signalModel.js.
-export function activityToMarkdown(activity) {
-  const frontmatter = {
-    id: activity.id,
-    name: activity.name || "",
-    method: activity.method || "",
-    link: activity.link || "",
-    date: new Date(activity.date || activity.createdAt || Date.now()).toISOString(),
-    author: activity.author || "",
-    createdAt: new Date(activity.createdAt || Date.now()).toISOString(),
-    updatedAt: new Date(activity.updatedAt || Date.now()).toISOString(),
-  };
-  return stringifyFrontmatter(frontmatter, "");
-}
-
+// Legacy: activities are no longer written — they were folded into research plans. This reads an
+// old `activities/<id>.md` so migrateActivities.js can move it into the current format.
 export function markdownToActivity(content) {
   const { data } = parseFrontmatter(content);
   return {
@@ -159,6 +155,7 @@ export function markdownToActivity(content) {
     link: data.link || "",
     date: data.date ? new Date(data.date).getTime() : Date.now(),
     author: data.author || "",
+    planId: data.planId || null,
     createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
     updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now(),
   };
@@ -236,10 +233,12 @@ export function markdownToDocument(content) {
 // folder, plain markdown text with no frontmatter of their own (see storage.js).
 // Everything in a spec.md body that isn't one of its three sections — text before the first heading,
 // any other `##` section, a second copy of a known heading — as raw markdown, headings included. It
-// isn't shown in the app, but it's written back and goes into the build brief: an agent recording
+// isn't shown in the app, but it's written back: an agent recording
 // something the format has no place for used to have it silently dropped on the next save.
 const SPEC_SECTIONS = ["problem", "goals", "non-goals"];
-function extraSpecSections(body) {
+// `known` is the lowercased headings the record reads itself; everything else is extra. Shared
+// with research plans, which keep what they don't show the same way.
+function extraSections(body, known) {
   const chunks = [{ title: null, lines: [] }];
   for (const line of body.replace(/\r\n?/g, "\n").split("\n")) {
     const h = /^##\s+(.+?)\s*$/.exec(line);
@@ -249,13 +248,25 @@ function extraSpecSections(body) {
   const seen = new Set();
   return chunks
     .filter((c) => {
-      if (!c.title || !SPEC_SECTIONS.includes(c.title) || seen.has(c.title)) return true;
+      if (!c.title || !known.includes(c.title) || seen.has(c.title)) return true;
       seen.add(c.title);
       return false;
     })
     .map((c) => c.lines.join("\n").trim())
     .filter(Boolean)
     .join("\n\n");
+}
+
+// Extra text from before the first heading goes back before the known sections; extra `##`
+// sections go after them. Written anywhere else, loose text would be read back as part of
+// whichever section preceded it.
+function splitExtra(extraText) {
+  const extra = (extraText || "").trim();
+  const firstHeading = extra.search(/^##\s/m);
+  return {
+    lead: (firstHeading === -1 ? extra : extra.slice(0, firstHeading)).trim(),
+    tail: firstHeading === -1 ? "" : extra.slice(firstHeading).trim(),
+  };
 }
 
 export function specToMarkdown(spec) {
@@ -265,17 +276,15 @@ export function specToMarkdown(spec) {
     status: spec.status || "draft",
     owner: spec.owner || "",
     initiativeId: spec.initiativeId || null,
+    // Written only when there are some, so a spec saved before research plans existed is
+    // unchanged on disk until one is linked.
+    ...(spec.researchPlanIds?.length ? { researchPlanIds: spec.researchPlanIds } : {}),
     openQuestions: spec.openQuestions || [],
     acceptanceCriteria: spec.acceptanceCriteria || [],
     createdAt: new Date(spec.createdAt || Date.now()).toISOString(),
     updatedAt: new Date(spec.updatedAt || Date.now()).toISOString(),
   };
-  // Extra text from before the first heading goes back before it; extra `##` sections go after
-  // Non-goals. Written anywhere else, loose text would be read back as part of Non-goals.
-  const extra = (spec.extraSections || "").trim();
-  const firstHeading = extra.search(/^##\s/m);
-  const lead = (firstHeading === -1 ? extra : extra.slice(0, firstHeading)).trim();
-  const tail = firstHeading === -1 ? "" : extra.slice(firstHeading).trim();
+  const { lead, tail } = splitExtra(spec.extraSections);
   const body = [
     ...(lead ? [lead, ""] : []),
     "## Problem", spec.problem || "", "",
@@ -293,6 +302,7 @@ export function markdownToSpec(content) {
     status: data.status || "draft",
     owner: data.owner || "",
     initiativeId: data.initiativeId || null,
+    researchPlanIds: Array.isArray(data.researchPlanIds) ? data.researchPlanIds : [],
     openQuestions: Array.isArray(data.openQuestions) ? data.openQuestions : [],
     acceptanceCriteria: Array.isArray(data.acceptanceCriteria) ? data.acceptanceCriteria : [],
     createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
@@ -300,17 +310,20 @@ export function markdownToSpec(content) {
     problem: extractSection(body, "Problem"),
     goals: extractSection(body, "Goals"),
     nonGoals: extractSection(body, "Non-goals"),
-    extraSections: extraSpecSections(body),
+    extraSections: extraSections(body, SPEC_SECTIONS),
   };
 }
 
 // An initiative is a flat top-level record like a signal/insight/activity — title/status in
 // frontmatter, the freeform description as the body. See initiativeModel.js.
 export function initiativeToMarkdown(initiative) {
+  const outcomes = outcomesFrom(initiative.outcomes);
   const frontmatter = {
     id: initiative.id,
     title: initiative.title || "",
     status: initiative.status || "active",
+    // Written only when there are some, so an initiative saved before outcomes existed is unchanged.
+    ...(outcomes.length ? { outcomes } : {}),
     openQuestions: initiative.openQuestions || [],
     createdAt: new Date(initiative.createdAt || Date.now()).toISOString(),
     updatedAt: new Date(initiative.updatedAt || Date.now()).toISOString(),
@@ -324,9 +337,76 @@ export function markdownToInitiative(content) {
     id: data.id,
     title: data.title || "",
     status: data.status || "active",
+    outcomes: outcomesFrom(data.outcomes),
     openQuestions: Array.isArray(data.openQuestions) ? data.openQuestions : [],
     description: body,
     createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
     updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now(),
   };
+}
+
+// A research plan (researchPlanModel.js) is a flat top-level record like an initiative. Title,
+// status and the research questions go in frontmatter — a question carries links to insights, so
+// it's data, the way a spec's open questions are — and the prose goes in the body as `##`
+// sections, each left out while it's empty. Anything else in the body is kept, the same way a
+// spec keeps sections it doesn't show.
+const RESEARCH_PLAN_SECTIONS = [
+  ["problem", "Problem statement"],
+  ["background", "Background"],
+  ["approach", "Approach"],
+  ["participants", "Participants"],
+  ["discussionGuide", "Discussion guide"],
+];
+
+const researchQuestionsFrom = (list) => (Array.isArray(list) ? list : [])
+  .filter((q) => q && typeof q === "object")
+  .map((q) => ({
+    text: typeof q.text === "string" ? q.text : "",
+    insightIds: Array.isArray(q.insightIds) ? q.insightIds : [],
+  }));
+
+// A plan's activities are plain strings — what was done for the study, nothing else about it.
+const activitiesFrom = (list) => (Array.isArray(list) ? list : [])
+  .filter((a) => typeof a === "string")
+  .map((a) => a.trim())
+  .filter(Boolean);
+
+// The plan's board isn't in this file: it's a folder next to it (research-plans/<id>/board/), read
+// and written by storage.js.
+export function researchPlanToMarkdown(plan) {
+  const activities = activitiesFrom(plan.activities);
+  const frontmatter = {
+    id: plan.id,
+    title: plan.title || "",
+    status: plan.status || "planned",
+    initiativeId: plan.initiativeId || null,
+    researchQuestions: researchQuestionsFrom(plan.researchQuestions),
+    // Written only when there are some, so a plan saved before activities existed is unchanged.
+    ...(activities.length ? { activities } : {}),
+    createdAt: new Date(plan.createdAt || Date.now()).toISOString(),
+    updatedAt: new Date(plan.updatedAt || Date.now()).toISOString(),
+  };
+  const { lead, tail } = splitExtra(plan.extraSections);
+  const sections = RESEARCH_PLAN_SECTIONS
+    .filter(([key]) => (plan[key] || "").trim())
+    .map(([key, heading]) => `## ${heading}\n\n${plan[key].trim()}`);
+  const body = [lead, ...sections, tail].filter(Boolean).join("\n\n");
+  return stringifyFrontmatter(frontmatter, body ? `${body}\n` : "");
+}
+
+export function markdownToResearchPlan(content) {
+  const { data, body } = parseFrontmatter(content);
+  const plan = {
+    id: data.id,
+    title: data.title || "",
+    status: data.status || "planned",
+    initiativeId: data.initiativeId || null,
+    researchQuestions: researchQuestionsFrom(data.researchQuestions),
+    activities: activitiesFrom(data.activities),
+    createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
+    updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now(),
+  };
+  for (const [key, heading] of RESEARCH_PLAN_SECTIONS) plan[key] = extractSection(body, heading);
+  plan.extraSections = extraSections(body, RESEARCH_PLAN_SECTIONS.map(([, heading]) => heading.toLowerCase()));
+  return plan;
 }

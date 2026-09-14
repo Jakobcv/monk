@@ -2,11 +2,11 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { FolderOpen, RefreshCw, FileText } from "lucide-react";
 import { loadWorkspace, saveWorkspace, watchWorkspace, canWatchWorkspace, entityIdsFor, ensureAgentGuides, addAgentSection, createWorkspaceDoc, removeWorkspaceDoc } from "./lib/storage";
 import { WORKSPACE_DOCS, workspaceDocById } from "./lib/workspaceDocs";
-import { blankBoard, bumpNextId } from "./lib/boardModel";
+import { bumpNextId } from "./lib/boardModel";
 import { blankSection, blankDocument, ensureFixedSections, isFixedSection } from "./lib/documentModel";
 import { blankSpec } from "./lib/specModel";
-import { blankActivity } from "./lib/signalModel";
-import { blankInitiative, specsForInitiative } from "./lib/initiativeModel";
+import { blankInitiative, specsForInitiative, researchPlansForInitiative } from "./lib/initiativeModel";
+import { blankResearchPlan } from "./lib/researchPlanModel";
 import { mockWorkspace } from "./lib/mockWorkspace";
 import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, tryReuseHandle, reconnectHandle } from "./lib/fsPersistence";
 import { describeChanges } from "./lib/diskLog";
@@ -25,7 +25,7 @@ import WorkspaceDocPage from "./WorkspaceDocPage";
 import SpecsPage from "./SpecsPage";
 import SpecPage from "./SpecPage";
 import InitiativePage from "./InitiativePage";
-import ActivityPage from "./ActivityPage";
+import ResearchPlanPage from "./ResearchPlanPage";
 import DesignTab from "./DesignTab";
 import Board from "./Board";
 import Page from "./ui/Page";
@@ -36,7 +36,10 @@ const RESEARCH_ROUTE = "#/research";
 const SPECS_ROUTE = "#/specs";
 const SPEC_PREFIX = "#/spec/";
 const INITIATIVE_PREFIX = "#/initiative/";
+// Legacy: activities were folded into research plans. The route is still parsed so an old link can
+// be sent on to where its activity went (see the redirect effect in App).
 const ACTIVITY_PREFIX = "#/activity/";
+const RESEARCH_PLAN_PREFIX = "#/research-plan/";
 const WORKSPACE_DOC_PREFIX = "#/workspace/";
 
 // href builders — the single source for every route string. Nav renders these as real
@@ -58,9 +61,10 @@ const parseCardId = (raw) => {
   return /^\d+$/.test(id) ? Number(id) : id;
 };
 const hrefSpecPlan = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/plan";
-const hrefSpecDiscovery = (id, cardId) => SPEC_PREFIX + encodeURIComponent(id) + "/discovery" + (cardId != null ? "/" + encodeURIComponent(cardId) : "");
 const hrefInitiative = (id) => INITIATIVE_PREFIX + encodeURIComponent(id);
-const hrefActivity = (id) => ACTIVITY_PREFIX + encodeURIComponent(id);
+const hrefResearchPlan = (id) => RESEARCH_PLAN_PREFIX + encodeURIComponent(id);
+// A research plan's board (its Analysis tab), optionally scrolled to one card.
+const hrefResearchPlanAnalysis = (id, cardId) => hrefResearchPlan(id) + "/analysis" + (cardId != null ? "/" + encodeURIComponent(cardId) : "");
 const hrefWorkspaceDoc = (id) => WORKSPACE_DOC_PREFIX + encodeURIComponent(id);
 // Research Repository keeps its search query + kind filter in the URL so a filtered view is
 // linkable and survives a refresh.
@@ -71,15 +75,17 @@ const hrefResearch = (q, kind) => {
   const qs = params.toString();
   return RESEARCH_ROUTE + (qs ? "?" + qs : "");
 };
+// An insight has no page of its own, so a link to one is the repository searched for its text.
+const hrefInsight = (insight) => hrefResearch((insight.text || "").trim().slice(0, 60), "insight");
 
 const goToStart = () => { window.location.hash = hrefStart(); };
 const goToDocument = (sectionId, docId) => { window.location.hash = hrefDocument(sectionId, docId); };
 const goToResearch = () => { window.location.hash = RESEARCH_ROUTE; };
 const goToSpecs = () => { window.location.hash = hrefSpecs(); };
 const goToSpec = (id) => { window.location.hash = hrefSpec(id); };
-const goToSpecDiscovery = (id, cardId) => { window.location.hash = hrefSpecDiscovery(id, cardId); };
 const goToInitiative = (id) => { window.location.hash = hrefInitiative(id); };
-const goToActivity = (id) => { window.location.hash = hrefActivity(id); };
+const goToResearchPlan = (id) => { window.location.hash = hrefResearchPlan(id); };
+const goToResearchPlanAnalysis = (id, cardId) => { window.location.hash = hrefResearchPlanAnalysis(id, cardId); };
 
 function useRoute() {
   const [hash, setHash] = useState(() => window.location.hash);
@@ -104,11 +110,11 @@ function useRoute() {
     return { name: "specs" };
   }
   if (hash.startsWith(SPEC_PREFIX)) {
-    const [idRaw, sub, cardIdRaw] = hash.slice(SPEC_PREFIX.length).split("/");
+    // An old #/spec/<id>/discovery link — the board moved to research plans — lands on Overview.
+    const [idRaw, sub] = hash.slice(SPEC_PREFIX.length).split("/");
     return {
-      name: sub === "design" ? "specDesign" : sub === "plan" ? "specPlan" : sub === "discovery" ? "specDiscovery" : "spec",
+      name: sub === "design" ? "specDesign" : sub === "plan" ? "specPlan" : "spec",
       id: decodeURIComponent(idRaw),
-      cardId: parseCardId(cardIdRaw),
     };
   }
   if (hash.startsWith(INITIATIVE_PREFIX)) {
@@ -116,6 +122,15 @@ function useRoute() {
   }
   if (hash.startsWith(ACTIVITY_PREFIX)) {
     return { name: "activity", id: decodeURIComponent(hash.slice(ACTIVITY_PREFIX.length)) };
+  }
+  if (hash.startsWith(RESEARCH_PLAN_PREFIX)) {
+    const [idRaw, sub, cardIdRaw] = hash.slice(RESEARCH_PLAN_PREFIX.length).split("/");
+    return {
+      name: "researchPlan",
+      id: decodeURIComponent(idRaw),
+      tab: sub === "analysis" ? "analysis" : "overview",
+      cardId: parseCardId(cardIdRaw),
+    };
   }
   if (hash.startsWith(WORKSPACE_DOC_PREFIX)) {
     return { name: "workspaceDoc", id: decodeURIComponent(hash.slice(WORKSPACE_DOC_PREFIX.length)) };
@@ -131,6 +146,10 @@ function useRoute() {
   }
   if (hash === "#/initiative-preview") {
     return { name: "initiativePreview" };
+  }
+  if (hash === "#/research-plan-preview" || hash.startsWith("#/research-plan-preview/")) {
+    const parts = hash.split("/");
+    return { name: "researchPlanPreview", tab: parts[2] === "analysis" ? "analysis" : "overview", cardId: parseCardId(parts[3]) };
   }
   if (hash === "#/disk-log-preview") {
     return { name: "diskLogPreview" };
@@ -170,6 +189,7 @@ const PREVIEW_SPEC = {
   status: "active",
   owner: "Jakob",
   initiativeId: "ini-preview",
+  researchPlanIds: ["m-plan-1"],
   problem:
     "Teams can read an insight on screen but can't get it anywhere else. When a researcher needs to "
     + "put evidence in front of a stakeholder — a deck, a doc, a ticket — they retype it by hand, and "
@@ -190,7 +210,6 @@ const PREVIEW_SPEC = {
     { text: "Every quoted signal carries its activity and date", checked: false },
     { text: "The whole flow is operable from the keyboard", checked: false },
   ],
-  board: blankBoard(),
   design: SAMPLE_DESIGN_MD,
   plan: `## Tasks
 
@@ -226,22 +245,30 @@ Each quoted signal keeps its activity name and date. This is the part that makes
 
 function SpecPreviewDemo({ tab }) {
   const [spec, setSpec] = useState(PREVIEW_SPEC);
-  useEffect(() => { window.__spec = spec; }, [spec]);
-  const noop = () => {};
+  // The sample research plans, so Overview's research plans list and "Add to a research plan" have
+  // something to link to. They land on window.__researchPlans.
+  const [plans, setPlans] = useState(() => mockWorkspace(1).researchPlans);
+  useEffect(() => { window.__spec = spec; window.__researchPlans = plans; }, [spec, plans]);
   return (
     <SpecPage
       key="preview"
       spec={spec}
+      researchPlans={plans}
+      researchPlanHref={() => "#/research-plan-preview"}
+      onCreateResearchPlan={({ questions = [] } = {}) => {
+        const created = { ...blankResearchPlan(), researchQuestions: questions.map((text) => ({ text, insightIds: [] })) };
+        setPlans((prev) => [...prev, created]);
+        return created.id;
+      }}
+      onAddResearchQuestion={(planId, text) => setPlans((prev) => prev.map((p) => (
+        p.id === planId ? { ...p, researchQuestions: [...p.researchQuestions, { text, insightIds: [] }] } : p
+      )))}
       onChange={(patch) => setSpec((prev) => ({ ...prev, ...patch }))}
       activeTab={tab}
       tabHref={(t) => `#/spec-preview/${t}`}
       breadcrumbs={[{ label: "product-research", icon: FolderOpen }, { label: "Specs" }, { label: spec.title }]}
       initiatives={[{ id: "ini-preview", title: "Evidence anywhere" }]}
-      boards={[]} signals={[]} insights={[]} activities={[]} sections={[]}
-      onOpenBoard={noop} onUpdateSignal={noop} onCreateSignal={noop}
-      onUpdateInsight={noop} onCreateInsight={noop}
       onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
-      highlightCardId={null}
     />
   );
 }
@@ -273,6 +300,10 @@ function InitiativePreviewDemo() {
     title: "Evidence anywhere",
     status: "active",
     description: "Everything we learn should be able to leave the app with its sources attached.",
+    outcomes: [
+      { text: "Teams take evidence into their own tools instead of screenshotting boards", metric: "Weekly exports per active workspace", baseline: "0.4", target: "3", current: "1.1" },
+      { text: "Specs cite the research they're built on", metric: "", baseline: "", target: "", current: "" },
+    ],
     openQuestions: [
       { text: "Do exports need to stay live after the board changes, or is a snapshot enough for every spec under this initiative?", checked: false },
       { text: "Markdown only?", checked: true, resolution: "Yes, for every spec in this initiative." },
@@ -280,16 +311,24 @@ function InitiativePreviewDemo() {
     createdAt: Date.now(),
     updatedAt: Date.now(),
   }));
+  const [specs, setSpecs] = useState(() => [
+    { id: "s1", title: "Export dialog", status: "active", updatedAt: 3 },
+    { id: "s2", title: "Markdown export with sources", status: "shipped", updatedAt: 2 },
+    { id: "s3", title: "Shareable read-only board link", status: "draft", updatedAt: 1 },
+  ]);
   useEffect(() => { window.__initiative = initiative; }, [initiative]);
   const noop = () => {};
   return (
     <InitiativePage
       key="ini-preview"
       initiative={initiative}
-      specs={[]}
-      specHref={() => "#"}
+      specs={specs}
+      specHref={() => "#/spec-preview"}
+      researchPlans={[{ id: "rp1", title: "Why exports get abandoned", status: "synthesis", initiativeId: "ini-preview" }]}
+      researchPlanHref={() => "#/research-plan-preview"}
       onChange={(patch) => setInitiative((prev) => ({ ...prev, ...patch }))}
-      onDelete={noop} onCreateSpec={noop} onDetachSpec={noop}
+      onDelete={noop} onCreateSpec={noop}
+      onDetachSpec={(id) => setSpecs((prev) => prev.filter((s) => s.id !== id))}
       breadcrumbs={[{ label: "product-research", icon: FolderOpen, onClick: noop }, { label: "Specs", href: "#" }, { label: initiative.title }]}
     />
   );
@@ -345,15 +384,98 @@ function ResearchPreviewDemo() {
   const noop = () => {};
   return (
     <ResearchRepositoryPage
-      boards={ws.specs.map((s) => ({ ...s.board, specTitle: s.title }))}
-      specs={ws.specs} signals={ws.signals} insights={ws.insights} activities={ws.activities}
+      boards={ws.researchPlans.map((p) => ({ ...p.board, title: p.title }))}
+      signals={ws.signals} insights={ws.insights}
+      researchPlans={ws.researchPlans} researchPlanHref={() => "#/research-plan-preview"}
       initialQuery="" initialKind="all" onNavigate={noop}
-      activityHref={hrefActivity} specDiscoveryHref={hrefSpecDiscovery}
-      onCreateSignal={noop} onCreateActivity={noop} onCreateInsight={noop}
+      boardCardHref={(boardId, cardId) => `#/research-plan-preview/analysis/${encodeURIComponent(cardId)}`}
+      onCreateSignal={noop} onCreateInsight={noop} onCreateResearchPlan={noop}
       onUpdateSignal={updateSignal} onDeleteSignal={noop} onUpdateInsight={noop} onDeleteInsight={noop}
     />
   );
 }
+
+// A research plan on sample data (#/research-plan-preview, #/research-plan-preview/analysis[/<cardId>]):
+// both tabs — its questions linked to sample insights and its activities, and its board. Edits land
+// in local state; the plan lands on window.__researchPlan.
+function ResearchPlanPreviewDemo({ tab, cardId }) {
+  const [ws, setWs] = useState(() => mockWorkspace(1));
+  const plan = ws.researchPlans[0];
+  useEffect(() => { window.__researchPlan = plan; }, [plan]);
+  const here = () => "#/research-plan-preview";
+  const noop = () => {};
+  const update = (key) => (id, patch) => setWs((prev) => ({ ...prev, [key]: prev[key].map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
+  const create = (key) => (record) => setWs((prev) => ({ ...prev, [key]: [...prev[key], record] }));
+  return (
+    <ResearchPlanPage
+      key={plan.id}
+      plan={plan}
+      signals={ws.signals} insights={ws.insights} specs={ws.specs} initiatives={ws.initiatives}
+      boards={ws.researchPlans.map((p) => ({ ...p.board, title: p.title }))}
+      activeTab={tab}
+      tabHref={(t) => (t === "analysis" ? "#/research-plan-preview/analysis" : "#/research-plan-preview")}
+      highlightCardId={cardId}
+      onChange={(patch) => setWs((prev) => ({
+        ...prev,
+        researchPlans: prev.researchPlans.map((p) => (p.id === plan.id ? { ...p, ...patch } : p)),
+      }))}
+      onDelete={noop} onOpenBoard={noop}
+      onCreateSignal={create("signals")} onUpdateSignal={update("signals")}
+      onCreateInsight={create("insights")} onUpdateInsight={update("insights")}
+      onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
+      specHref={here} insightHref={here}
+      breadcrumbs={[{ label: "product-research", icon: FolderOpen }, { label: "Research Repository", href: "#/research-preview" }, { label: plan.title }]}
+    />
+  );
+}
+
+// What a load that moved old-format records into the current shape says about it: activities folded
+// into research plans (lib/migrateActivities.js), and spec boards that the next save removes.
+const migrationMessage = ({ activities = 0, specBoards = 0 }) => [
+  activities ? `Moved ${activities} ${activities === 1 ? "activity" : "activities"} into research plans (originals kept in _migrated-activities/)` : "",
+  specBoards ? `Removed ${specBoards} spec board${specBoards === 1 ? "" : "s"} — boards live on research plans now` : "",
+].filter(Boolean).join(". ");
+const shouldAnnounce = (record) => !!record.migration && (record.migration.activities > 0 || record.migration.specBoards > 0);
+const wasMigrated = (record) => !!record.migration
+  && (record.migration.activities > 0 || record.migration.sourcesDropped > 0 || record.migration.specBoards > 0);
+
+// A signal or an insight can be linked onto many research plans' boards, each at its own position and
+// wired to its own cards. These find, strip and restore those links, so deleting the record — and
+// undoing that — touches every board the same way. `kind` is the board's array: "signals" or "insights".
+const boardLinks = (plans, kind, id) => plans
+  .filter((p) => (p.board?.[kind] || []).some((x) => x.id === id))
+  .map((p) => ({
+    planId: p.id,
+    index: p.board[kind].findIndex((x) => x.id === id),
+    connections: (p.board.connections || []).filter((c) => c.from === id || c.to === id),
+  }));
+const unlinkFromBoards = (plans, kind, id) => plans.map((p) => (
+  (p.board?.[kind] || []).some((x) => x.id === id)
+    ? {
+        ...p,
+        board: {
+          ...p.board,
+          [kind]: p.board[kind].filter((x) => x.id !== id),
+          connections: (p.board.connections || []).filter((c) => c.from !== id && c.to !== id),
+          updatedAt: Date.now(),
+        },
+        updatedAt: Date.now(),
+      }
+    : p
+));
+const relinkOnBoards = (plans, kind, id, links) => plans.map((p) => {
+  const link = links.find((l) => l.planId === p.id);
+  if (!link || !p.board) return p;
+  return {
+    ...p,
+    board: {
+      ...p.board,
+      [kind]: insertAt(p.board[kind] || [], link.index, { id }),
+      connections: [...(p.board.connections || []), ...link.connections],
+      updatedAt: Date.now(),
+    },
+  };
+});
 
 function ConnectScreen({ title, message, buttonLabel, onClick }) {
   return (
@@ -401,8 +523,11 @@ export default function App() {
   const [specs, setSpecs] = useState([]);
   const [signals, setSignals] = useState([]);
   const [insights, setInsights] = useState([]);
-  const [activities, setActivities] = useState([]);
+  // Activity files a load migrated in memory, which the next save moves out of the way once what
+  // replaced them is on disk (see saveWorkspace).
+  const [retiredActivityIds, setRetiredActivityIds] = useState([]);
   const [initiatives, setInitiatives] = useState([]);
+  const [researchPlans, setResearchPlans] = useState([]);
   // Deletes happen immediately and report themselves here, with one chance to reverse — rather
   // than interrupting with a confirm dialog before every one. See ui/Toast.jsx.
   const [toast, setToast] = useState(null);
@@ -437,14 +562,22 @@ export default function App() {
     loadWorkspace(dirHandle)
       .then((record) => {
         if (cancelled) return;
-        bumpNextId(record.specs.map((s) => s.board));
+        bumpNextId(record.researchPlans.map((p) => p.board));
         setSections(ensureFixedSections(record.sections));
         setSpecs(record.specs);
         setSignals(record.signals);
         setInsights(record.insights);
-        setActivities(record.activities);
         setInitiatives(record.initiatives);
+        setResearchPlans(record.researchPlans);
+        setRetiredActivityIds(record.retiredActivityIds);
         setWorkspaceDocs(record.docs || {});
+        // A workspace that still had activities was migrated in memory. Write that now instead of
+        // skipping the post-load save as usual — otherwise the old files stay until your first
+        // edit, and every reload migrates them again.
+        if (wasMigrated(record)) {
+          skipNextSaveRef.current = false;
+          if (shouldAnnounce(record)) setToast({ id: Date.now(), message: migrationMessage(record.migration) });
+        }
         setPhase("ready");
       })
       .catch((err) => {
@@ -460,7 +593,7 @@ export default function App() {
     return () => { cancelled = true; };
   }, [phase, dirHandle]);
 
-  const workspace = useMemo(() => ({ sections, specs, signals, insights, activities, initiatives, docs: workspaceDocs }), [sections, specs, signals, insights, activities, initiatives, workspaceDocs]);
+  const workspace = useMemo(() => ({ sections, specs, signals, insights, initiatives, researchPlans, retiredActivityIds, docs: workspaceDocs }), [sections, specs, signals, insights, initiatives, researchPlans, retiredActivityIds, workspaceDocs]);
 
   // The one case where yanking the page out from under someone would be wrong: they are typing
   // into the very thing that just changed. Then we don't remount — we say so and let them choose.
@@ -539,8 +672,9 @@ export default function App() {
       setSpecs([]);
       setSignals([]);
       setInsights([]);
-      setActivities([]);
+      setRetiredActivityIds([]);
       setInitiatives([]);
+      setResearchPlans([]);
       setWorkspaceDocs({});
       setDiskLog([]);
       setDiskLogOpen(false);
@@ -644,15 +778,18 @@ export default function App() {
       loadWorkspace(dirHandle)
         .then((record) => {
           skipNextSaveRef.current = true;
-          bumpNextId(record.specs.map((s) => s.board));
+          bumpNextId(record.researchPlans.map((p) => p.board));
           setSections(ensureFixedSections(record.sections));
           setSpecs(record.specs);
           setSignals(record.signals);
           setInsights(record.insights);
-          setActivities(record.activities);
           setInitiatives(record.initiatives);
+          setResearchPlans(record.researchPlans);
+          setRetiredActivityIds(record.retiredActivityIds);
           setWorkspaceDocs(record.docs || {});
           setSaveStatus("saved");
+          // An old-format activity that arrived from outside was migrated on this load; write it.
+          if (wasMigrated(record)) skipNextSaveRef.current = false;
 
           const touched = entityIdsFor(changed);
           const open = openEntityRef.current;
@@ -667,7 +804,8 @@ export default function App() {
           bumpRev(touched);
           setDiskLog((prev) => [{ id: `${Date.now()}:${prev.length}`, at: Date.now(), files: describeChanges(changed, record) }, ...prev].slice(0, 50));
           showToast(
-            changed.length === 1 ? "Updated 1 file from disk" : `Updated ${changed.length} files from disk`,
+            shouldAnnounce(record) ? migrationMessage(record.migration)
+              : changed.length === 1 ? "Updated 1 file from disk" : `Updated ${changed.length} files from disk`,
             () => setDiskLogOpen(true),
             "Show",
           );
@@ -759,11 +897,10 @@ export default function App() {
     );
   };
 
-  const isSpecRoute = route.name === "spec" || route.name === "specDesign" || route.name === "specPlan" || route.name === "specDiscovery";
+  const isSpecRoute = route.name === "spec" || route.name === "specDesign" || route.name === "specPlan";
 
   const createSpec = (initiativeId = null) => {
     const spec = blankSpec("Untitled spec", initiativeId);
-    spec.board = blankBoard(spec.id);
     setSpecs((prev) => [...prev, spec]);
     goToSpec(spec.id);
   };
@@ -784,7 +921,7 @@ export default function App() {
   // An initiative is the layer above specs (see initiativeModel.js) — an epic to their tickets.
   // A spec carries an optional `initiativeId`; "specs under this initiative" is a derived
   // filter, never a stored list. Created blank and you land straight on its own page, same
-  // flow as createActivity/createSpec.
+  // flow as createSpec.
   const createInitiative = () => {
     const initiative = blankInitiative();
     setInitiatives((prev) => [...prev, initiative]);
@@ -799,115 +936,95 @@ export default function App() {
     // Detach its specs (clear their initiativeId) rather than deleting them — the specs still
     // stand on their own. Undo re-assigns exactly the ones that were detached.
     const detachedIds = specs.filter((s) => s.initiativeId === id).map((s) => s.id);
+    // Research plans under it are detached the same way.
+    const detachedPlanIds = researchPlans.filter((p) => p.initiativeId === id).map((p) => p.id);
 
     setInitiatives((prev) => prev.filter((i) => i.id !== id));
     setSpecs((prev) => prev.map((s) => (s.initiativeId === id ? { ...s, initiativeId: null, updatedAt: Date.now() } : s)));
+    setResearchPlans((prev) => prev.map((p) => (p.initiativeId === id ? { ...p, initiativeId: null, updatedAt: Date.now() } : p)));
     if (route.name === "initiative" && route.id === id) goToSpecs();
 
     const kept = detachedIds.length ? ` — ${detachedIds.length} spec${detachedIds.length === 1 ? "" : "s"} kept` : "";
     showToast(`Deleted "${initiative.title || "Untitled initiative"}"${kept}`, () => {
       setInitiatives((prev) => insertAt(prev, index, initiative));
       setSpecs((prev) => prev.map((s) => (detachedIds.includes(s.id) ? { ...s, initiativeId: id } : s)));
+      setResearchPlans((prev) => prev.map((p) => (detachedPlanIds.includes(p.id) ? { ...p, initiativeId: id } : p)));
     });
   };
-  // Signals and Activities are global, workspace-wide records (see signalModel.js) — created
-  // only from Research Repository, then linked (never copied) into any number of specs'
-  // Discovery boards. `signal` here already arrives as a complete object (Research Repository
-  // builds it off blankSignal() plus its form fields); an activity has no form at all — same
-  // flow as createSpec, it's created blank and you land straight on its own page to fill in.
-  const createSignal = (signal) => setSignals((prev) => [...prev, signal]);
-  const createActivity = () => {
-    const activity = blankActivity();
-    setActivities((prev) => [...prev, activity]);
-    goToActivity(activity.id);
+
+  // A research plan is the study behind a set of signals (see researchPlanModel.js). Created blank
+  // and opened, like an initiative — except when it's made from somewhere else (a spec linking a
+  // new plan, or handing it an open question), where it's created in place and its id handed back.
+  const createResearchPlan = ({ navigate = true, questions = [] } = {}) => {
+    const plan = blankResearchPlan();
+    plan.researchQuestions = questions.map((text) => ({ text, insightIds: [] }));
+    setResearchPlans((prev) => [...prev, plan]);
+    if (navigate) goToResearchPlan(plan.id);
+    return plan.id;
   };
+  const updateResearchPlan = (id, patch) =>
+    setResearchPlans((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch, updatedAt: Date.now() } : p)));
+  // A spec's open question handed to a plan. Undo takes back exactly the row that was added, found
+  // by identity, so anything else written into the plan since is left alone.
+  const addResearchQuestion = (planId, text) => {
+    const plan = researchPlans.find((p) => p.id === planId);
+    if (!plan) return;
+    const question = { text, insightIds: [] };
+    updateResearchPlan(planId, { researchQuestions: [...(plan.researchQuestions || []), question] });
+    showToast(`Added to "${plan.title || "Untitled research plan"}"`, () => setResearchPlans((prev) => prev.map((p) => (
+      p.id === planId ? { ...p, researchQuestions: p.researchQuestions.filter((q) => q !== question) } : p
+    ))));
+  };
+  const deleteResearchPlan = (id) => {
+    const index = researchPlans.findIndex((p) => p.id === id);
+    const plan = researchPlans[index];
+    if (!plan) return;
+    // Its board goes with it; the signals and insights on the board are global records and stay in
+    // the repository. The specs that cite it are detached, and Undo re-attaches exactly those.
+    const citingSpecIds = specs.filter((s) => (s.researchPlanIds || []).includes(id)).map((s) => s.id);
+    const onBoard = (plan.board?.signals || []).length;
+
+    setResearchPlans((prev) => prev.filter((p) => p.id !== id));
+    setSpecs((prev) => prev.map((s) => (
+      (s.researchPlanIds || []).includes(id) ? { ...s, researchPlanIds: s.researchPlanIds.filter((x) => x !== id), updatedAt: Date.now() } : s
+    )));
+    if (route.name === "researchPlan" && route.id === id) goToResearch();
+
+    const kept = onBoard ? ` — its ${onBoard} signal${onBoard === 1 ? "" : "s"} stay in the repository` : "";
+    showToast(`Deleted "${plan.title || "Untitled research plan"}"${kept}`, () => {
+      setResearchPlans((prev) => insertAt(prev, index, plan));
+      setSpecs((prev) => prev.map((s) => (
+        citingSpecIds.includes(s.id) && !(s.researchPlanIds || []).includes(id) ? { ...s, researchPlanIds: [...(s.researchPlanIds || []), id] } : s
+      )));
+    });
+  };
+  // Signals are global, workspace-wide records (see signalModel.js) — created from Research
+  // Repository or on a research plan's board, then linked (never copied) onto any number of plans'
+  // boards. `signal` here already arrives as a complete object, built off blankSignal().
+  const createSignal = (signal) => setSignals((prev) => [...prev, signal]);
   const updateSignal = (id, patch) =>
     setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: Date.now() } : s)));
   const deleteSignal = (id) => {
     const index = signals.findIndex((s) => s.id === id);
     const signal = signals[index];
     if (!signal) return;
-    // A signal can be linked into many boards, each at its own position and wired to its own
-    // insights. Undo has to put all of that back, so capture it before anything is removed.
-    const links = specs
-      .filter((s) => (s.board.signals || []).some((x) => x.id === id))
-      .map((s) => ({
-        specId: s.id,
-        index: s.board.signals.findIndex((x) => x.id === id),
-        connections: (s.board.connections || []).filter((c) => c.from === id || c.to === id),
-      }));
+    // Captured before anything is removed, so Undo can put each board's link back where it was.
+    const links = boardLinks(researchPlans, "signals", id);
 
     setSignals((prev) => prev.filter((s) => s.id !== id));
-    // strip the pointer (and any connections touching it) from every board it was linked into
-    setSpecs((prev) => prev.map((s) => (
-      (s.board.signals || []).some((x) => x.id === id)
-        ? {
-            ...s,
-            board: {
-              ...s.board,
-              signals: s.board.signals.filter((x) => x.id !== id),
-              connections: s.board.connections.filter((c) => c.from !== id && c.to !== id),
-              updatedAt: Date.now(),
-            },
-            updatedAt: Date.now(),
-          }
-        : s
-    )));
+    setResearchPlans((prev) => unlinkFromBoards(prev, "signals", id));
 
-    const where = links.length ? ` and unlinked it from ${links.length} spec${links.length === 1 ? "" : "s"}` : "";
+    const where = links.length ? ` and unlinked it from ${links.length} research plan${links.length === 1 ? "" : "s"}` : "";
     showToast(`Deleted signal${where}`, () => {
       setSignals((prev) => insertAt(prev, index, signal));
-      setSpecs((prev) => prev.map((s) => {
-        const link = links.find((l) => l.specId === s.id);
-        if (!link) return s;
-        return {
-          ...s,
-          board: {
-            ...s.board,
-            signals: insertAt(s.board.signals, link.index, { id }),
-            connections: [...s.board.connections, ...link.connections],
-            updatedAt: Date.now(),
-          },
-        };
-      }));
-    });
-  };
-  const updateActivity = (id, patch) =>
-    setActivities((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch, updatedAt: Date.now() } : a)));
-  const deleteActivity = (id) => {
-    const index = activities.findIndex((a) => a.id === id);
-    const activity = activities[index];
-    if (!activity) return;
-    // the signals about to be detached — undo re-points exactly these back at the activity
-    const detachedIds = signals
-      .filter((s) => s.source?.type === "activity" && s.source.activityId === id)
-      .map((s) => s.id);
-
-    setActivities((prev) => prev.filter((a) => a.id !== id));
-    // Detach rather than delete — the signals it collected still stand on their own, just with
-    // no source (there's no free-text fallback to preserve the activity's name into anymore —
-    // see signalModel.js — so this is the same "no source" state a signal never tied to an
-    // activity in the first place would have).
-    setSignals((prev) => prev.map((s) => (
-      s.source?.type === "activity" && s.source.activityId === id ? { ...s, source: null, updatedAt: Date.now() } : s
-    )));
-    if (route.name === "activity" && route.id === id) goToResearch();
-
-    const kept = detachedIds.length ? ` — ${detachedIds.length} signal${detachedIds.length === 1 ? "" : "s"} kept` : "";
-    showToast(`Deleted "${activity.name || "Untitled activity"}"${kept}`, () => {
-      setActivities((prev) => insertAt(prev, index, activity));
-      setSignals((prev) => prev.map((s) => (
-        detachedIds.includes(s.id) ? { ...s, source: { type: "activity", activityId: id } } : s
-      )));
+      setResearchPlans((prev) => relinkOnBoards(prev, "signals", id, links));
     });
   };
 
-  // Insights are global, workspace-wide records too now (see insightModel.js) — created (or
-  // drawn out of signals) from Research Repository's discovery canvas, then linked into any
-  // number of specs' Discovery boards. Structurally identical to the signal handlers above;
-  // the one difference is what deletion means: a signal detaches from a deleted activity and
-  // survives, but an insight really is gone when deleted — there's no coarser record above it
-  // to fall back to, only the boards it was linked into (which just lose the pointer).
+  // Insights are global, workspace-wide records too (see insightModel.js) — formed from signals in
+  // Research Repository or on a plan's board, then linked onto any number of plans' boards.
+  // Structurally identical to the signal handlers above, plus the research questions an insight
+  // answers, which lose it too.
   const createInsight = (insight) => setInsights((prev) => [...prev, insight]);
   const updateInsight = (id, patch) =>
     setInsights((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch, updatedAt: Date.now() } : i)));
@@ -915,44 +1032,32 @@ export default function App() {
     const index = insights.findIndex((i) => i.id === id);
     const insight = insights[index];
     if (!insight) return;
-    const links = specs
-      .filter((s) => (s.board.insights || []).some((x) => x.id === id))
-      .map((s) => ({
-        specId: s.id,
-        index: s.board.insights.findIndex((x) => x.id === id),
-        connections: (s.board.connections || []).filter((c) => c.from === id || c.to === id),
-      }));
+    const links = boardLinks(researchPlans, "insights", id);
+    // …and every research question it answers, at its place in that question's list.
+    const questionLinks = researchPlans.flatMap((p) => (p.researchQuestions || []).flatMap((q, question) => {
+      const at = (q.insightIds || []).indexOf(id);
+      return at === -1 ? [] : [{ planId: p.id, question, index: at }];
+    }));
 
     setInsights((prev) => prev.filter((i) => i.id !== id));
-    setSpecs((prev) => prev.map((s) => (
-      (s.board.insights || []).some((x) => x.id === id)
-        ? {
-            ...s,
-            board: {
-              ...s.board,
-              insights: s.board.insights.filter((x) => x.id !== id),
-              connections: s.board.connections.filter((c) => c.from !== id && c.to !== id),
-              updatedAt: Date.now(),
-            },
-            updatedAt: Date.now(),
-          }
-        : s
+    setResearchPlans((prev) => unlinkFromBoards(prev, "insights", id).map((p) => (
+      (p.researchQuestions || []).some((q) => (q.insightIds || []).includes(id))
+        ? { ...p, researchQuestions: p.researchQuestions.map((q) => ({ ...q, insightIds: (q.insightIds || []).filter((x) => x !== id) })), updatedAt: Date.now() }
+        : p
     )));
 
-    const where = links.length ? ` and unlinked it from ${links.length} spec${links.length === 1 ? "" : "s"}` : "";
+    const where = links.length ? ` and unlinked it from ${links.length} research plan${links.length === 1 ? "" : "s"}` : "";
     showToast(`Deleted insight${where}`, () => {
       setInsights((prev) => insertAt(prev, index, insight));
-      setSpecs((prev) => prev.map((s) => {
-        const link = links.find((l) => l.specId === s.id);
-        if (!link) return s;
+      setResearchPlans((prev) => relinkOnBoards(prev, "insights", id, links).map((p) => {
+        const mine = questionLinks.filter((l) => l.planId === p.id);
+        if (!mine.length) return p;
         return {
-          ...s,
-          board: {
-            ...s.board,
-            insights: insertAt(s.board.insights, link.index, { id }),
-            connections: [...s.board.connections, ...link.connections],
-            updatedAt: Date.now(),
-          },
+          ...p,
+          researchQuestions: p.researchQuestions.map((q, question) => {
+            const link = mine.find((l) => l.question === question);
+            return link && !(q.insightIds || []).includes(id) ? { ...q, insightIds: insertAt(q.insightIds || [], link.index, id) } : q;
+          }),
         };
       }));
     });
@@ -964,13 +1069,13 @@ export default function App() {
   const activeInitiative = route.name === "initiative" ? initiatives.find((i) => i.id === route.id) : null;
   // The initiative a spec belongs to (if any) — its title threads into the spec's breadcrumb.
   const specInitiative = activeSpec ? initiatives.find((i) => i.id === activeSpec.initiativeId) : null;
-  const activeActivity = route.name === "activity" ? activities.find((a) => a.id === route.id) : null;
+  const activeResearchPlan = route.name === "researchPlan" ? researchPlans.find((p) => p.id === route.id) : null;
   const activeWorkspaceDoc = route.name === "workspaceDoc" ? workspaceDocById(route.id) : null;
-  const activeSpecTab = route.name === "specDesign" ? "design" : route.name === "specPlan" ? "plan" : route.name === "specDiscovery" ? "discovery" : "overview";
-  // Boards are never their own top-level thing anymore — this is the flat, board-shaped view
-  // every cross-spec reference (`resolveRef`) and the Research Repository search need, each
-  // one labeled with the spec that owns it since a board carries no name of its own.
-  const allBoards = useMemo(() => specs.map((s) => ({ ...s.board, specTitle: s.title })), [specs]);
+  const activeSpecTab = route.name === "specDesign" ? "design" : route.name === "specPlan" ? "plan" : "overview";
+  // Boards belong to research plans — this is the flat, board-shaped view every cross-board reference
+  // (`resolveRef`) and the Research Repository search need, each one labelled with the plan that owns
+  // it since a board carries no name of its own.
+  const allBoards = useMemo(() => researchPlans.filter((p) => p.board).map((p) => ({ ...p.board, title: p.title })), [researchPlans]);
 
   // Which fixed sidebar entry reads as "active" — a spec doesn't have its own nav row, so it
   // highlights the section it belongs under. An activity is reached through Research
@@ -978,7 +1083,7 @@ export default function App() {
   // so nothing lights up there — it's not "inside" Research Repository or Specs.
   const activeView = route.name === "doc" ? { type: "doc", sectionId: route.sectionId, docId: route.docId }
     : (route.name === "specs" || isSpecRoute || route.name === "initiative") ? { type: "specs" }
-    : (route.name === "research" || route.name === "activity") ? { type: "research" }
+    : (route.name === "research" || route.name === "researchPlan") ? { type: "research" }
     : route.name === "workspaceDoc" ? { type: "workspaceDoc", id: route.id }
     : { type: "home" };
 
@@ -991,7 +1096,7 @@ export default function App() {
   const recentHref = (kind, id) => (
     kind === "spec" ? hrefSpec(id)
     : kind === "initiative" ? hrefInitiative(id)
-    : kind === "activity" ? hrefActivity(id)
+    : kind === "researchPlan" ? hrefResearchPlan(id)
     : RESEARCH_ROUTE
   );
 
@@ -1029,8 +1134,8 @@ export default function App() {
     ? [folderCrumb, { label: "Specs", href: hrefSpecs() }, { label: activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found" }]
     : route.name === "specs"
     ? [folderCrumb, { label: "Specs" }]
-    : route.name === "activity"
-    ? [folderCrumb, { label: "Research Repository", href: RESEARCH_ROUTE }, { label: activeActivity ? (activeActivity.name || "Untitled activity") : "Activity not found" }]
+    : route.name === "researchPlan"
+    ? [folderCrumb, { label: "Research Repository", href: RESEARCH_ROUTE }, { label: activeResearchPlan ? (activeResearchPlan.title || "Untitled research plan") : "Research plan not found" }]
     : route.name === "research"
     ? [folderCrumb, { label: "Research Repository" }]
     : route.name === "workspaceDoc"
@@ -1044,7 +1149,7 @@ export default function App() {
   const openEntity = (activeSpec && activeSpec.id)
     || (activeDocument && activeDocument.id)
     || (activeInitiative && activeInitiative.id)
-    || (activeActivity && activeActivity.id)
+    || (activeResearchPlan && activeResearchPlan.id)
     || (activeWorkspaceDoc && activeWorkspaceDoc.id)
     || null;
   useEffect(() => {
@@ -1058,13 +1163,22 @@ export default function App() {
       route.name === "doc" ? (activeDocument ? (activeDocument.title || "Untitled document") : "Document not found")
       : isSpecRoute ? (activeSpec ? (activeSpec.title || "Untitled spec") : "Spec not found")
       : route.name === "initiative" ? (activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found")
-      : route.name === "activity" ? (activeActivity ? (activeActivity.name || "Untitled activity") : "Activity not found")
+      : route.name === "researchPlan" ? (activeResearchPlan ? (activeResearchPlan.title || "Untitled research plan") : "Research plan not found")
       : route.name === "specs" ? "Specs"
       : route.name === "research" ? "Research Repository"
       : route.name === "workspaceDoc" ? (activeWorkspaceDoc ? activeWorkspaceDoc.label : "Not found")
       : "";
     document.title = name ? `${name} · Monk` : "Monk";
-  }, [route, isSpecRoute, activeDocument, activeSpec, activeInitiative, activeActivity, activeWorkspaceDoc]);
+  }, [route, isSpecRoute, activeDocument, activeSpec, activeInitiative, activeResearchPlan, activeWorkspaceDoc]);
+
+  // Activities were folded into research plans (lib/migrateActivities.js). An old #/activity/<id>
+  // link — in a doc, a bookmark, a commit message — lands on the plan that activity became, if it
+  // became one, and on the Research Repository otherwise.
+  useEffect(() => {
+    if (phase !== "ready" || route.name !== "activity") return;
+    const plan = researchPlans.find((p) => p.id === route.id);
+    window.location.replace(plan ? hrefResearchPlan(plan.id) : RESEARCH_ROUTE);
+  }, [phase, route.name, route.id, researchPlans]);
 
   // Dev-only: the start page populated with mock data, no folder needed.
   if (import.meta.env.DEV && route.name === "homePreview") {
@@ -1095,20 +1209,20 @@ export default function App() {
   // The real Solution tab on sample content, framed in a stand-in spec header so it reads in
   // context — the sandboxed preview can't open a workspace folder. Every edit's serialized
   // design.md lands on window.__designMd for inspection.
-  // The real Discovery board on sample data — the sandboxed preview can't open a workspace
-  // folder. Picks the sample spec with the most connections, so the connect/rewire gestures
-  // (src/canvas) actually have something to exercise.
+  // The real board on sample data — the sandboxed preview can't open a workspace folder. Picks the
+  // sample research plan with the most connections, so the connect/rewire gestures (src/canvas)
+  // actually have something to exercise.
   if (import.meta.env.DEV && route.name === "boardPreview") {
     const mock = mockWorkspace(1);
-    const spec = [...mock.specs].sort((a, b) => b.board.connections.length - a.board.connections.length)[0];
+    const plan = [...mock.researchPlans].sort((a, b) => b.board.connections.length - a.board.connections.length)[0];
     return (
       <Page bleed style={{ fontFamily: font, height: "100dvh" }}>
         <Board
-          board={spec.board}
+          board={plan.board}
           onChange={(b) => { window.__board = b; }}
-          allBoards={mock.specs.map((s) => ({ ...s.board, specTitle: s.title }))}
+          allBoards={mock.researchPlans.map((p) => ({ ...p.board, title: p.title }))}
           onOpenBoard={() => {}}
-          signals={mock.signals} insights={mock.insights} activities={mock.activities}
+          signals={mock.signals} insights={mock.insights}
           onUpdateSignal={() => {}} onCreateSignal={() => {}} onUpdateInsight={() => {}} onCreateInsight={() => {}}
           onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
           highlightCardId={route.cardId}
@@ -1121,6 +1235,14 @@ export default function App() {
     return (
       <div style={{ fontFamily: font, height: "100dvh" }}>
         <ResearchPreviewDemo />
+      </div>
+    );
+  }
+
+  if (import.meta.env.DEV && route.name === "researchPlanPreview") {
+    return (
+      <div style={{ fontFamily: font, height: "100dvh" }}>
+        <ResearchPlanPreviewDemo tab={route.tab} cardId={route.cardId} />
       </div>
     );
   }
@@ -1147,7 +1269,7 @@ export default function App() {
         <div style={{ padding: "20px 40px 0", flexShrink: 0 }}>
           <div style={{ fontFamily: font, fontSize: "26px", fontWeight: WEIGHT.semibold, color: INK, letterSpacing: "-0.01em" }}>Bulk export of evidence</div>
           <div style={{ display: "flex", gap: "18px", borderBottom: "1px solid var(--border)", marginTop: "18px" }}>
-            {["Overview", "Discovery", "Solution", "Plan"].map((t) => (
+            {["Overview", "Solution", "Plan"].map((t) => (
               <span key={t} style={{ fontSize: SIZE.ui, fontWeight: WEIGHT.semibold, padding: "8px 2px", color: t === "Solution" ? INK : "var(--ink-faint)", boxShadow: t === "Solution" ? `inset 0 -2px 0 ${INK}` : "none" }}>{t}</span>
             ))}
           </div>
@@ -1240,7 +1362,7 @@ export default function App() {
               bar) rather than sitting under this generic bar — skip it there to avoid showing
               the same breadcrumb trail twice. `breadcrumbs` is null on the Home landing, which
               has no bar of its own either — it's a standalone page, not one you drill into. */}
-          {!((isSpecRoute && activeSpec) || (route.name === "activity" && activeActivity) || (route.name === "initiative" && activeInitiative)) && breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
+          {!((isSpecRoute && activeSpec) || (route.name === "initiative" && activeInitiative) || (route.name === "researchPlan" && activeResearchPlan)) && breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
           {/* The one thing the watcher won't do behind your back. Everything else on disk has
               already been taken; this page was left as it is because you were typing in it. */}
           {staleId && staleId === openEntity && (
@@ -1275,28 +1397,19 @@ export default function App() {
                 <SpecPage
                   key={revKey(activeSpec.id)}
                   spec={activeSpec}
-                  boards={allBoards}
-                  signals={signals}
-                  insights={insights}
-                  activities={activities}
-                  sections={sections}
                   initiatives={initiatives}
-                  onCreateSignal={createSignal}
-                  onCreateInsight={createInsight}
+                  researchPlans={researchPlans}
+                  researchPlanHref={hrefResearchPlan}
+                  onCreateResearchPlan={createResearchPlan}
+                  onAddResearchQuestion={addResearchQuestion}
                   onChange={(patch) => updateSpec(activeSpec.id, patch)}
                   activeTab={activeSpecTab}
                   tabHref={(tab) => (
                     tab === "design" ? hrefSpecDesign(activeSpec.id) :
                     tab === "plan" ? hrefSpecPlan(activeSpec.id) :
-                    tab === "discovery" ? hrefSpecDiscovery(activeSpec.id) :
                     hrefSpec(activeSpec.id)
                   )}
-                  highlightCardId={route.cardId}
-                  onOpenBoard={(specId) => goToSpecDiscovery(specId)}
-                  onUpdateSignal={updateSignal}
-                  onUpdateInsight={updateInsight}
                   onToast={showToast}
-                  designSystem={workspaceDocs["design-system"] || ""}
                   breadcrumbs={breadcrumbs}
                 />
               )
@@ -1343,6 +1456,8 @@ export default function App() {
                   initiative={activeInitiative}
                   specs={specsForInitiative(specs, activeInitiative.id)}
                   specHref={hrefSpec}
+                  researchPlans={researchPlansForInitiative(researchPlans, activeInitiative.id)}
+                  researchPlanHref={hrefResearchPlan}
                   onChange={(patch) => updateInitiative(activeInitiative.id, patch)}
                   onDelete={() => deleteInitiative(activeInitiative.id)}
                   onCreateSpec={() => createSpec(activeInitiative.id)}
@@ -1353,47 +1468,60 @@ export default function App() {
             ) : route.name === "research" ? (
               <ResearchRepositoryPage
                 boards={allBoards}
-                specs={specs}
                 signals={signals}
                 insights={insights}
-                activities={activities}
                 initialQuery={route.q}
                 initialKind={route.kind}
                 onNavigate={(q, kind) => window.history.replaceState(null, "", hrefResearch(q, kind))}
-                activityHref={hrefActivity}
-                specDiscoveryHref={hrefSpecDiscovery}
+                boardCardHref={hrefResearchPlanAnalysis}
+                researchPlans={researchPlans}
+                researchPlanHref={hrefResearchPlan}
+                onCreateResearchPlan={() => createResearchPlan()}
                 onCreateSignal={createSignal}
-                onCreateActivity={createActivity}
                 onCreateInsight={createInsight}
                 onUpdateSignal={updateSignal}
                 onDeleteSignal={deleteSignal}
                 onUpdateInsight={updateInsight}
                 onDeleteInsight={deleteInsight}
               />
-            ) : route.name === "activity" ? (
-              !activeActivity ? (
-                <NotFoundMessage text="Activity not found." backLabel="Back to research repository" backHref={RESEARCH_ROUTE} />
+            ) : route.name === "researchPlan" ? (
+              !activeResearchPlan ? (
+                <NotFoundMessage text="Research plan not found." backLabel="Back to research repository" backHref={RESEARCH_ROUTE} />
               ) : (
-                <ActivityPage
-                  key={revKey(activeActivity.id)}
-                  activity={activeActivity}
+                <ResearchPlanPage
+                  key={revKey(activeResearchPlan.id)}
+                  plan={activeResearchPlan}
                   signals={signals}
-                  activities={activities}
-                  onChange={(patch) => updateActivity(activeActivity.id, patch)}
-                  onDelete={() => deleteActivity(activeActivity.id)}
+                  insights={insights}
+                  specs={specs}
+                  initiatives={initiatives}
+                  boards={allBoards}
+                  activeTab={route.tab}
+                  tabHref={(tab) => (tab === "analysis" ? hrefResearchPlanAnalysis(activeResearchPlan.id) : hrefResearchPlan(activeResearchPlan.id))}
+                  highlightCardId={route.cardId}
+                  onOpenBoard={(planId) => goToResearchPlanAnalysis(planId)}
+                  onChange={(patch) => updateResearchPlan(activeResearchPlan.id, patch)}
+                  onDelete={() => deleteResearchPlan(activeResearchPlan.id)}
                   onCreateSignal={createSignal}
                   onUpdateSignal={updateSignal}
-                  onDeleteSignal={deleteSignal}
+                  onCreateInsight={createInsight}
+                  onUpdateInsight={updateInsight}
+                  onToast={showToast}
+                  specHref={hrefSpec}
+                  insightHref={hrefInsight}
                   breadcrumbs={breadcrumbs}
                 />
               )
+            ) : route.name === "activity" ? (
+              // Redirecting — see the effect above.
+              null
             ) : (
               <Home
                 signals={signals}
                 insights={insights}
-                activities={activities}
                 specs={specs}
                 initiatives={initiatives}
+                researchPlans={researchPlans}
                 onCreateSpec={createSpec}
                 recentHref={recentHref}
                 folderName={projectName}

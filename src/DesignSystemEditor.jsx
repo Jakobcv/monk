@@ -5,9 +5,8 @@ import { Eyebrow } from "./ui/text";
 import { insertAt } from "./lib/arrays";
 import {
   parseDesignSystem, serializeDesignSystem, COMPONENT_PROPS, tokenReferences, duplicateNames,
-  isDimension, isNumber, isReference,
+  isDimension, isNumber, isReference, isPercentage,
 } from "./lib/designSystemModel";
-import AutoTextarea from "./ui/AutoTextarea";
 import LiveMarkdown from "./ui/LiveMarkdown";
 import PaperButton from "./ui/PaperButton";
 import IconButton from "./ui/IconButton";
@@ -18,10 +17,11 @@ import IconButton from "./ui/IconButton";
 // the order the format itself uses, so reading the page top to bottom is reading the file.
 //
 // Each section takes the input its content actually is: tokens as rows of name and value, with
-// the value checked (a CSS colour, a px/em/rem dimension, a number, a reference to a token that
-// exists) and shown rather than just typed — a swatch, a type specimen, a radius, a length. Prose
-// stays prose. A value that fails its check is flagged, never refused: the file is yours, and a
-// half-typed `1.2r` shouldn't be un-typeable.
+// the value checked (a CSS colour, a px/em/rem dimension — or a percentage, for a radius — a
+// number, a reference to a token that exists) and shown rather than just typed — a swatch, a type
+// specimen, a radius, a length. Prose stays prose, and formats its markdown as you type
+// (ui/LiveMarkdown). A value that fails its check is flagged, never refused: the file is yours, and
+// a half-typed `1.2r` shouldn't be un-typeable.
 //
 // `value` seeds local state once (the page remounts this when the file changes on disk or the
 // markdown view hands it back); every edit is serialized straight out through `onChange`. The page
@@ -122,9 +122,6 @@ function Labeled({ label, grow, children }) {
 // Name and value side by side — the shape of every flat token group.
 const pair = { display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", columnGap: SPACE.xl };
 
-// List items are one line in the file, so Enter doesn't start a second one.
-const singleLine = (e) => { if (e.key === "Enter" && !e.shiftKey) e.preventDefault(); };
-
 function Swatch({ value, onPick, label }) {
   const v = value.trim();
   const valid = !!v && supportsColor(v);
@@ -178,10 +175,10 @@ export default function DesignSystemEditor({ value, onChange, onToast }) {
     return null;
   };
 
-  const prose = (key, placeholder, minRows = 2) => (
-    <AutoTextarea
-      className="prose-field" minRows={minRows} placeholder={placeholder}
-      aria-label={`${key} notes`} value={ds.sections[key]} onChange={(e) => setSection(key, e.target.value)}
+  const prose = (key, placeholder, minLines = 2) => (
+    <LiveMarkdown
+      className="prose-field" minLines={minLines} placeholder={placeholder}
+      ariaLabel={`${key} notes`} value={ds.sections[key]} onChange={(v) => setSection(key, v)}
     />
   );
 
@@ -254,10 +251,11 @@ export default function DesignSystemEditor({ value, onChange, onToast }) {
       </Section>
 
       <Section title="Description">
-        <AutoTextarea
-          className="prose-field" minRows={1} value={ds.description} onKeyDown={singleLine}
-          onChange={(e) => set({ description: e.target.value })}
-          placeholder="One line on what this visual language is…" aria-label="Description"
+        {/* One line in the front matter (`singleLine`). */}
+        <LiveMarkdown
+          singleLine className="prose-field" value={ds.description}
+          onChange={(v) => set({ description: v })}
+          placeholder="One line on what this visual language is…" ariaLabel="Description"
         />
       </Section>
 
@@ -353,11 +351,15 @@ export default function DesignSystemEditor({ value, onChange, onToast }) {
 
       <Section title="Shapes">
         {flatGroup({
-          group: "rounded", noun: "radius", valuePlaceholder: "4px",
-          check: isDimension, why: "Use px, em or rem",
+          group: "rounded", noun: "radius", valuePlaceholder: "4px or 50%",
+          check: (v) => isDimension(v) || isPercentage(v), why: "Use px, em, rem or a percentage",
+          // A percentage is drawn as a percentage of the preview's corner box, so 50% and up read as
+          // fully round; a length is drawn in px, capped to the box.
           marker: (t) => {
-            const px = toPx(t.value);
-            return <span aria-hidden="true" className="ds-radius" style={{ borderTopRightRadius: `${px == null ? 0 : Math.min(Math.max(px, 0), 16)}px` }} />;
+            const v = t.value.trim();
+            const px = toPx(v);
+            const radius = isPercentage(v) ? `${Math.min(parseFloat(v), 100)}%` : `${px == null ? 0 : Math.min(Math.max(px, 0), 16)}px`;
+            return <span aria-hidden="true" className="ds-radius" style={{ borderTopRightRadius: radius }} />;
           },
         })}
         {prose("shapes", "Corner radii and the shape language…")}
@@ -434,9 +436,9 @@ export default function DesignSystemEditor({ value, onChange, onToast }) {
         <Sub>Don't</Sub>
         {bulletList("donts", "don't", "mix rounded and sharp corners…")}
         {ds.dosNotes.trim() && (
-          <AutoTextarea
-            className="prose-field" minRows={1} aria-label="Do's and Don'ts notes"
-            value={ds.dosNotes} onChange={(e) => set({ dosNotes: e.target.value })}
+          <LiveMarkdown
+            className="prose-field" ariaLabel="Do's and Don'ts notes"
+            value={ds.dosNotes} onChange={(v) => set({ dosNotes: v })}
           />
         )}
       </Section>
@@ -447,15 +449,15 @@ export default function DesignSystemEditor({ value, onChange, onToast }) {
           <Section title="Other">
             <p className="ds-note">Text this format doesn't define, kept as written.</p>
             {showOther.preamble && (
-              <AutoTextarea
-                className="prose-field" minRows={1} aria-label="Text before the first section"
-                value={ds.preamble} onChange={(e) => set({ preamble: e.target.value })}
+              <LiveMarkdown
+                className="prose-field" ariaLabel="Text before the first section"
+                value={ds.preamble} onChange={(v) => set({ preamble: v })}
               />
             )}
             {showOther.sections && (
-              <AutoTextarea
-                className="prose-field ds-raw" minRows={2} aria-label="Other sections"
-                value={ds.otherSections} onChange={(e) => set({ otherSections: e.target.value })}
+              <LiveMarkdown
+                className="prose-field ds-raw" minLines={2} ariaLabel="Other sections"
+                value={ds.otherSections} onChange={(v) => set({ otherSections: v })}
               />
             )}
           </Section>

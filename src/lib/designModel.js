@@ -1,7 +1,7 @@
 // A spec's Design tab is structured on screen but stored as one readable markdown file
 // (design.md) with fixed `## Section` headings — so it stays scannable, diffable and greppable
 // like every other file in the folder, and an agent reading the raw file gets the same shape the
-// build brief does. parseDesign/serializeDesign convert between the two.
+// app shows. parseDesign/serializeDesign convert between the two.
 //
 // This is the *feature's* design intent — what this experience has to achieve. Visual language
 // (tokens, type, components) belongs to the workspace-level DESIGN.md / Standards, not here.
@@ -68,8 +68,8 @@ export function listItems(lines) {
 // An item's lines as one line of text, marker still on it.
 const joined = (group) => group.map((l) => l.trim()).join(" ");
 
-// The non-empty sections, in canonical order, each rendered to its markdown body. Shared by
-// serializeDesign (under `##` headings) and the build brief (under its own headings + framing).
+// The non-empty sections, in canonical order, each rendered to its markdown body, for
+// serializeDesign to write under `##` headings.
 export function designSections(d) {
   const out = [];
   const add = (key, lines) => {

@@ -69,6 +69,8 @@ export function blankDesignSystem(name = "") {
 // ---------------------------------------------------------------------------
 const clean = (s) => String(s ?? "").trim();
 export const isDimension = (v) => /^-?(?:\d+|\d*\.\d+)(?:px|em|rem)$/.test(clean(v));
+// A radius can also be a percentage of the element — `50%` for a circle.
+export const isPercentage = (v) => /^(?:\d+|\d*\.\d+)%$/.test(clean(v));
 export const isNumber = (v) => /^-?(?:\d+|\d*\.\d+)$/.test(clean(v));
 export const isReference = (v) => /^\{[^{}\s]+\}$/.test(clean(v));
 
@@ -373,8 +375,7 @@ function dosBody(ds) {
 }
 
 // Every section heading is written, empty or not: the file keeps the format's shape for anyone
-// editing it by hand, and the build brief already drops sections with nothing under them
-// (designSystemForBrief).
+// editing it by hand, and a section with nothing under it carries no rules.
 export function serializeDesignSystem(ds) {
   const parts = [];
   if (clean(ds.preamble)) parts.push(ds.preamble.trimEnd());

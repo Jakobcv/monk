@@ -62,22 +62,22 @@ function Column({ kind, title, count, children, last, onAdd, addProps, onConnect
 // `board` is only used to seed local state on mount — the parent remounts this component
 // (via `key={board.id}`) whenever the active board changes, so local state never needs to
 // resync mid-life. Every change is pushed up via `onChange`; the parent owns persistence.
-// A board is pure canvas now — no name/goal/status/etc. of its own, that all lives on the
-// spec it belongs to (see SpecPage.jsx's Discovery tab).
+// A board is pure canvas — no name/status/etc. of its own, that all lives on the research plan it
+// belongs to (see ResearchPlanPage.jsx's Analysis tab).
 //
 // Signals and Insights are the exception to "a board owns its cards' content": each is a
 // global, workspace-wide record (see signalModel.js / insightModel.js) that's only ever
 // *linked* here, any number of boards at once — `board.signals`/`board.insights` are therefore
 // just lists of pointers (`{id}`, where `id` is the linked record's own id), and
-// `signals`/`insights`/`activities` (props) are the full global lists used to resolve and edit
+// `signals`/`insights` (props) are the full global lists used to resolve and edit
 // them. Editing a linked signal or insight's content goes straight through `onUpdateSignal`/
 // `onUpdateInsight` (bypassing this component's own onChange/boardState entirely), since that
 // edit isn't board-local data — it's shared, and shows up everywhere else the record is linked.
-// Action/Result keep authoring their content locally, same as always — planning a spec's
-// actions is genuinely per-spec, unlike the discovery work upstream of it.
+// Action/Result keep authoring their content locally, same as always — a study's actions and
+// results are genuinely its own, unlike the signals and insights several studies can share.
 export default function Board({
   board, onChange, highlightCardId, allBoards, onOpenBoard,
-  signals, insights, activities, onUpdateSignal, onCreateSignal, onUpdateInsight, onCreateInsight,
+  signals, insights, onUpdateSignal, onCreateSignal, onUpdateInsight, onCreateInsight,
   onToast,
 }) {
   const [signalLinks, setSignalLinks] = useState(board.signals);
@@ -162,7 +162,7 @@ export default function Board({
 
   // Which cards were already here when this board opened. Anything that shows up later is an
   // arrival and animates in — without this, every card on the board would fly in each time you
-  // switched to the Discovery tab, which is exactly the sort of animation that wears out fast.
+  // switched to the Analysis tab, which is exactly the sort of animation that wears out fast.
   const [presentOnMount] = useState(
     () => new Set([...board.signals, ...board.insights, ...board.actions, ...board.results].map((x) => x.id))
   );
@@ -410,21 +410,21 @@ export default function Board({
 
   const cardClass = (id) => (pulseId === id ? "el-card el-card-pulse" : "el-card");
 
-  // `board` here is the *other* spec's board an ref'd card lives in — labeled by that spec's
+  // `board` here is the *other* research plan's board a ref'd card lives in — labeled by that plan's
   // title (boards carry no name of their own), carried alongside the board data by App.jsx
   // when it builds `allBoards`.
   const renderRefSource = (board) => (
     <button
       className="el-ref-source"
       onClick={(e) => { e.stopPropagation(); onOpenBoard?.(board.id); }}
-      title={`Open "${board.specTitle || "Untitled spec"}"`}
+      title={`Open "${board.title || "Untitled research plan"}"`}
       style={{
         display: "flex", alignItems: "center", gap: "4px", marginTop: "8px",
         fontFamily: font, fontSize: SIZE.micro, fontWeight: WEIGHT.medium, color: INK_FAINT,
         background: "none", border: "none", cursor: "pointer", padding: 0,
       }}
     >
-      <ArrowUpRight size={11} /> {board.specTitle || "Untitled spec"}
+      <ArrowUpRight size={11} /> {board.title || "Untitled research plan"}
     </button>
   );
 
@@ -447,7 +447,6 @@ export default function Board({
           <SignalCardBody
             signal={sig}
             missing={!sig}
-            activities={activities}
             onChange={update}
             autoFocus={focusId === link.id}
           />
@@ -571,7 +570,7 @@ export default function Board({
           shared .reveal-group/.reveal pair in index.css, which also makes them keyboard-
           reachable. The handle keeps its own rule because it settles at 0.8, not 1. */}
       {/* Canvas-only CSS. The card surface itself, and a signal card's metadata controls, live
-          in index.css instead — a signal card also appears on the Activity page now, and the
+          in index.css instead — a signal card also appears on a research plan's page, and the
           two have to stay identical. */}
       <style>{`
         .el-board { display:grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); grid-template-rows: 1fr; align-items:stretch; position:relative; z-index:1; flex:1; min-height:0; min-width:900px; }
@@ -654,8 +653,8 @@ export default function Board({
 
           {/* SIGNAL — link an existing global signal, or create a brand-new one right here
               (it's still added to the workspace-wide `signals` list, just linked into this
-              board in the same action). Loose or activity-attached signals are otherwise
-              created from Research Repository. */}
+              board in the same action). Signals are otherwise created from Research
+              Repository or a research plan's page. */}
           <Column
             kind="signal" title="Signal" count={signalLinks.length}
             onAdd={createAndLinkSignal}

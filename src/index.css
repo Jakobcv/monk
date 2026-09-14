@@ -414,7 +414,7 @@ body {
 
 /* ---------------------------------------------------------------------------
    Board-style card. Lives here rather than in Board.jsx because a signal card
-   now appears in two places — a spec's Discovery board and an Activity page —
+   now appears in several places — a spec's Discovery board, a research plan —
    and has to look identical in both. The accent tint itself comes from
    ui/cardStyles.js, since it varies per card kind.
    --------------------------------------------------------------------------- */
@@ -429,7 +429,7 @@ body {
 
 /* A signal card's metadata controls stay invisible until you reach for them, so a card full of
    editable fields still reads as content rather than as a form. Scoped to `.signal-card` (not
-   the board's `.el-node`) precisely so the Activity page gets the same behaviour. */
+   the board's `.el-node`) precisely so every other page showing one gets the same behaviour. */
 .el-meta-input {
   transition:
     border-color var(--motion-fast) var(--ease),
@@ -629,56 +629,70 @@ a.disk-log__file:hover {
 }
 
 /* ---------------------------------------------------------------------------
-   The start page's moon. The mark is a gradient disc with a second circle
-   masked out of it (see MoonMark in Home.jsx). The cut starts clear of the
-   disc, so you see a full moon, then sweeps into place and leaves the
-   crescent. Reduced motion collapses both to their resting state via the
-   global rule above.
+   The start page's writing desk (see DeskMark in Home.jsx). It assembles in
+   three overlapping steps — foot, post, board — and is still by ~820ms, when
+   the wordmark follows. Reduced motion collapses every part to its resting
+   state via the global rule above.
    --------------------------------------------------------------------------- */
-.moon-mark {
+.desk-mark {
   overflow: visible;
 }
-.moon-mark__disc,
-.moon-mark__cut {
+.desk-mark__foot,
+.desk-mark__post,
+.desk-mark__board {
   transform-box: fill-box;
-  transform-origin: center;
 }
 
-/* The disc arrives solid. It barely scales and takes a strong ease-out, so it is fully there
-   within a quarter of a second — the earlier entrance grew it from 0.72 over a slow curve, and
-   for its first half it read as a pale grey placeholder rather than as the mark. */
-@keyframes moon-disc {
+/* The foot spreads out from under the post. */
+@keyframes desk-foot {
   from {
     opacity: 0;
-    transform: scale(0.94);
+    transform: scaleX(0.4);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: scaleX(1);
   }
 }
-.moon-mark__disc {
-  animation: moon-disc 420ms cubic-bezier(0.2, 0, 0, 1) backwards;
+.desk-mark__foot {
+  transform-origin: center;
+  animation: desk-foot 260ms cubic-bezier(0.2, 0, 0, 1) backwards;
 }
 
-/* The shadow travels along the exact line it rests on — its resting offset from the disc is
-   (12.2, -10.5) — and never scales, so the lit edge thins the way a phase does. It used to come in
-   at 45° while growing from 0.78, which read as a second disc sliding over the first and bent the
-   edge's curvature as it went.
-   It starts ~94 units out along that line: far enough that it only reaches the disc about halfway
-   through, so the full moon holds for a beat once the disc is solid. The in-out curve is what
-   makes that hold — a front-loaded ease-out would cover the distance at once and skip the full
-   moon entirely — and its long deceleration lets the crescent settle rather than stop. */
-@keyframes moon-cut {
+/* The post grows up out of the foot. */
+@keyframes desk-post {
   from {
-    transform: translate(71px, -61px);
+    transform: scaleY(0);
   }
   to {
-    transform: translate(0, 0);
+    transform: scaleY(1);
   }
 }
-.moon-mark__cut {
-  animation: moon-cut 820ms cubic-bezier(0.5, 0, 0.15, 1) 140ms backwards;
+.desk-mark__post {
+  transform-origin: bottom;
+  animation: desk-post 320ms cubic-bezier(0.2, 0, 0, 1) 100ms backwards;
+}
+
+/* The board arrives level and tips down into its slope, pivoting on the top of the post. The
+   board's resting angle is atan(20/62) ≈ 18°, so it starts rotated back by that. The origin is
+   the post's top (50, 42) as a share of the board outline's box, x 16.31–83.84 and
+   y 24.76–55.24. The long deceleration lets it settle onto the slope rather than stop. */
+@keyframes desk-board {
+  from {
+    opacity: 0;
+    transform: rotate(-18deg);
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0);
+  }
+}
+.desk-mark__board {
+  transform-origin: 49.9% 56.6%;
+  animation: desk-board 520ms cubic-bezier(0.3, 0, 0.1, 1) 300ms backwards;
 }
 
 /* A row in the start page's recent list — quiet until you reach for it. */
@@ -1264,6 +1278,255 @@ a.recent-row:hover {
 .paper-btn__marker {
   display: grid;
   place-items: center;
+}
+
+/* ---------------------------------------------------------------------------
+   Research plan (ResearchPlanPage, ResearchQuestionsEditor). Questions sit on
+   the checklist's grid, but the gutter holds a marker rather than a checkbox:
+   a question is answered when an insight is linked to it, so there is nothing
+   to tick. The insights that answer it are chips under the question.
+   --------------------------------------------------------------------------- */
+.rq-marker {
+  cursor: default;
+}
+.rq-marker__dot {
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  background: #fff;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease);
+}
+.rq-marker--answered .rq-marker__dot {
+  background: var(--accent-insight);
+  border-color: var(--accent-insight);
+}
+.rq-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 0 6px;
+}
+.rq-chip {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  min-height: 24px;
+  border-radius: var(--radius-xs);
+  background: rgba(35, 131, 226, 0.08);
+  color: var(--accent-insight);
+  font-family: var(--font);
+  font-size: var(--size-ui);
+  line-height: 20px;
+}
+.rq-chip__label {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 360px;
+  padding: 2px 2px 2px 8px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: inherit;
+}
+.rq-chip__label > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rq-chip__label:hover > span {
+  text-decoration: underline;
+}
+.rq-chip__remove {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+  border-radius: inherit;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+.rq-chip__remove:hover,
+.rq-chip__remove:focus-visible {
+  opacity: 1;
+}
+
+/* A row of a picker's result list (ui/LinkPicker). */
+.pick-row:hover,
+.pick-row:focus-visible {
+  background: var(--bg-hover) !important;
+  outline: none;
+}
+
+/* A link to another record, as a line of the sheet — a plan's sessions. */
+.paper-link-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  margin: 0 -10px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: var(--paper-body);
+  line-height: var(--paper-leading);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease);
+}
+.paper-link-row:hover {
+  background: var(--bg-hover);
+}
+.paper-hint {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: var(--paper-leading);
+  color: var(--ink-faint);
+}
+
+/* A link in a page's side rail — the plans behind a spec, the specs a plan informs. */
+.rail-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+  margin-left: -6px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: var(--size-ui);
+  line-height: 18px;
+  color: var(--ink);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease);
+}
+.rail-link:hover {
+  background: var(--bg-hover);
+}
+.rail-link > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A plain list on paper (PaperListEditor) — a research plan's activities. The
+   checklist's row, with a bullet where the checkbox would be. */
+.paper-list__bullet {
+  cursor: default;
+}
+.paper-list__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+
+/* What kind of record a paper page is (ui/text PageKind), above its title. The
+   spec, research plan and initiative share a frame; this names which one it is. */
+.page-kind {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  color: var(--ink-faint);
+}
+
+/* An initiative's outcomes (OutcomesEditor) — a checklist row with a target in
+   the gutter, the change as its line, and a quieter line of numbers under it.
+   The number fields size to their content (`size` is the fallback where
+   field-sizing isn't supported) and take .prose-field's hover and focus. */
+.outcome-marker {
+  cursor: default;
+  color: var(--ink-faint);
+}
+.outcome-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 16px;
+  margin: -4px 0 6px;
+  font-family: var(--font);
+  font-size: 14px; /* PAPER.label */
+  line-height: var(--paper-leading);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.outcome-group {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+}
+.outcome-quiet {
+  color: var(--ink-faint);
+}
+.outcome-field {
+  field-sizing: content;
+  min-width: 3ch;
+  max-width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  /* No inline padding: field-sizing: content doesn't make room for it, and the
+     text clips. The wash and ring reach past the text with box-shadow instead. */
+  margin: 0;
+  padding: 1px 0;
+  border-radius: 2px;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease);
+}
+.outcome-field::placeholder {
+  color: var(--ink-placeholder);
+}
+.outcome-field:hover:not(:focus) {
+  background: var(--bg-hover);
+  box-shadow: 0 0 0 3px var(--bg-hover);
+}
+.outcome-field:focus {
+  background: var(--bg);
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 4px var(--border-strong),
+    0 0 0 7px rgba(35, 131, 226, 0.12);
+}
+.outcome-field--target {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* An initiative rail's progress — one segment per spec, in status order. */
+.rollup-bar {
+  display: flex;
+  gap: 2px;
+  height: 6px;
+  margin: 8px 0 6px;
+}
+.rollup-bar > span {
+  flex: 1;
+  border-radius: 1px;
+}
+.rollup-bar > span:first-child {
+  border-radius: 3px 1px 1px 3px;
+}
+.rollup-bar > span:last-child {
+  border-radius: 1px 3px 3px 1px;
+}
+.rollup-bar > span:only-child {
+  border-radius: 3px;
 }
 
 /* ---------------------------------------------------------------------------

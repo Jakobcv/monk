@@ -6,7 +6,7 @@ import Button from "./ui/Button";
 
 const KIND_LABEL = {
   spec: "Spec", section: "Section", signal: "Signal", insight: "Insight",
-  activity: "Activity", initiative: "Initiative", workspaceDoc: "Workspace file",
+  activity: "Activity", initiative: "Initiative", researchPlan: "Research plan", workspaceDoc: "Workspace file",
 };
 
 const timeFormat = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });

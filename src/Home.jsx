@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
 import { Plus, FolderOpen } from "lucide-react";
 import {
-  font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, SIZE, SPACE, RADIUS, BRAND,
+  font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, RESEARCH_PLAN, SIZE, SPACE, RADIUS, BRAND,
 } from "./lib/theme";
 import { Eyebrow, Meta, Wordmark } from "./ui/text";
 import { recentlyTouched, relativeTime } from "./lib/recentActivity";
@@ -11,52 +11,59 @@ const KIND_COLOR = {
   signal: ACCENT.signal,
   insight: ACCENT.insight,
   spec: ACTIVITY,
-  activity: ACTIVITY,
   initiative: ACCENT.action,
+  researchPlan: RESEARCH_PLAN,
 };
+// A kind's name where it isn't just the kind itself.
+const KIND_LABEL = { researchPlan: "plan" };
 
-// A gradient disc with a second disc subtracted out of it. At rest the subtraction leaves a
-// crescent; on load the cut circle sweeps in along the line it rests on (see .moon-mark in
-// index.css), so the mark reads as a full moon first and then narrows to a crescent.
+// The line under the wordmark: one of these, picked fresh on each load. European monks only,
+// and only lines that are really theirs — nothing from the quote-site apocrypha.
+const MONK_QUOTES = [
+  { text: "Listen with the ear of your heart.", by: "Rule of St Benedict" },
+  { text: "Idleness is the enemy of the soul.", by: "Rule of St Benedict" },
+  { text: "Let all things be done in moderation.", by: "Rule of St Benedict" },
+  { text: "Ora et labora.", by: "Benedictine motto" },
+  { text: "You will find more in woods than in books.", by: "Bernard of Clairvaux" },
+  { text: "What you need is not a sceptre but a hoe.", by: "Bernard of Clairvaux" },
+  { text: "I believe so that I may understand.", by: "Anselm of Canterbury" },
+  { text: "Faith seeking understanding.", by: "Anselm of Canterbury" },
+  { text: "We shall not be asked what we have read, but what we have done.", by: "Thomas à Kempis" },
+  { text: "Of two evils, the lesser is always to be chosen.", by: "Thomas à Kempis" },
+];
+
+// A scribe's writing desk in side view: a sloped board with a ledge at its low end, on a post
+// and a foot. On load it assembles the way you'd set one up — the foot, then the post rises,
+// then the board tips down into its slope (see .desk-mark in index.css).
 //
-// The subtraction is a <mask>, not a circle painted in the page colour. That was the earlier
-// approach and it quietly required the mark to sit on --bg — it would have shown a white bite
-// on any tinted surface. A mask composites properly on anything.
+// Everything is stroked with butt caps so the parts meet squarely. The gradient is in user
+// space, not objectBoundingBox: a bounding-box gradient on the post, a vertical line with a
+// zero-width box, doesn't paint at all.
 //
-// Geometry: disc r=34 at (50,50), cut r=29 at (62.2, 39.5). The horns are shorter than the
-// thinner crescent this replaced, which is what makes it survive being rendered at 16–24px.
-//
-// There was a blur-and-threshold filter here to round the cusps off. It worked, and it also
-// destroyed the antialiasing: the threshold drove alpha 0→1 across a band far narrower than a
-// pixel, so every edge pixel snapped fully on or fully off and the arcs came out as a visible
-// staircase. Softening the threshold restores the antialiasing but then rounds nothing, since
-// the rounding *is* the hard threshold. Rounding the cusps properly needs real geometry — arcs
-// with fillets — which the animation can't drive. Short horns and clean edges it is.
-//
-// The viewBox is offset rather than starting at 0,0. A crescent's ink sits low and to the left
-// of the disc it was cut from, so a geometrically centred box leaves the shape looking like it
-// drifted down-left. The window is moved until the midpoint of the crescent's bounding-box
-// centre and its centre of mass sits on the page axis: centring the box alone overcorrects (the
-// ink looks pushed right), centring the mass alone undercorrects.
-function MoonMark({ size = 96 }) {
-  const uid = useId().replace(/:/g, "");
-  const grad = `moon-grad-${uid}`, mask = `moon-mask-${uid}`;
+// The viewBox is offset rather than starting at 0,0. The board's high end pulls the ink up and
+// left and the foot anchors it low, so the window is moved until the midpoint of the ink's
+// bounding-box centre and its centre of mass sits on the page axis — the same rule the crescent
+// used: centring the box alone overcorrects, centring the mass alone undercorrects.
+function DeskMark({ size = 96 }) {
+  const grad = `desk-grad-${useId().replace(/:/g, "")}`;
   return (
-    <svg className="moon-mark" width={size} height={size} viewBox="-6 5 100 100" role="img" aria-label="Monk">
+    <svg className="desk-mark" width={size} height={size} viewBox="0 7 100 100" role="img" aria-label="Monk">
       <defs>
-        <linearGradient id={grad} x1="15%" y1="0%" x2="85%" y2="100%">
+        <linearGradient id={grad} gradientUnits="userSpaceOnUse" x1="16" y1="24" x2="84" y2="92">
           <stop offset="0%" stopColor={BRAND.from} />
           <stop offset="100%" stopColor={BRAND.to} />
         </linearGradient>
-        <mask id={mask}>
-          <circle cx="50" cy="50" r="34" fill="#fff" />
-          <circle className="moon-mark__cut" cx="62.2" cy="39.5" r="29" fill="#000" />
-        </mask>
       </defs>
-      {/* The entrance rides on a wrapping group so it transforms the already-masked result —
-          scaling the masked circle itself would slide it against a mask that stays put. */}
-      <g className="moon-mark__disc">
-        <circle cx="50" cy="50" r="34" fill={`url(#${grad})`} mask={`url(#${mask})`} />
+      <g fill="none" stroke={`url(#${grad})`}>
+        <path className="desk-mark__foot" d="M30 86 H70" strokeWidth="8" />
+        <path className="desk-mark__post" d="M50 42 V84" strokeWidth="10" />
+        {/* Board and ledge are one filled outline: as two butt-capped strokes they met at an
+            angle and left a stepped notch at the joint. It's the board's centre line (18,30)–
+            (80,50) at 11 wide, with the ledge rising 7 above its low end. The group is there
+            because SVG transforms go on a <g>. */}
+        <g className="desk-mark__board">
+          <path d="M16.31 35.24 L19.69 24.76 L75.98 42.92 L78.13 36.26 L83.84 38.1 L78.31 55.24 Z" fill={`url(#${grad})`} stroke="none" />
+        </g>
       </g>
     </svg>
   );
@@ -66,7 +73,7 @@ function RecentRow({ item, href, now, delay }) {
   const inner = (
     <>
       <span style={{ width: "7px", height: "7px", borderRadius: "50%", flexShrink: 0, background: KIND_COLOR[item.kind] || INK_FAINT }} />
-      <Meta style={{ fontSize: SIZE.xs, width: "62px", flexShrink: 0, textTransform: "capitalize" }}>{item.kind}</Meta>
+      <Meta style={{ fontSize: SIZE.xs, width: "62px", flexShrink: 0, textTransform: "capitalize" }}>{KIND_LABEL[item.kind] || item.kind}</Meta>
       <span style={{ flex: 1, minWidth: 0, color: INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
       <Meta style={{ fontSize: SIZE.sm, flexShrink: 0 }}>{relativeTime(item.updatedAt, now)}</Meta>
     </>
@@ -87,37 +94,37 @@ function RecentRow({ item, href, now, delay }) {
 // `folderName` is the project — the repo Monk was connected to — and `subfolder` the folder inside
 // it Monk works in (monk/). With no known project, `folderName` is the connected folder itself and
 // there is no subfolder.
-export default function Home({ signals = [], insights = [], activities = [], specs = [], initiatives = [], onCreateSpec, recentHref, folderName, subfolder, onChangeFolder }) {
+export default function Home({ signals = [], insights = [], specs = [], initiatives = [], researchPlans = [], onCreateSpec, recentHref, folderName, subfolder, onChangeFolder }) {
   const [now] = useState(() => Date.now());
-  const recent = recentlyTouched({ signals, insights, activities, specs, initiatives }, 8);
+  const [quote] = useState(() => MONK_QUOTES[Math.floor(Math.random() * MONK_QUOTES.length)]);
+  const recent = recentlyTouched({ signals, insights, specs, initiatives, researchPlans }, 8);
 
   // No background: every page takes the app ground from body (see lib/theme.js).
   return (
     <Page landing>
       <div style={{ maxWidth: "560px", margin: "0 auto" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <MoonMark />
+          <DeskMark />
           {/* Shared with the header — see Wordmark in ui/text.jsx. Size and the negative top
-              margin set the lockup: the negative margin closes the space the crescent leaves
-              below its ink inside the SVG box, down to one x-height between the crescent and
-              the word, and at this size the crescent carries about twice the word's visual mass.
-              It was 1.6 x-heights and 3.4×, which read as a caption under a moon rather than a
-              mark and a name. The word starts entering as the crescent settles. */}
+              margin set the lockup: the negative margin closes the space the desk leaves below
+              its foot inside the SVG box, down to about one x-height between the mark and the
+              word. The word starts entering as the board settles. */}
           <Wordmark
             as="h1"
             size="32px"
             className="enter-up"
             style={{
-              marginTop: "-12px", marginBottom: 0, marginLeft: 0,
+              marginTop: "-8px", marginBottom: 0, marginLeft: 0,
               animationDelay: "760ms", animationFillMode: "backwards",
             }}
           >
             monk
           </Wordmark>
 
-          {/* The one line on what this is. A step up from UI text but far enough below the
-              wordmark that the name reads first, and soft ink so it sits back beside the mark.
-              It follows the word in by the same 80–100ms step the rest of the page staggers on. */}
+          {/* A monk quote in place of a tagline. A step up from UI text but far enough below the
+              wordmark that the name reads first, and soft ink so it sits back beside the mark;
+              the attribution drops to faint ink. It follows the word in by the same 80–100ms
+              step the rest of the page staggers on. */}
           <p
             className="enter-up"
             style={{
@@ -126,7 +133,8 @@ export default function Home({ signals = [], insights = [], activities = [], spe
               animationDelay: "840ms", animationFillMode: "backwards",
             }}
           >
-            From signal to spec, for teams and agents
+            “{quote.text}”{" "}
+            <span style={{ color: INK_FAINT, whiteSpace: "nowrap" }}>— {quote.by}</span>
           </p>
 
           {/* Which folder you're actually in, and the way out of it. Every other route carries

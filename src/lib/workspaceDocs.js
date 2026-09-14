@@ -19,7 +19,7 @@ export const WORKSPACE_DOCS = [
     id: "design-system",
     file: "DESIGN.md",
     label: "Design system",
-    summary: "The visual language for everything built here: design tokens, and the reasoning behind them. Every spec's build brief carries it as a contract.",
+    summary: "The visual language for everything built here: design tokens, and the reasoning behind them. A contract for everything built from these specs.",
     formatUrl: "https://github.com/google-labs-code/design.md",
     editor: "design-system",
     template: ({ workspaceName }) => designSystemTemplate(workspaceName),

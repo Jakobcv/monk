@@ -50,8 +50,8 @@ function NotCreated({ doc, onCreate }) {
         <p style={{ color: INK, fontSize: SIZE.body, lineHeight: 1.55, margin: `0 0 ${SPACE.base}` }}>{doc.summary}</p>
         <p style={{ color: INK_SOFT, fontSize: SIZE.body, lineHeight: 1.55, margin: `0 0 ${SPACE.lg}` }}>
           This workspace doesn't have one yet. Creating it writes an empty file in the right format —
-          every section, no values chosen — and nothing from it reaches a build brief until you
-          write something in it.
+          every section, no values chosen — and an empty section sets no rules until you write
+          something in it.
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: SPACE.lg, flexWrap: "wrap" }}>
           <Button variant="primary" size="md" onClick={create} disabled={busy}>

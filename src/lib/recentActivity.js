@@ -4,7 +4,7 @@
 
 const DAY = 86400000;
 
-export function recentlyTouched({ signals, insights, activities, specs, initiatives }, n = 6) {
+export function recentlyTouched({ signals, insights, specs, initiatives, researchPlans = [] }, n = 6) {
   const tag = (arr, kind, nameKey) => arr.map((x) => ({
     id: x.id,
     kind,
@@ -15,8 +15,8 @@ export function recentlyTouched({ signals, insights, activities, specs, initiati
     ...tag(specs, "spec", "title"),
     ...tag(insights, "insight", "text"),
     ...tag(signals, "signal", "text"),
-    ...tag(activities, "activity", "name"),
     ...tag(initiatives, "initiative", "title"),
+    ...tag(researchPlans, "researchPlan", "title"),
   ]
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, n);

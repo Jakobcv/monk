@@ -11,8 +11,8 @@ import IconButton from "./ui/IconButton";
 // A spec's Solution tab (design.md on disk, and DesignTab here — the storage name outlived the
 // label): what's being built and the intent around it, in structured sections, built from the
 // same parts as Overview — an eyebrow per section, borderless prose fields, a subtle "+ Add".
-// No helper text or treatment labels on screen: how each section is framed for an agent
-// (the brief / intent / binding / reference) lives in the build brief (buildBrief.js).
+// No helper text or treatment labels on screen: how an agent treats each section (intent,
+// binding, settled, reference) is spelled out in MONK.md (lib/monkSchema.js).
 //
 // The page runs on two indents and no more: Solution and Notes are prose, flush with the section
 // headings and with Overview's fields, and everything between them is a plain list in one marker
@@ -143,7 +143,7 @@ export default function DesignTab({ value, onChange, onToast }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
       {/* What's being built, in your own words. Flush with the section headings, like Overview's
-          fields — it's the brief, and every section under it only qualifies it. */}
+          fields — it says what's being built, and every section under it only qualifies it. */}
       <Section title="Solution">
         <LiveMarkdown
           className="prose-field" minLines={3} placeholder="What we're building, and how it works…"

@@ -11,9 +11,9 @@ export const genEntityId = () =>
     ? crypto.randomUUID()
     : `e_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-// A board is always owned by exactly one spec now — `id` is the owning spec's id (a ref's
-// `boardId` therefore means "which spec's board"), not a fresh id of its own. Pure canvas +
-// connections; no name/goal/status/etc. — that metadata lives on the owning spec instead.
+// A board is always owned by exactly one research plan — `id` is the owning plan's id (a ref's
+// `boardId` therefore means "which plan's board"), not a fresh id of its own. Pure canvas +
+// connections; no name/status/etc. — that metadata lives on the owning plan instead.
 export function blankBoard(id) {
   const now = Date.now();
   return {

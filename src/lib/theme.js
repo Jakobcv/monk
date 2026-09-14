@@ -52,6 +52,7 @@ export const ACCENT = {
 
 // entity + state colors that were previously hardcoded at their call sites
 export const ACTIVITY = "#6741D9"; // violet — distinct from all four card accents
+export const RESEARCH_PLAN = "#9F6B53"; // umber — the study a set of signals was collected for
 export const DANGER = "#E03E3E";   // destructive actions, "needs attention"
 export const CITED = "#946800";    // muted gold — "authoritative", most-cited
 
@@ -191,11 +192,6 @@ export const MOTION = {
 // Domain constants
 // ---------------------------------------------------------------------------
 
-// how a research activity collected its signals — lives on the Activity (see signalModel.js).
-// "Codebase review" is research done by reading the product's code or docs: how an agent usually
-// researches, and a different kind of evidence from talking to people.
-export const METHOD_OPTIONS = ["Interview", "Survey", "Usage metrics", "Client call", "Codebase review", "Other"];
-
 export const SPEC_STATUS_OPTIONS = ["draft", "active", "shipped"];
 export const SPEC_STATUS_COLOR = { draft: INK_FAINT, active: ACCENT.insight, shipped: ACCENT.action };
 
@@ -215,7 +211,7 @@ export const CSS_VARS = `:root{
   --bg:${BG}; --bg-app:${BG_APP}; --bg-hover:${BG_HOVER};
   --accent-signal:${ACCENT.signal}; --accent-insight:${ACCENT.insight};
   --accent-action:${ACCENT.action}; --accent-result:${ACCENT.result};
-  --activity:${ACTIVITY}; --danger:${DANGER}; --cited:${CITED};
+  --activity:${ACTIVITY}; --research-plan:${RESEARCH_PLAN}; --danger:${DANGER}; --cited:${CITED};
   --size-micro:${SIZE.micro}; --size-xs:${SIZE.xs}; --size-sm:${SIZE.sm};
   --size-ui:${SIZE.ui}; --size-body:${SIZE.body}; --size-md:${SIZE.md}; --size-lg:${SIZE.lg};
   --size-title:${SIZE.title};

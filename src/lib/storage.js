@@ -3,10 +3,12 @@ import {
   boardMetaToMarkdown, markdownToBoardMeta, cardToMarkdown, markdownToCard,
   sectionMetaToMarkdown, markdownToSectionMeta, documentToMarkdown, markdownToDocument,
   specToMarkdown, markdownToSpec,
-  signalToMarkdown, markdownToSignal, activityToMarkdown, markdownToActivity,
+  signalToMarkdown, markdownToSignal, markdownToActivity,
   insightToMarkdown, markdownToInsight,
-  initiativeToMarkdown, markdownToInitiative, } from "./markdown.js";
+  initiativeToMarkdown, markdownToInitiative,
+  researchPlanToMarkdown, markdownToResearchPlan, } from "./markdown.js";
 import { MONK_SCHEMA_DOC } from "./monkSchema.js";
+import { migrateActivities } from "./migrateActivities.js";
 import { AGENTS_DOC, AGENTS_DOC_SECTION, AGENT_MARKER_BEGIN, AGENT_MARKER_END } from "./agentsDoc.js";
 import { WORKSPACE_DOCS, workspaceDocById, workspaceDocByFile } from "./workspaceDocs.js";
 
@@ -123,6 +125,25 @@ async function removeFile(dirHandle, name, path) {
   written.delete(path || name);
 }
 
+async function hasDirectory(dirHandle, name) {
+  try {
+    await dirHandle.getDirectoryHandle(name);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Records every .md under a folder in the ledger without parsing it — for a folder that is about to
+// be removed, so the watcher doesn't report its files as new while it's still there.
+async function recordTree(handle, base) {
+  for await (const [name, child] of handle.entries()) {
+    const path = `${base}/${name}`;
+    if (child.kind === "directory") await recordTree(child, path);
+    else if (name.endsWith(".md")) recordRead(path, await (await child.getFile()).text());
+  }
+}
+
 async function hasFile(dirHandle, name) {
   try {
     await dirHandle.getFileHandle(name);
@@ -194,9 +215,9 @@ async function saveBoardTo(handle, board, base) {
   }
 }
 
-// Signals, Insights, Activities and Initiatives are flat, top-level, one-file-per-item
-// collections — no per-item folder, no marker file of their own, just a reserved top-level
-// folder name (`signals/`, `insights/`, `activities/`, `initiatives/`) that loadWorkspace/
+// Signals, Insights, Activities, Initiatives and Research plans are flat, top-level,
+// one-file-per-item collections — no per-item folder, no marker file of their own, just a
+// reserved top-level folder name (FLAT_COLLECTIONS, below) that loadWorkspace/
 // saveWorkspace recognize by name directly rather than by scanning for a marker file inside
 // each entry (see hasAnyMarker above).
 async function loadFlatCollection(dirHandle, folderName, parse) {
@@ -232,6 +253,91 @@ async function saveFlatCollection(dirHandle, folderName, items, toMarkdown, held
   }
 }
 
+// A research plan's board — its Analysis tab — lives in a folder beside the plan's own file:
+// `research-plans/<id>/board/`, the same layout a spec's board used to have. Its `id` is always the
+// plan's, which is what a card `ref`'s `boardId` names.
+async function loadPlanBoard(plansDir, id) {
+  const base = `research-plans/${id}/board`;
+  try {
+    const board = await loadBoardFrom(await (await plansDir.getDirectoryHandle(id)).getDirectoryHandle("board"), base);
+    managed.add(`research-plans/${id}`);
+    return { ...board, id };
+  } catch {
+    // Not written yet — a plan from before boards moved here, or one just created. The timestamps
+    // are stamped once here rather than left to the serializer, which would default a missing one to
+    // Date.now() on every call and rewrite board.md on every save.
+    const now = Date.now();
+    return { id, createdAt: now, updatedAt: now, signals: [], insights: [], actions: [], results: [], connections: [] };
+  }
+}
+
+// Writes each plan's board, and removes the board folder of a plan that's gone — only if this
+// session loaded or wrote it, the same rule as every other removal here.
+async function savePlanBoards(dirHandle, plans, held) {
+  const plansDir = await dirHandle.getDirectoryHandle("research-plans", { create: true });
+  const current = new Set(plans.map((p) => p.id));
+  for await (const [name, handle] of plansDir.entries()) {
+    const path = `research-plans/${name}`;
+    if (handle.kind !== "directory" || current.has(name) || !managed.has(path)) continue;
+    await plansDir.removeEntry(name, { recursive: true });
+    managed.delete(path);
+    for (const key of [...written.keys()]) if (key.startsWith(`${path}/`)) written.delete(key);
+  }
+  for (const plan of plans) {
+    if (held.has(plan.id) || !plan.board) continue;
+    const planDir = await plansDir.getDirectoryHandle(plan.id, { create: true });
+    const boardDir = await planDir.getDirectoryHandle("board", { create: true });
+    await saveBoardTo(boardDir, { ...plan.board, id: plan.id }, `research-plans/${plan.id}/board`);
+    managed.add(`research-plans/${plan.id}`);
+  }
+}
+
+// Where the original of every activity file Monk migrates ends up. No marker file and not a
+// reserved name, so after the move nothing here reads, writes or deletes it again.
+export const MIGRATED_ACTIVITIES_DIR = "_migrated-activities";
+
+// Moves each migrated activity's file out of `activities/` into MIGRATED_ACTIVITIES_DIR, byte for
+// byte, once the research plans and signals that replace it are on disk (see saveWorkspace). Moved
+// rather than deleted: this removes files that hold the only copy of what they say until the
+// migration is committed, and keeping a copy costs nothing. Only files this session loaded and that
+// still hold what was loaded — an activity edited on disk since is left where it is, and the next
+// load migrates the newer version.
+async function retireActivities(dirHandle, ids) {
+  let activitiesDir;
+  try {
+    activitiesDir = await dirHandle.getDirectoryHandle("activities");
+  } catch {
+    return;
+  }
+  let backupDir = null;
+  let moved = 0;
+  for (const id of ids) {
+    const name = `${id}.md`;
+    const path = `activities/${name}`;
+    if (!managed.has(path)) continue;
+    const text = await readFileOrNull(activitiesDir, name);
+    if (text === null) {
+      managed.delete(path);
+      written.delete(path);
+      continue;
+    }
+    if (written.get(path) !== text) continue;
+    backupDir ??= await dirHandle.getDirectoryHandle(MIGRATED_ACTIVITIES_DIR, { create: true });
+    // Never over a different file of the same name — a second migration of the same id, say.
+    const existing = await readFileOrNull(backupDir, name);
+    const backupName = existing === null || existing === text ? name : `${id}.${Date.now()}.md`;
+    const writable = await (await backupDir.getFileHandle(backupName, { create: true })).createWritable();
+    await writable.write(text);
+    await writable.close();
+    await removeFile(activitiesDir, name, path);
+    managed.delete(path);
+    moved++;
+  }
+  if (moved && (await activitiesDir.entries().next()).done) {
+    await dirHandle.removeEntry("activities");
+  }
+}
+
 async function loadSection(handle, base) {
   const meta = markdownToSectionMeta(await readAndRecord(handle, "section.md", `${base}/section.md`));
   const section = { ...meta, documents: [] };
@@ -247,8 +353,6 @@ async function loadSection(handle, base) {
 // A spec's `design`/`plan` are two more sibling files in its own folder (design.md/plan.md) —
 // always-present tabs, not optional linked documents, so they're plain markdown text with no
 // frontmatter of their own (no metadata left to track once there's no independent title/id).
-// `board` is a nested subfolder — the spec's Discovery tab, always present (auto-created blank),
-// loaded with the same logic a top-level board folder used to use before boards moved here.
 // The Solution tab's file. It was `design.md` until DESIGN.md came to mean something else
 // entirely — a workspace's design system, tokens and all (see google-labs-code/design.md) — which
 // is a different document with a different author and a different reader. The tab had already
@@ -266,18 +370,12 @@ async function loadSpec(handle, base) {
       ? await readAndRecord(handle, LEGACY_SOLUTION_FILE, `${base}/${LEGACY_SOLUTION_FILE}`)
       : "";
   spec.plan = (await hasFile(handle, "plan.md")) ? await readAndRecord(handle, "plan.md", `${base}/plan.md`) : "";
-  try {
-    const boardDir = await handle.getDirectoryHandle("board");
-    spec.board = await loadBoardFrom(boardDir, `${base}/board`);
-  } catch {
-    // a spec saved before Discovery existed, or one whose board dir hasn't been written yet —
-    // treat as a fresh blank board rather than failing to load the whole spec. The timestamps
-    // are stamped here rather than left to the serializer: boardMetaToMarkdown defaults a
-    // missing one to Date.now(), so a board without them serializes differently on every call,
-    // and board.md would be rewritten on every save forever — invisible before, and exactly the
-    // kind of churn the write ledger exists to stop.
-    const now = Date.now();
-    spec.board = { id: spec.id, createdAt: now, updatedAt: now, signals: [], insights: [], actions: [], results: [], connections: [] };
+  // Specs no longer have a board: the board moved to research plans, and spec boards were retired
+  // rather than migrated. One left over from before is read into the ledger — so the watcher doesn't
+  // report its files as new — and marked as ours, so saveWorkspace removes it.
+  if (await hasDirectory(handle, "board")) {
+    await recordTree(await handle.getDirectoryHandle("board"), `${base}/board`);
+    managed.add(`${base}/board`);
   }
   return spec;
 }
@@ -285,9 +383,8 @@ async function loadSpec(handle, base) {
 // Workspace persistence: every section and spec is its own top-level folder in the connected
 // directory, distinguished by which marker file it contains (section.md / spec.md) — anything
 // with neither is left completely alone, since the connected folder might not be dedicated to
-// this app (it could be a whole product repo). A spec's Discovery board lives nested inside it,
-// not as its own top-level folder. No per-item dirty-tracking yet — every save rewrites
-// everything it's given. Fine at personal scale.
+// this app (it could be a whole product repo). Boards live inside research plans' folders
+// (see loadPlanBoard), never at the top level.
 export async function loadWorkspace(dirHandle) {
   // A fresh connection — nothing on disk is ours until we have read or written it.
   resetLedger();
@@ -295,7 +392,7 @@ export async function loadWorkspace(dirHandle) {
   const specs = [];
   for await (const [name, handle] of dirHandle.entries()) {
     if (handle.kind !== "directory") continue;
-    if (name === "signals" || name === "insights" || name === "activities" || name === "initiatives") continue; // handled separately below
+    if (FLAT_COLLECTIONS.includes(name)) continue; // handled separately below
     if (await hasFile(handle, "section.md")) {
       try {
         sections.push(await loadSection(handle, name));
@@ -325,12 +422,28 @@ export async function loadWorkspace(dirHandle) {
 
   const signals = await loadFlatCollection(dirHandle, "signals", markdownToSignal);
   const insights = await loadFlatCollection(dirHandle, "insights", markdownToInsight);
-  const activities = await loadFlatCollection(dirHandle, "activities", markdownToActivity);
+  // Legacy: activities are read only to be folded into research plans (migrateActivities.js).
+  const activities = (await loadFlatCollection(dirHandle, "activities", markdownToActivity)).filter((a) => a.id);
   const initiatives = await loadFlatCollection(dirHandle, "initiatives", markdownToInitiative);
-  for (const [folder, items] of [["signals", signals], ["insights", insights], ["activities", activities], ["initiatives", initiatives]]) {
+  const researchPlans = await loadFlatCollection(dirHandle, "research-plans", markdownToResearchPlan);
+  for (const [folder, items] of [["signals", signals], ["insights", insights], ["activities", activities], ["initiatives", initiatives], ["research-plans", researchPlans]]) {
     for (const item of items) managed.add(`${folder}/${item.id}.md`);
   }
-  return { sections, specs, signals, insights, activities, initiatives, docs };
+  let plansDir = null;
+  try { plansDir = await dirHandle.getDirectoryHandle("research-plans"); } catch { /* no plans yet */ }
+  for (const plan of researchPlans) plan.board = await loadPlanBoard(plansDir, plan.id);
+
+  // In memory only. Nothing is written until the caller saves; `retiredActivityIds` tells that save
+  // which old files to move once the migrated plans and signals are on disk.
+  const migrated = migrateActivities({ activities, signals, researchPlans });
+  return {
+    sections, specs, insights, initiatives, docs,
+    signals: migrated.signals,
+    researchPlans: migrated.researchPlans,
+    retiredActivityIds: migrated.retiredActivityIds,
+    // `specBoards`: spec board folders found, which the next save removes (see loadSpec).
+    migration: { ...migrated.report, specBoards: specs.filter((s) => managed.has(`${s.id}/board`)).length },
+  };
 }
 
 // Creating a workspace document is always an explicit request, so it is its own call rather than
@@ -368,13 +481,18 @@ export async function removeWorkspaceDoc(dirHandle, id) {
 // folder; the flat records are one file each inside a collection folder. Module scope because it
 // closes over nothing — inside the component it was a new function every render, which the
 // watcher effect would then have to list as a dependency and be torn down for.
-export const FLAT_COLLECTIONS = ["signals", "insights", "activities", "initiatives"];
+// Also the one list of reserved folder names: load, save and the watcher all read it, so a new
+// collection can't be recognised in one place and swept up as a stray folder in another.
+// `activities` is legacy — never written — but stays reserved so an old-format file that turns up
+// (an agent, a checkout of an older branch) is noticed and migrated rather than ignored.
+export const FLAT_COLLECTIONS = ["signals", "insights", "activities", "initiatives", "research-plans"];
 export function entityIdsFor(paths) {
   const ids = new Set();
   for (const path of paths) {
     const [head, second] = path.split("/");
     if (FLAT_COLLECTIONS.includes(head)) {
       if (second && second.endsWith(".md")) ids.add(second.slice(0, -3));
+      else if (head === "research-plans" && second) ids.add(second); // a plan's board folder
     } else if (second) {
       ids.add(head);
     } else {
@@ -509,7 +627,7 @@ async function externalChanges(dirHandle) {
         // src) is skipped, same rule loadWorkspace uses.
         if (!prefix
             && !managed.has(name)
-            && !["signals", "insights", "activities", "initiatives"].includes(name)
+            && !FLAT_COLLECTIONS.includes(name)
             && !(await hasAnyMarker(child))) continue;
         await visit(child, path);
       } else if (written.has(path)) {
@@ -569,7 +687,7 @@ export async function saveWorkspace(dirHandle, workspace, { hold = [] } = {}) {
   const currentSectionIds = new Set((workspace.sections || []).map((s) => s.id));
   const currentSpecIds = new Set((workspace.specs || []).map((s) => s.id));
   for await (const [name, handle] of dirHandle.entries()) {
-    if (handle.kind !== "directory" || name === "signals" || name === "insights" || name === "activities" || name === "initiatives") continue;
+    if (handle.kind !== "directory" || FLAT_COLLECTIONS.includes(name)) continue;
     if (currentSectionIds.has(name) || currentSpecIds.has(name)) continue;
     // Never delete anything that isn't recognizably one of our own folders — the connected
     // directory might not be dedicated to this app (it could be a whole product repo with its
@@ -621,14 +739,33 @@ export async function saveWorkspace(dirHandle, workspace, { hold = [] } = {}) {
     if (written.has(legacy) && (await hasFile(specDir, SOLUTION_FILE))) {
       await removeFile(specDir, LEGACY_SOLUTION_FILE, legacy);
     }
-    const boardDir = await specDir.getDirectoryHandle("board", { create: true });
-    await saveBoardTo(boardDir, spec.board, `${spec.id}/board`);
+    // A retired spec board this session found on load (see loadSpec). One that turns up later isn't
+    // managed, so it waits for the next load to find it.
+    const boardPath = `${spec.id}/board`;
+    if (managed.has(boardPath)) {
+      try { await specDir.removeEntry("board", { recursive: true }); } catch { /* already gone */ }
+      managed.delete(boardPath);
+      for (const key of [...written.keys()]) if (key.startsWith(`${boardPath}/`)) written.delete(key);
+    }
   }
 
   await saveFlatCollection(dirHandle, "signals", workspace.signals, signalToMarkdown, held);
   await saveFlatCollection(dirHandle, "insights", workspace.insights, insightToMarkdown, held);
-  await saveFlatCollection(dirHandle, "activities", workspace.activities, activityToMarkdown, held);
   await saveFlatCollection(dirHandle, "initiatives", workspace.initiatives, initiativeToMarkdown, held);
+  // Only when the caller actually holds the collection. An empty list is an instruction to remove
+  // every plan this session loaded; a workspace built by code that predates research plans has no
+  // list at all, and must not read as that.
+  if (Array.isArray(workspace.researchPlans)) {
+    await saveFlatCollection(dirHandle, "research-plans", workspace.researchPlans, researchPlanToMarkdown, held);
+    await savePlanBoards(dirHandle, workspace.researchPlans, held);
+  }
+
+  // Activities migrated on load leave their old files until the plans and signals that replace
+  // them are written. Conservatively all or nothing: if anything in this save conflicted or was
+  // held back, some replacement may not be on disk yet, so the move waits for a clean save.
+  if ((workspace.retiredActivityIds || []).length && !conflicts.length && !held.size) {
+    await retireActivities(dirHandle, workspace.retiredActivityIds);
+  }
 
   // Workspace documents are only ever updated here, never created or removed — those are
   // createWorkspaceDoc/removeWorkspaceDoc, both explicit. So a save writes one only if this session

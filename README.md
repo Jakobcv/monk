@@ -8,11 +8,11 @@ people writing them and the coding agents building from them read the same files
 - **Specs** — each with an Overview (problem, goals, non-goals, open questions, acceptance
   criteria), a Discovery board linking the signals and insights behind it, a Solution and a Plan.
   Specs can be grouped under initiatives.
-- **Product Knowledge** and **Standards** — shared documents that go into every spec's build brief.
+- **Product Knowledge** and **Standards** — shared documents every spec is built against.
 - **Design system** — an optional `DESIGN.md` in the [google-labs-code/design.md](https://github.com/google-labs-code/design.md)
-  format, edited as tokens and sections, and carried into every build brief as a contract.
-- **Start build** on a spec copies a build brief — Standards, Product Knowledge, the design
-  system and the spec — ready to paste into an agent.
+  format, edited as tokens and sections, and a contract for everything that gets built.
+- **Tasks** — each spec's plan tracks its work as tasks that are to do, in progress, done or
+  blocked.
 
 No accounts, no server, no API keys: the app reads and writes a folder you pick.
 
@@ -99,7 +99,8 @@ Agents working at the repo root read the root's `AGENTS.md` / `CLAUDE.md`, not t
 - Your agent can read and write `monk/` directly. Monk watches the folder and picks changes up
   about a second after the writing stops; if you're typing in the thing that changed, it asks
   before replacing your text.
-- On a spec, **Start build** copies the build brief to paste into the agent.
+- Your agent reads a spec's files directly; `monk/AGENTS.md` tells it what to read and what
+  counts as a reason to stop and ask.
 - Commit `monk/` with the product's code, on your own schedule. Monk never runs git.
 - After a browser restart, Monk asks you to reconnect the folder — one click.
 
