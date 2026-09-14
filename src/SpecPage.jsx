@@ -1,15 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, FileText, Plus, X } from "lucide-react";
-import { INK, INK_FAINT, BORDER, SIZE, SPEC_STATUS_OPTIONS, SPEC_STATUS_COLOR } from "./lib/theme";
+import { INK, INK_FAINT, SIZE, SPACE, SPEC_STATUS_OPTIONS, SPEC_STATUS_COLOR } from "./lib/theme";
 import { RESEARCH_PLAN_STATUS_COLOR } from "./lib/researchPlanModel";
-import { Eyebrow, Meta, PageKind, PageTitle } from "./ui/text";
+import { Dot, Eyebrow, Meta } from "./ui/text";
 import ChecklistEditor from "./ChecklistEditor";
 import PlanTab from "./PlanTab";
 import LiveMarkdown from "./ui/LiveMarkdown";
 import DesignTab from "./DesignTab";
-import Breadcrumbs from "./Breadcrumbs";
 import Page from "./ui/Page";
-import PageTabs from "./ui/PageTabs";
+import PaperFrame from "./ui/PaperFrame";
 import IconButton from "./ui/IconButton";
 import PaperButton from "./ui/PaperButton";
 import LinkPicker from "./ui/LinkPicker";
@@ -29,10 +28,6 @@ const TABS = [
 ];
 
 const planTitle = (p) => p.title || "Untitled research plan";
-
-const Dot = ({ color }) => (
-  <span aria-hidden="true" style={{ width: "7px", height: "7px", borderRadius: "50%", backgroundColor: color, flexShrink: 0, alignSelf: "center" }} />
-);
 
 // A persistent per-spec sidebar for metadata that applies across every tab, not just Overview —
 // Status, Owner, and which Initiative this spec belongs to. The panel itself is ui/SideRail, shared
@@ -92,14 +87,14 @@ function ResearchPlansList({ researchPlans, ids, onChange, researchPlanHref, onC
   return (
     <div>
       <Eyebrow>Research plans</Eyebrow>
-      <div style={{ marginTop: "8px", display: "flex", flexDirection: "column" }}>
+      <div style={{ marginTop: SPACE.base, display: "flex", flexDirection: "column" }}>
         {linked.length === 0 && (
-          <p className="paper-hint" style={{ marginBottom: "4px" }}>
+          <p className="paper-hint" style={{ marginBottom: SPACE.sm }}>
             No research linked yet. Link the plans this spec is built on, so their questions and evidence are one click away.
           </p>
         )}
         {linked.map((p) => (
-          <div key={p.id} className="reveal-group" style={{ display: "flex", alignItems: "center", gap: "4px", minWidth: 0 }}>
+          <div key={p.id} className="reveal-group" style={{ display: "flex", alignItems: "center", gap: SPACE.sm, minWidth: 0 }}>
             <a className="paper-link-row" href={researchPlanHref(p.id)} style={{ flex: 1 }}>
               <Dot color={RESEARCH_PLAN_STATUS_COLOR[p.status] || INK_FAINT} />
               <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{planTitle(p)}</span>
@@ -117,7 +112,7 @@ function ResearchPlansList({ researchPlans, ids, onChange, researchPlanHref, onC
           </div>
         ))}
       </div>
-      <div style={{ marginTop: "2px" }}>
+      <div style={{ marginTop: SPACE.xs }}>
         <PaperButton
           icon={Plus}
           data-dismiss-ignore
@@ -149,10 +144,9 @@ function ResearchPlansList({ researchPlans, ids, onChange, researchPlanHref, onC
 // All tabs stay mounted at once (toggled with the `hidden` attribute, not a conditional render) so
 // switching tabs is instant and none of them loses its state.
 //
-// Layout: a persistent right sidebar (SpecSidebar, above) holds cross-tab metadata; the main pane
-// has its own header — breadcrumbs, then a left-aligned title, then a full-width tab bar — above
-// a `flex:1` area where each tab is a sheet of paper centred on a grey desk (<Page ground="reading">
-// + .paper-sheet) at its own larger type scale (PAPER in lib/theme.js).
+// Layout is ui/PaperFrame — breadcrumbs, kind, title and tab bar, then the tab's body, with the
+// metadata rail (SpecSidebar, above) beside it. Each tab is a sheet of paper centred on the desk
+// (<Page ground="reading"> + .paper-sheet) at its own larger type scale (PAPER in lib/theme.js).
 //
 // Research plans live in App's state, not here: linking one only edits this spec's
 // `researchPlanIds`, and handing an open question to a plan goes through `onAddResearchQuestion`
@@ -204,99 +198,86 @@ export default function SpecPage({
     .map((p) => ({ id: p.id, label: planTitle(p), meta: researchPlanIds.includes(p.id) ? `${p.status} · linked to this spec` : p.status }));
 
   return (
-    <div style={{ height: "100%", display: "flex" }}>
-      <div style={{ flex: 1, minWidth: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <Breadcrumbs items={breadcrumbs} />
-
-        <div style={{ padding: "20px 40px 0", boxSizing: "border-box", flexShrink: 0 }}>
-          <PageKind icon={FileText}>Spec</PageKind>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-            <PageTitle
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Untitled spec"
-              style={{ flex: 1 }}
-            />
+    <PaperFrame
+      breadcrumbs={breadcrumbs}
+      kindIcon={FileText} kind="Spec"
+      title={title} onTitleChange={(e) => setTitle(e.target.value)} titlePlaceholder="Untitled spec"
+      tabs={TABS} activeTab={activeTab} tabHref={tabHref}
+      rail={(
+        <SpecSidebar
+          status={status} onStatusChange={setStatus}
+          owner={owner} onOwnerChange={setOwner}
+          initiativeId={initiativeId} onInitiativeChange={setInitiativeId} initiatives={initiatives}
+        />
+      )}
+    >
+      {/* `hidden` is what toggles these. It only wins because index.css states
+          `[hidden]{display:none!important}` — the UA's own rule loses to .page--reading's
+          `display:flex`, and would lose to an inline `display` too. */}
+      <Page ground="reading" hidden={activeTab !== "overview"}>
+        <div className="paper-sheet paper-sheet--sections">
+          <div className="paper-section">
+            <Eyebrow>Problem</Eyebrow>
+            <LiveMarkdown className="prose-field" minLines={2} value={problem} onChange={setProblem} placeholder="The problem this solves…" ariaLabel="Problem" />
           </div>
-          <PageTabs tabs={TABS} activeTab={activeTab} tabHref={tabHref} />
+          <div className="paper-section">
+            <Eyebrow>Goals</Eyebrow>
+            <LiveMarkdown className="prose-field" minLines={2} value={goals} onChange={setGoals} placeholder="Success looks like…" ariaLabel="Goals" />
+          </div>
+          <div className="paper-section">
+            <Eyebrow>Non-goals</Eyebrow>
+            <LiveMarkdown className="prose-field" minLines={2} value={nonGoals} onChange={setNonGoals} placeholder="Explicitly out of scope…" ariaLabel="Non-goals" />
+          </div>
+
+          <ResearchPlansList
+            researchPlans={researchPlans}
+            ids={researchPlanIds}
+            onChange={setResearchPlanIds}
+            researchPlanHref={researchPlanHref}
+            onCreateResearchPlan={onCreateResearchPlan}
+          />
+
+          <div className="paper-rule" />
+
+          <ChecklistEditor
+            paper resolutions label="Open questions" items={openQuestions} onChange={setOpenQuestions}
+            onPromote={onAddResearchQuestion ? (idx, button) => {
+              if (promoteIdx === idx) { setPromoteIdx(null); return; }
+              promoteRef.current = button;
+              setPromoteIdx(idx);
+            } : null}
+          />
+          <ChecklistEditor paper label="Acceptance criteria" items={acceptanceCriteria} onChange={setAcceptanceCriteria} />
         </div>
+      </Page>
 
-        {/* `hidden` is what toggles these. It only wins because index.css states
-            `[hidden]{display:none!important}` — the UA's own rule loses to .page--reading's
-            `display:flex`, and would lose to an inline `display` too. */}
-        <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-          <Page ground="reading" hidden={activeTab !== "overview"}>
-            <div className="paper-sheet" style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <Eyebrow>Problem</Eyebrow>
-                <LiveMarkdown className="prose-field" minLines={2} value={problem} onChange={setProblem} placeholder="The problem this solves…" ariaLabel="Problem" />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <Eyebrow>Goals</Eyebrow>
-                <LiveMarkdown className="prose-field" minLines={2} value={goals} onChange={setGoals} placeholder="Success looks like…" ariaLabel="Goals" />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <Eyebrow>Non-goals</Eyebrow>
-                <LiveMarkdown className="prose-field" minLines={2} value={nonGoals} onChange={setNonGoals} placeholder="Explicitly out of scope…" ariaLabel="Non-goals" />
-              </div>
+      {promoteIdx != null && openQuestions[promoteIdx] && (
+        <LinkPicker
+          anchorRef={promoteRef}
+          onClose={() => setPromoteIdx(null)}
+          label="Add to a research plan"
+          placeholder="Search research plans…"
+          emptyText={promotedText ? "No research plans yet." : "Write the question first."}
+          items={promotedText ? promoteItems : []}
+          onPick={promote}
+          action={promotedText ? { label: "New research plan", onClick: () => promote(null) } : null}
+        />
+      )}
 
-              <ResearchPlansList
-                researchPlans={researchPlans}
-                ids={researchPlanIds}
-                onChange={setResearchPlanIds}
-                researchPlanHref={researchPlanHref}
-                onCreateResearchPlan={onCreateResearchPlan}
-              />
-
-              <div style={{ height: "1px", backgroundColor: BORDER }} />
-
-              <ChecklistEditor
-                paper resolutions label="Open questions" items={openQuestions} onChange={setOpenQuestions}
-                onPromote={onAddResearchQuestion ? (idx, button) => {
-                  if (promoteIdx === idx) { setPromoteIdx(null); return; }
-                  promoteRef.current = button;
-                  setPromoteIdx(idx);
-                } : null}
-              />
-              <ChecklistEditor paper label="Acceptance criteria" items={acceptanceCriteria} onChange={setAcceptanceCriteria} />
-            </div>
-          </Page>
-
-          {promoteIdx != null && openQuestions[promoteIdx] && (
-            <LinkPicker
-              anchorRef={promoteRef}
-              onClose={() => setPromoteIdx(null)}
-              label="Add to a research plan"
-              placeholder="Search research plans…"
-              emptyText={promotedText ? "No research plans yet." : "Write the question first."}
-              items={promotedText ? promoteItems : []}
-              onPick={promote}
-              action={promotedText ? { label: "New research plan", onClick: () => promote(null) } : null}
-            />
-          )}
-
-          <Page ground="reading" hidden={activeTab !== "design"}>
-            <div className="paper-sheet">
-              <DesignTab value={spec.design} onChange={setDesign} onToast={onToast} />
-            </div>
-          </Page>
-
-          {/* The Plan: the work as tasks with a state each, then the approach, which still takes
-              the rest of the sheet (see PlanTab). Stored as one plan.md, like the Solution tab's
-              solution.md. */}
-          <Page ground="reading" hidden={activeTab !== "plan"}>
-            <div className="paper-sheet" style={{ display: "flex", flexDirection: "column" }}>
-              <PlanTab value={spec.plan} onChange={setPlan} />
-            </div>
-          </Page>
+      <Page ground="reading" hidden={activeTab !== "design"}>
+        <div className="paper-sheet">
+          <DesignTab value={spec.design} onChange={setDesign} onToast={onToast} />
         </div>
-      </div>
+      </Page>
 
-      <SpecSidebar
-        status={status} onStatusChange={setStatus}
-        owner={owner} onOwnerChange={setOwner}
-        initiativeId={initiativeId} onInitiativeChange={setInitiativeId} initiatives={initiatives}
-      />
-    </div>
+      {/* The Plan: the work as tasks with a state each, then the approach, which still takes
+          the rest of the sheet (see PlanTab). Stored as one plan.md, like the Solution tab's
+          solution.md. */}
+      <Page ground="reading" hidden={activeTab !== "plan"}>
+        <div className="paper-sheet" style={{ display: "flex", flexDirection: "column" }}>
+          <PlanTab value={spec.plan} onChange={setPlan} />
+        </div>
+      </Page>
+    </PaperFrame>
   );
 }

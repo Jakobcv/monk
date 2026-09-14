@@ -46,6 +46,18 @@ export function PageTitle({ className, ...rest }) {
   return <input className={cx("page-title", className)} {...rest} />;
 }
 
+// A small round marker in a colour that means something — a status, a card kind. Three sizes across
+// the app and no others: 8 for a marker that stands in a list's gutter, 6 beside a label (the
+// default), 4 as a separator or bullet.
+export function Dot({ color, size = 6, style }) {
+  return (
+    <span
+      aria-hidden="true"
+      style={{ width: `${size}px`, height: `${size}px`, borderRadius: "50%", backgroundColor: color, flexShrink: 0, alignSelf: "center", ...style }}
+    />
+  );
+}
+
 // The brand wordmark. Size is the one thing that genuinely varies between the header and the
 // start page, so it stays a prop rather than becoming two classes.
 export function Wordmark({ size, as: As = "span", className, style, ...rest }) {

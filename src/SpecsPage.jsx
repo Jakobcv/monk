@@ -1,6 +1,6 @@
 import { Plus, Trash2, Layers, FolderGit2 } from "lucide-react";
-import { font, INK, INK_SOFT, INK_FAINT, SIZE, WEIGHT, SPACE, SPEC_STATUS_COLOR } from "./lib/theme";
-import { Eyebrow, Meta, PageHeading } from "./ui/text";
+import { font, INK, INK_SOFT, INK_FAINT, SIZE, WEIGHT, SPACE, PAGE, SPEC_STATUS_COLOR } from "./lib/theme";
+import { Dot, Eyebrow, Meta, PageHeading } from "./ui/text";
 import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
 import Card from "./ui/Card";
@@ -22,15 +22,15 @@ function SpecCard({ spec, idx = 0, href, onDelete }) {
       className="reveal-group enter-up"
       // A gentle stagger on load — capped so a long list doesn't have a visible tail.
       // fill-mode backwards holds each card hidden through its delay.
-      style={{ position: "relative", textAlign: "left", padding: "14px 16px", animationDelay: `${Math.min(idx * 30, 300)}ms`, animationFillMode: "backwards" }}
+      style={{ position: "relative", textAlign: "left", animationDelay: `${Math.min(idx * 30, 300)}ms`, animationFillMode: "backwards" }}
     >
       <IconButton
         className="reveal"
         danger
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(spec.id); }}
         title="Delete spec"
-        // Inset 8px from the card corner with 14px between cards, so a 36px target stops at
-        // the card's own edge and never reaches the next one.
+        // Inset 8px from the card corner with 12px between cards, so a 36px target stops just
+        // inside the card's own edge and never reaches the next one.
         style={{ position: "absolute", top: SPACE.base, right: SPACE.base, "--hit": "36px" }}
       >
         <Trash2 size={16} />
@@ -57,7 +57,7 @@ function SpecCard({ spec, idx = 0, href, onDelete }) {
         </Meta>
         {meta && (
           <>
-            <span style={{ width: "3px", height: "3px", borderRadius: "50%", background: INK_FAINT }} />
+            <Dot color={INK_FAINT} size={4} />
             <Meta style={{ fontVariantNumeric: "tabular-nums" }}>{meta}</Meta>
           </>
         )}
@@ -68,7 +68,7 @@ function SpecCard({ spec, idx = 0, href, onDelete }) {
 
 function SpecGrid({ specs, specHref, onDelete }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "14px" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: SPACE.lg }}>
       {specs.map((s, i) => <SpecCard key={s.id} spec={s} idx={i} href={specHref(s.id)} onDelete={onDelete} />)}
     </div>
   );
@@ -86,8 +86,8 @@ export default function SpecsPage({ specs, initiatives, specHref, initiativeHref
 
   return (
     <Page>
-      <div style={{ maxWidth: "880px", margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "22px", gap: SPACE.base }}>
+      <div style={{ maxWidth: PAGE.wide, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE["3xl"], gap: SPACE.base }}>
           <PageHeading>Specs</PageHeading>
           <div style={{ display: "flex", gap: SPACE.base }}>
             <Button size="md" onClick={onCreateInitiative}>
@@ -102,7 +102,7 @@ export default function SpecsPage({ specs, initiatives, specHref, initiativeHref
         {isEmpty ? (
           <EmptyState icon={Layers}>No specs yet — create one, or group a few under an initiative.</EmptyState>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "34px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: SPACE["4xl"] }}>
             {sortedInitiatives.map((ini) => {
               const members = [...specs].filter((s) => s.initiativeId === ini.id).sort(byRecency);
               return (
@@ -112,7 +112,7 @@ export default function SpecsPage({ specs, initiatives, specHref, initiativeHref
                     className="crumb"
                     style={{
                       display: "inline-flex", alignItems: "center", gap: SPACE.sm, marginBottom: SPACE.lg,
-                      padding: "3px 6px", marginLeft: "-6px", textDecoration: "none",
+                      padding: `${SPACE.sm} ${SPACE.md}`, marginLeft: `-${SPACE.md}`, textDecoration: "none",
                       fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK,
                     }}
                   >

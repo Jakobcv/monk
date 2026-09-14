@@ -1,14 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, FlaskConical, Trash2 } from "lucide-react";
-import { INK, INK_FAINT, BORDER, SIZE, SPEC_STATUS_COLOR } from "./lib/theme";
+import { INK, INK_FAINT, SIZE, SPACE, SPEC_STATUS_COLOR } from "./lib/theme";
 import { RESEARCH_PLAN_STATUS_OPTIONS, RESEARCH_PLAN_STATUS_COLOR, specsForPlan } from "./lib/researchPlanModel";
-import { Eyebrow, Meta, PageKind, PageTitle } from "./ui/text";
+import { Dot, Eyebrow, Meta } from "./ui/text";
 import LiveMarkdown from "./ui/LiveMarkdown";
 import Button from "./ui/Button";
 import Page from "./ui/Page";
-import PageTabs from "./ui/PageTabs";
-import SideRail, { SideRailSection, SideRailDivider } from "./ui/SideRail";
-import Breadcrumbs from "./Breadcrumbs";
+import PaperFrame from "./ui/PaperFrame";
+import SideRail, { SideRailSection, SideRailDivider, SideRailFoot } from "./ui/SideRail";
 import ResearchQuestionsEditor from "./ResearchQuestionsEditor";
 import PaperListEditor from "./PaperListEditor";
 import Board from "./Board";
@@ -20,21 +19,17 @@ const TABS = [
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-const Dot = ({ color }) => (
-  <span aria-hidden="true" style={{ width: "7px", height: "7px", borderRadius: "50%", backgroundColor: color, flexShrink: 0, alignSelf: "center" }} />
-);
-
 function ProseSection({ label, value, onChange, placeholder, minLines = 2 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+    <div className="paper-section">
       <Eyebrow>{label}</Eyebrow>
       <LiveMarkdown className="prose-field" minLines={minLines} value={value} onChange={onChange} placeholder={placeholder} ariaLabel={label} />
     </div>
   );
 }
 
-// A research plan (lib/researchPlanModel.js), framed like a spec: breadcrumbs, title, a tab bar, and
-// a side rail for what describes it.
+// A research plan (lib/researchPlanModel.js), framed like a spec (ui/PaperFrame): breadcrumbs,
+// title, a tab bar, and a side rail for what describes it.
 //
 // - Overview is the plan itself, on the paper surface the spec's writing tabs use.
 // - Analysis is the plan's board (Board.jsx) — where the study's signals are collected, formed into
@@ -77,130 +72,126 @@ export default function ResearchPlanPage({
     ...(insights || []).filter((i) => !onBoard.has(i.id)),
   ];
 
+  const rail = (
+    <SideRail>
+      <SideRailSection label="Status">
+        <div className="select-wrap">
+          <select className="select" aria-label="Status" style={{ color: RESEARCH_PLAN_STATUS_COLOR[status] || INK }} value={status} onChange={(e) => setStatus(e.target.value)}>
+            {RESEARCH_PLAN_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <ChevronDown size={12} className="select-chevron" />
+        </div>
+      </SideRailSection>
+
+      <SideRailDivider />
+
+      <SideRailSection label="Initiative">
+        <div className="select-wrap">
+          <select
+            className="select"
+            aria-label="Initiative"
+            style={{ color: initiativeId ? INK : INK_FAINT }}
+            value={initiativeId || ""}
+            onChange={(e) => setInitiativeId(e.target.value || null)}
+          >
+            <option value="">None</option>
+            {(initiatives || []).map((i) => (
+              <option key={i.id} value={i.id}>{i.title || "Untitled initiative"}</option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="select-chevron" />
+        </div>
+      </SideRailSection>
+
+      <SideRailDivider />
+
+      {/* Linked from the spec's side, where the decision to lean on this research is made. */}
+      <SideRailSection label={`Informs ${plural(informed.length, "spec")}`}>
+        {informed.length === 0 ? (
+          <Meta as="div" style={{ fontSize: SIZE.sm, lineHeight: 1.5 }}>
+            No specs yet. A spec links to this plan from its Overview.
+          </Meta>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
+            {informed.map((s) => (
+              <a key={s.id} className="rail-link" href={specHref(s.id)} title={s.title || "Untitled spec"}>
+                <Dot color={SPEC_STATUS_COLOR[s.status] || INK_FAINT} />
+                <span>{s.title || "Untitled spec"}</span>
+              </a>
+            ))}
+          </div>
+        )}
+      </SideRailSection>
+
+      <SideRailFoot>
+        <Button variant="danger" onClick={onDelete} style={{ marginLeft: `-${SPACE.md}` }}>
+          <Trash2 size={16} /> Delete plan
+        </Button>
+      </SideRailFoot>
+    </SideRail>
+  );
+
   return (
-    <div style={{ height: "100%", display: "flex" }}>
-      <div style={{ flex: 1, minWidth: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <Breadcrumbs items={breadcrumbs} />
+    <PaperFrame
+      breadcrumbs={breadcrumbs}
+      kindIcon={FlaskConical} kind="Research plan"
+      title={title} onTitleChange={(e) => setTitle(e.target.value)} titlePlaceholder="Untitled research plan"
+      tabs={TABS} activeTab={activeTab} tabHref={tabHref}
+      rail={rail}
+    >
+      {/* `hidden` toggles these; see the note on SpecPage about why that wins over .page's display. */}
+      <Page ground="reading" hidden={activeTab !== "overview"}>
+        <div className="paper-sheet paper-sheet--sections">
+          <ProseSection label="Problem statement" value={problem} onChange={setProblem} placeholder="The decision or problem this research serves…" />
+          <ProseSection label="Background" value={background} onChange={setBackground} placeholder="What we already know, and what prompted this study…" />
+          <ProseSection label="Approach" value={approach} onChange={setApproach} placeholder="The method, and why it fits the questions…" />
+          <ProseSection label="Participants" value={participants} onChange={setParticipants} placeholder="Who we'll recruit, how many, and how we'll find them…" />
 
-        <div style={{ padding: "20px 40px 0", boxSizing: "border-box", flexShrink: 0 }}>
-          <PageKind icon={FlaskConical}>Research plan</PageKind>
-          <PageTitle value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Untitled research plan" />
-          <PageTabs tabs={TABS} activeTab={activeTab} tabHref={tabHref} />
+          <div className="paper-rule" />
+
+          <ResearchQuestionsEditor
+            items={researchQuestions}
+            onChange={setResearchQuestions}
+            insights={questionInsights}
+            insightHref={insightHref}
+          />
+
+          <ProseSection
+            label="Discussion guide"
+            value={discussionGuide}
+            onChange={setDiscussionGuide}
+            minLines={4}
+            placeholder="1. What you'll ask or do in each session, in order…"
+          />
+
+          <div className="paper-rule" />
+
+          <PaperListEditor
+            label="Activities"
+            items={activities}
+            onChange={setActivities}
+            addLabel="Add activity"
+            placeholder="Interview with P3, Survey wave 1…"
+          />
         </div>
+      </Page>
 
-        {/* `hidden` toggles these; see the note on SpecPage about why that wins over .page's display. */}
-        <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-          <Page ground="reading" hidden={activeTab !== "overview"}>
-            <div className="paper-sheet" style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
-              <ProseSection label="Problem statement" value={problem} onChange={setProblem} placeholder="The decision or problem this research serves…" />
-              <ProseSection label="Background" value={background} onChange={setBackground} placeholder="What we already know, and what prompted this study…" />
-              <ProseSection label="Approach" value={approach} onChange={setApproach} placeholder="The method, and why it fits the questions…" />
-              <ProseSection label="Participants" value={participants} onChange={setParticipants} placeholder="Who we'll recruit, how many, and how we'll find them…" />
-
-              <div style={{ height: "1px", backgroundColor: BORDER }} />
-
-              <ResearchQuestionsEditor
-                items={researchQuestions}
-                onChange={setResearchQuestions}
-                insights={questionInsights}
-                insightHref={insightHref}
-              />
-
-              <ProseSection
-                label="Discussion guide"
-                value={discussionGuide}
-                onChange={setDiscussionGuide}
-                minLines={4}
-                placeholder="1. What you'll ask or do in each session, in order…"
-              />
-
-              <div style={{ height: "1px", backgroundColor: BORDER }} />
-
-              <PaperListEditor
-                label="Activities"
-                items={activities}
-                onChange={setActivities}
-                addLabel="Add activity"
-                placeholder="Interview with P3, Survey wave 1…"
-              />
-            </div>
-          </Page>
-
-          <Page bleed hidden={activeTab !== "analysis"}>
-            <Board
-              board={board}
-              onChange={(patch) => setBoard((prev) => ({ ...prev, ...patch, updatedAt: Date.now() }))}
-              allBoards={boards}
-              onOpenBoard={onOpenBoard}
-              signals={signals}
-              insights={insights}
-              onUpdateSignal={onUpdateSignal}
-              onCreateSignal={onCreateSignal}
-              onUpdateInsight={onUpdateInsight}
-              onCreateInsight={onCreateInsight}
-              onToast={onToast}
-              highlightCardId={activeTab === "analysis" ? highlightCardId : null}
-            />
-          </Page>
-        </div>
-      </div>
-
-      <SideRail>
-        <SideRailSection label="Status">
-          <div className="select-wrap">
-            <select className="select" aria-label="Status" style={{ color: RESEARCH_PLAN_STATUS_COLOR[status] || INK }} value={status} onChange={(e) => setStatus(e.target.value)}>
-              {RESEARCH_PLAN_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <ChevronDown size={12} className="select-chevron" />
-          </div>
-        </SideRailSection>
-
-        <SideRailDivider />
-
-        <SideRailSection label="Initiative">
-          <div className="select-wrap">
-            <select
-              className="select"
-              aria-label="Initiative"
-              style={{ color: initiativeId ? INK : INK_FAINT }}
-              value={initiativeId || ""}
-              onChange={(e) => setInitiativeId(e.target.value || null)}
-            >
-              <option value="">None</option>
-              {(initiatives || []).map((i) => (
-                <option key={i.id} value={i.id}>{i.title || "Untitled initiative"}</option>
-              ))}
-            </select>
-            <ChevronDown size={12} className="select-chevron" />
-          </div>
-        </SideRailSection>
-
-        <SideRailDivider />
-
-        {/* Linked from the spec's side, where the decision to lean on this research is made. */}
-        <SideRailSection label={`Informs ${plural(informed.length, "spec")}`}>
-          {informed.length === 0 ? (
-            <Meta as="div" style={{ fontSize: SIZE.sm, lineHeight: 1.5 }}>
-              No specs yet. A spec links to this plan from its Overview.
-            </Meta>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-              {informed.map((s) => (
-                <a key={s.id} className="rail-link" href={specHref(s.id)} title={s.title || "Untitled spec"}>
-                  <Dot color={SPEC_STATUS_COLOR[s.status] || INK_FAINT} />
-                  <span>{s.title || "Untitled spec"}</span>
-                </a>
-              ))}
-            </div>
-          )}
-        </SideRailSection>
-
-        <div style={{ marginTop: "auto" }}>
-          <Button variant="danger" onClick={onDelete} style={{ marginLeft: "-6px" }}>
-            <Trash2 size={16} /> Delete plan
-          </Button>
-        </div>
-      </SideRail>
-    </div>
+      <Page bleed hidden={activeTab !== "analysis"}>
+        <Board
+          board={board}
+          onChange={(patch) => setBoard((prev) => ({ ...prev, ...patch, updatedAt: Date.now() }))}
+          allBoards={boards}
+          onOpenBoard={onOpenBoard}
+          signals={signals}
+          insights={insights}
+          onUpdateSignal={onUpdateSignal}
+          onCreateSignal={onCreateSignal}
+          onUpdateInsight={onUpdateInsight}
+          onCreateInsight={onCreateInsight}
+          onToast={onToast}
+          highlightCardId={activeTab === "analysis" ? highlightCardId : null}
+        />
+      </Page>
+    </PaperFrame>
   );
 }

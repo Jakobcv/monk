@@ -16,7 +16,7 @@ const FIXED_SECTION_META = {
 const navItemStyle = {
   display: "flex", alignItems: "center", gap: SPACE.base, width: "100%", textAlign: "left",
   fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.ui, border: "none",
-  borderRadius: RADIUS.sm, padding: "7px 8px", cursor: "pointer", textDecoration: "none",
+  borderRadius: RADIUS.sm, padding: `${SPACE.md} ${SPACE.base}`, cursor: "pointer", textDecoration: "none",
   boxSizing: "border-box",
 };
 
@@ -59,8 +59,8 @@ export default function Sidebar({ sections, workspaceDocs = [], activeView, rese
   return (
     <div style={{
       width: "230px", flexShrink: 0, height: "100%", overflowY: "auto", overflowX: "hidden", boxSizing: "border-box",
-      backgroundColor: BG_APP, borderRight: `1px solid ${BORDER}`, padding: "14px 10px",
-      display: "flex", flexDirection: "column", gap: "14px",
+      backgroundColor: BG_APP, borderRight: `1px solid ${BORDER}`, padding: `${SPACE.lg} ${SPACE.base}`,
+      display: "flex", flexDirection: "column", gap: SPACE.lg,
     }}>
       <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
         <a
@@ -112,7 +112,7 @@ export default function Sidebar({ sections, workspaceDocs = [], activeView, rese
             <div key={s.id}>
               <div className="reveal-group" style={{ display: "flex", alignItems: "center", gap: SPACE.sm, padding: `0 ${SPACE.base}`, marginBottom: SPACE.xs }}>
                 {fixed ? (
-                  <div title={FIXED_SECTION_META[s.id]?.tooltip} style={{ ...sectionLabelStyle, display: "flex", alignItems: "center", gap: "5px" }}>
+                  <div title={FIXED_SECTION_META[s.id]?.tooltip} style={{ ...sectionLabelStyle, display: "flex", alignItems: "center", gap: SPACE.sm }}>
                     {FixedIcon && <FixedIcon size={11} style={{ flexShrink: 0 }} />}
                     {s.name}
                   </div>
@@ -166,8 +166,8 @@ export default function Sidebar({ sections, workspaceDocs = [], activeView, rese
                       onClick={() => onDeleteDocument(s.id, doc.id)}
                       title="Delete document"
                       // The document link sits 2px to the left and fills the row, so width is
-                      // capped hard to keep this off it. Rows are ~31px tall with no gap.
-                      style={{ flexShrink: 0, "--hit-w": "26px", "--hit-h": "30px" }}
+                      // capped hard to keep this off it. Rows are ~29px tall with no gap.
+                      style={{ flexShrink: 0, "--hit-w": "26px", "--hit-h": "28px" }}
                     >
                       <Trash2 size={16} />
                     </IconButton>

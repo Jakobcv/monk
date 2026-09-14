@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { Search as SearchIcon, X, ArrowLeft, Star, Plus, Lightbulb } from "lucide-react";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, ACCENT, RESEARCH_PLAN, DANGER, CITED, SIZE, WEIGHT, SPACE, RADIUS, withAlpha } from "./lib/theme";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, ACCENT, RESEARCH_PLAN, DANGER, CITED, SIZE, WEIGHT, SPACE, RADIUS, PAGE, withAlpha } from "./lib/theme";
 import { blankSignal, isSignalUnlinked } from "./lib/signalModel";
 import { RESEARCH_PLAN_STATUS_COLOR, answeredCount } from "./lib/researchPlanModel";
 import { blankInsight } from "./lib/insightModel";
@@ -185,8 +185,8 @@ export default function ResearchRepositoryPage({
     const activityTotal = (plan.activities || []).length;
     const total = (plan.researchQuestions || []).length;
     return (
-      <Card key={key} as="a" href={researchPlanHref(plan.id)} interactive style={{ padding: "10px 14px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.sm, flexWrap: "wrap" }}>
+      <Card key={key} as="a" href={researchPlanHref(plan.id)} interactive>
+        <div style={{ display: "flex", alignItems: "center", gap: SPACE.base, marginBottom: SPACE.sm, flexWrap: "wrap" }}>
           <Dot color={RESEARCH_PLAN} />
           <Meta style={{ fontWeight: WEIGHT.semibold, color: RESEARCH_PLAN }}>Research plan</Meta>
           <Meta style={{ fontWeight: WEIGHT.semibold, color: RESEARCH_PLAN_STATUS_COLOR[plan.status] || INK_FAINT }}>{plan.status}</Meta>
@@ -326,8 +326,8 @@ export default function ResearchRepositoryPage({
 
   return (
     <Page>
-      <div style={{ maxWidth: "880px", margin: "0 auto" }}>
-        <div style={{ height: "20px", marginBottom: "10px" }}>
+      <div style={{ maxWidth: PAGE.wide, margin: "0 auto" }}>
+        <div style={{ height: SPACE["3xl"], marginBottom: SPACE.sm }}>
           <Button
             variant="subtle"
             onClick={backToRecent}
@@ -336,14 +336,14 @@ export default function ResearchRepositoryPage({
             <ArrowLeft size={16} /> Back
           </Button>
         </div>
-        <div style={{ position: "relative", marginBottom: "14px" }}>
+        <div style={{ position: "relative", marginBottom: SPACE["3xl"] }}>
           <SearchIcon size={16} style={{ position: "absolute", left: SPACE.lg, top: "50%", transform: "translateY(-50%)", color: INK_FAINT, pointerEvents: "none" }} />
           <Field
             value={query}
             onChange={(e) => { setQuery(e.target.value); setActivated(true); }}
             onFocus={() => setActivated(true)}
             placeholder="Search research…"
-            style={{ width: "100%", fontSize: SIZE.md, borderRadius: RADIUS.md, padding: "10px 36px" }}
+            style={{ width: "100%", fontSize: SIZE.md, borderRadius: RADIUS.sm, padding: `10px 36px` }}
           />
           {q && (
             <button
@@ -361,10 +361,9 @@ export default function ResearchRepositoryPage({
 
         {/* Research plans, signals and insights are each created from their own section on the
             landing page below, with a button beside the heading. */}
-        <div style={{ height: "10px" }} />
 
         {activated && (
-        <div className="enter-up" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: SPACE.base, marginBottom: "26px" }}>
+        <div className="enter-up" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: SPACE.base, marginBottom: SPACE["3xl"] }}>
           <Pill color={INK} active={activeKind === "all"} onClick={() => setActiveKind("all")}>
             <span style={{ color: activeKind === "all" ? "#fff" : INK_SOFT }}>All</span>
           </Pill>
@@ -418,7 +417,7 @@ export default function ResearchRepositoryPage({
             </EmptyState>
           ) : (
             <div className="enter-up">
-              <Meta as="div" style={{ fontSize: SIZE.sm, marginBottom: "10px" }}>
+              <Meta as="div" style={{ fontSize: SIZE.sm, marginBottom: SPACE.base }}>
                 {matches.length} result{matches.length === 1 ? "" : "s"}
               </Meta>
               <div style={{ display: "flex", flexDirection: "column", gap: SPACE.base }}>
@@ -431,14 +430,13 @@ export default function ResearchRepositoryPage({
                     as="a"
                     href={boardCardHref(m.boardId, m.cardId)}
                     interactive
-                    style={{ padding: "10px 14px" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.sm }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: SPACE.base, marginBottom: SPACE.sm }}>
                       <Dot color={ACCENT[m.kind]} />
                       <Meta style={{ fontWeight: WEIGHT.semibold, color: ACCENT[m.kind] }}>{m.label}</Meta>
                       <Meta>in {m.boardTitle}</Meta>
                       {m.citationCount != null && (
-                        <Meta style={{ display: "flex", alignItems: "center", gap: "3px", fontWeight: WEIGHT.semibold, color: CITED }}>
+                        <Meta style={{ display: "flex", alignItems: "center", gap: SPACE.sm, fontWeight: WEIGHT.semibold, color: CITED }}>
                           <Star size={10} fill={CITED} /> {m.citationCount} citation{m.citationCount === 1 ? "" : "s"}
                         </Meta>
                       )}
@@ -462,16 +460,16 @@ export default function ResearchRepositoryPage({
             </div>
 
             {sortedPlans.length === 0 ? (
-              <EmptyState compact style={{ paddingBottom: "30px" }}>
+              <EmptyState compact style={{ paddingBottom: SPACE["4xl"] }}>
                 No research plans yet — start one to decide what a study has to find out before the signals come in.
               </EmptyState>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: SPACE.base, marginBottom: "30px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: SPACE.lg, marginBottom: SPACE["4xl"] }}>
                 {sortedPlans.map((p) => renderPlanRow(p))}
               </div>
             )}
 
-            <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: "30px" }} />
+            <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: SPACE["4xl"] }} />
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg, gap: SPACE.base, flexWrap: "wrap" }}>
               <PageHeading>Signals</PageHeading>
@@ -509,16 +507,16 @@ export default function ResearchRepositoryPage({
             )}
 
             {sortedSignals.length === 0 ? (
-              <EmptyState compact style={{ paddingBottom: "30px" }}>No signals yet — add one above.</EmptyState>
+              <EmptyState compact style={{ paddingBottom: SPACE["4xl"] }}>No signals yet — add one above.</EmptyState>
             ) : (
               // Same grid an activity's own "Linked signals" section already uses — a signal
               // should look like a signal wherever you meet it, landing page included.
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: SPACE.lg, marginBottom: "30px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: SPACE.lg, marginBottom: SPACE["4xl"] }}>
                 {sortedSignals.map((m) => renderSignalRow(m, { selectable: true }))}
               </div>
             )}
 
-            <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: "30px" }} />
+            <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: SPACE["4xl"] }} />
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg }}>
               <PageHeading>Insights</PageHeading>
@@ -547,10 +545,10 @@ export default function ResearchRepositoryPage({
             )}
 
             {sortedInsights.length === 0 ? (
-              <EmptyState compact icon={Lightbulb} style={{ paddingBottom: "30px" }}>No insights yet — add one above.</EmptyState>
+              <EmptyState compact icon={Lightbulb} style={{ paddingBottom: SPACE["4xl"] }}>No insights yet — add one above.</EmptyState>
             ) : (
               // Same grid the Signals section above uses.
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: SPACE.lg, marginBottom: "30px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: SPACE.lg, marginBottom: SPACE["4xl"] }}>
                 {sortedInsights.map((m) => renderInsightRow(m))}
               </div>
             )}

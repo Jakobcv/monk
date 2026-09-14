@@ -49,10 +49,10 @@ const toPx = (v) => {
   return m ? (m[2] === "px" ? +m[1] : +m[1] * 16) : null;
 };
 
-// Same rhythm as the Solution tab: eyebrow, 10px, content.
+// Same rhythm as the Solution tab: eyebrow, PAPER.labelGap, content (.paper-section).
 function Section({ title, children }) {
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+    <section className="paper-section">
       <Eyebrow style={{ minHeight: "18px", display: "flex", alignItems: "center" }}>{title}</Eyebrow>
       {children}
     </section>
@@ -235,7 +235,7 @@ export default function DesignSystemEditor({ value, onChange, onToast }) {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: PAPER.sectionGap }}>
       {ds.droppedComments && (
         <p className="ds-note">
           This file has YAML comments in its front matter. They aren't kept once you edit here — use

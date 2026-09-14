@@ -53,10 +53,10 @@ const linkLine = {
   padding: "2px 0", color: INK_SOFT,
 };
 
-// Same rhythm as Overview: eyebrow, 10px, content.
+// Same rhythm as Overview: eyebrow, PAPER.labelGap, content (.paper-section).
 function Section({ title, children }) {
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+    <section className="paper-section">
       <Eyebrow style={{ minHeight: "18px", display: "flex", alignItems: "center" }}>{title}</Eyebrow>
       {children}
     </section>
@@ -141,7 +141,7 @@ export default function DesignTab({ value, onChange, onToast }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: PAPER.sectionGap }}>
       {/* What's being built, in your own words. Flush with the section headings, like Overview's
           fields — it says what's being built, and every section under it only qualifies it. */}
       <Section title="Solution">

@@ -1,9 +1,9 @@
 import { useId, useState } from "react";
 import { Plus, FolderOpen } from "lucide-react";
 import {
-  font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, RESEARCH_PLAN, SIZE, SPACE, RADIUS, BRAND,
+  font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, RESEARCH_PLAN, SIZE, SPACE, RADIUS, BRAND, PAGE,
 } from "./lib/theme";
-import { Eyebrow, Meta, Wordmark } from "./ui/text";
+import { Dot, Eyebrow, Meta, Wordmark } from "./ui/text";
 import { recentlyTouched, relativeTime } from "./lib/recentActivity";
 import Page from "./ui/Page";
 
@@ -72,7 +72,7 @@ function DeskMark({ size = 96 }) {
 function RecentRow({ item, href, now, delay }) {
   const inner = (
     <>
-      <span style={{ width: "7px", height: "7px", borderRadius: "50%", flexShrink: 0, background: KIND_COLOR[item.kind] || INK_FAINT }} />
+      <Dot color={KIND_COLOR[item.kind] || INK_FAINT} />
       <Meta style={{ fontSize: SIZE.xs, width: "62px", flexShrink: 0, textTransform: "capitalize" }}>{KIND_LABEL[item.kind] || item.kind}</Meta>
       <span style={{ flex: 1, minWidth: 0, color: INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
       <Meta style={{ fontSize: SIZE.sm, flexShrink: 0 }}>{relativeTime(item.updatedAt, now)}</Meta>
@@ -81,7 +81,7 @@ function RecentRow({ item, href, now, delay }) {
   const style = {
     display: "flex", alignItems: "center", gap: SPACE.lg,
     fontFamily: font, fontSize: SIZE.body, textDecoration: "none",
-    padding: "10px 12px", margin: "0 -12px", borderRadius: "8px",
+    padding: `${SPACE.base} ${SPACE.lg}`, margin: `0 -${SPACE.lg}`, borderRadius: RADIUS.md,
     animationDelay: `${delay}ms`, animationFillMode: "backwards",
   };
   return href
@@ -102,7 +102,7 @@ export default function Home({ signals = [], insights = [], specs = [], initiati
   // No background: every page takes the app ground from body (see lib/theme.js).
   return (
     <Page landing>
-      <div style={{ maxWidth: "560px", margin: "0 auto" }}>
+      <div style={{ maxWidth: PAGE.narrow, margin: "0 auto" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <DeskMark />
           {/* Shared with the header — see Wordmark in ui/text.jsx. Size and the negative top
@@ -128,7 +128,7 @@ export default function Home({ signals = [], insights = [], specs = [], initiati
           <p
             className="enter-up"
             style={{
-              margin: "10px 0 0", fontFamily: font, fontSize: SIZE.md, lineHeight: 1.4,
+              margin: `${SPACE.lg} 0 0`, fontFamily: font, fontSize: SIZE.md, lineHeight: 1.4,
               color: INK_SOFT, textAlign: "center", textWrap: "balance",
               animationDelay: "840ms", animationFillMode: "backwards",
             }}

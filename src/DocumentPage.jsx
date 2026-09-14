@@ -104,7 +104,7 @@ export default function DocumentPage({ document: doc, onChange }) {
 
   return (
     <Page style={{ overflowAnchor: "none", scrollbarGutter: "stable" }}>
-      <div style={{ display: "flex", gap: "40px", justifyContent: "center", alignItems: "flex-start", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: SPACE["5xl"], justifyContent: "center", alignItems: "flex-start", flexWrap: "wrap" }}>
         <div style={{ width: "100%", maxWidth: "760px", flex: "1 1 480px", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: SPACE.base, marginBottom: SPACE.md }}>
             <PageTitle
@@ -131,7 +131,7 @@ export default function DocumentPage({ document: doc, onChange }) {
               <FileText size={16} /> View .md
             </button>
           </div>
-          <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: "18px" }} />
+          <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: SPACE.xl }} />
           <MarkdownEditor value={doc.body} onChange={(body) => onChange({ body })} hint={false} placeholder="Write the document in Markdown…" />
         </div>
 

@@ -47,7 +47,9 @@ export default function MarkdownEditor({ value, onChange, minHeight = "60vh", hi
         onChange={onChange}
         placeholder={placeholder}
         className="edit-area"
-        style={{ padding: "4px 0", minHeight }}
+        // In fill mode the legend is pushed to the foot with an auto margin, which collapses to 0
+        // once the writing reaches it — this keeps a gap between the last line and the legend's rule.
+        style={{ padding: "4px 0", minHeight, marginBottom: fill && hint ? SPACE.lg : 0 }}
       />
       {hint && (
         <div style={{

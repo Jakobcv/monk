@@ -85,12 +85,17 @@ export const LEADING = { tight: 1, snug: 1.35, normal: 1.5 };
 // ---------------------------------------------------------------------------
 // Space / radius / elevation
 // ---------------------------------------------------------------------------
+// Every margin, padding and gap in a page comes from here. Values between the steps (7px, 10px,
+// 14px, 18px, 22px, 30px, 34px) used to be scattered through the pages; they were each rounded to
+// the nearest step, which is the whole point of having steps.
 export const SPACE = {
   px: "1px", xs: "2px", sm: "4px", md: "6px", base: "8px",
   lg: "12px", xl: "16px", "2xl": "20px", "3xl": "24px", "4xl": "32px", "5xl": "40px",
 };
 
-export const RADIUS = { xs: "4px", sm: "6px", md: "8px", lg: "10px", pill: "999px" };
+// `paper` is the sheet's corner — paper has square corners, and the radius only exists to keep
+// the shadow from ending in a hard point. Every other surface is xs–lg.
+export const RADIUS = { paper: "3px", xs: "4px", sm: "6px", md: "8px", lg: "10px", pill: "999px" };
 
 // ---------------------------------------------------------------------------
 // Page — the frame every full page sits in (ui/Page.jsx). These were seven
@@ -108,6 +113,13 @@ export const PAGE = {
   padBottom: "48px",
   landingTop: "10vh",
   bleed: "12px", // a canvas gets a margin, not padding to read against
+  // The gutter of a paper page's chrome (ui/PaperFrame): the breadcrumb bar, the kind/title/tabs
+  // block and the side rail all start their content here, so they share one left edge.
+  chromeX: "20px",
+  // The two column widths a centred page uses. `wide` is also the paper sheet's width, so a list of
+  // specs and the spec itself sit on the same measure.
+  narrow: "560px", // the start page
+  wide: "840px",   // Specs, Research Repository, the paper sheet
 };
 
 export const SHADOW = {
@@ -158,8 +170,13 @@ export const PAPER = {
   label: "14px",   // a list's number, set a step under the line it marks
   eyebrow: "12px", // section labels — up from the 10px eyebrow used in chrome
   leading: 1.6,
-  width: "840px",  // sheet width; ~70 characters of measure inside the padding
+  width: PAGE.wide, // sheet width; ~70 characters of measure inside the padding
   pad: "56px 64px 64px",
+  // The rhythm of a sheet: the space between two sections, and between a section's label and what
+  // it labels. The first is well over twice the second, so a label always reads as belonging to the
+  // field under it and not to the one above.
+  sectionGap: SPACE["4xl"],
+  labelGap: SPACE.lg,
   // The gutter every list row hangs its marker in — a bullet, a number, a checkbox, or the
   // "+" of the row that adds the next one. With SPACE.base after it the text lands at 34px,
   // which is the one indent a list gets on either tab. Four files need to agree on it, which
@@ -215,16 +232,17 @@ export const CSS_VARS = `:root{
   --size-micro:${SIZE.micro}; --size-xs:${SIZE.xs}; --size-sm:${SIZE.sm};
   --size-ui:${SIZE.ui}; --size-body:${SIZE.body}; --size-md:${SIZE.md}; --size-lg:${SIZE.lg};
   --size-title:${SIZE.title};
-  --radius-xs:${RADIUS.xs}; --radius-sm:${RADIUS.sm}; --radius-md:${RADIUS.md};
+  --radius-paper:${RADIUS.paper}; --radius-xs:${RADIUS.xs}; --radius-sm:${RADIUS.sm}; --radius-md:${RADIUS.md};
   --radius-lg:${RADIUS.lg}; --radius-pill:${RADIUS.pill};
   --page-pad-x:${PAGE.padX}; --page-pad-top:${PAGE.padTop};
   --page-pad-top-header:${PAGE.padTopUnderHeader}; --page-pad-bottom:${PAGE.padBottom};
-  --page-landing-top:${PAGE.landingTop}; --page-bleed:${PAGE.bleed};
+  --page-landing-top:${PAGE.landingTop}; --page-bleed:${PAGE.bleed}; --page-chrome-x:${PAGE.chromeX};
   --shadow-sm:${SHADOW.sm}; --shadow-md:${SHADOW.md}; --shadow-pop:${SHADOW.pop}; --shadow-panel:${SHADOW.panel};
   --edge-flat:${EDGE.flat}; --edge-raised:${EDGE.raised};
   --edge-lifted:${EDGE.lifted}; --edge-float:${EDGE.float}; --edge-paper:${EDGE.paper};
   --paper-body:${PAPER.body}; --paper-leading:${PAPER.leading}; --paper-eyebrow:${PAPER.eyebrow};
   --paper-width:${PAPER.width}; --paper-pad:${PAPER.pad}; --paper-marker:${PAPER.marker};
+  --paper-section-gap:${PAPER.sectionGap}; --paper-label-gap:${PAPER.labelGap};
   --motion-instant:${MOTION.instant}; --motion-fast:${MOTION.fast};
   --motion-base:${MOTION.base}; --motion-slow:${MOTION.slow};
   --ease:${MOTION.ease}; --ease-entrance:${MOTION.entrance}; --ease-exit:${MOTION.exit};

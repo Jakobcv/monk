@@ -27,7 +27,7 @@ const orderBtnStyle = (disabled) => ({
 // nothing to link to, so they get the `+` alone).
 function ColumnHeader({ kind, title, count, onAdd, addProps, onConnect, connectProps }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: SPACE.xs }}>
+    <div style={{ display: "flex", alignItems: "center", gap: SPACE.base, marginBottom: SPACE.xs }}>
       <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: ACCENT[kind], flexShrink: 0 }} />
       <span style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.sm, color: INK }}>{title}</span>
       {/* tabular-nums: this count changes as cards are added, linked and unlinked, and
@@ -52,7 +52,7 @@ function ColumnHeader({ kind, title, count, onAdd, addProps, onConnect, connectP
 
 function Column({ kind, title, count, children, last, onAdd, addProps, onConnect, connectProps }) {
   return (
-    <div style={{ height: "100%", minHeight: 0, overflowY: "auto", borderRight: last ? "none" : `1px solid ${BORDER}`, padding: "18px 26px", display: "flex", flexDirection: "column", gap: "10px", minWidth: 0 }}>
+    <div style={{ height: "100%", minHeight: 0, overflowY: "auto", borderRight: last ? "none" : `1px solid ${BORDER}`, padding: `${SPACE.xl} ${SPACE["3xl"]}`, display: "flex", flexDirection: "column", gap: SPACE.base, minWidth: 0 }}>
       <ColumnHeader kind={kind} title={title} count={count} onAdd={onAdd} addProps={addProps} onConnect={onConnect} connectProps={connectProps} />
       {children}
     </div>
@@ -573,7 +573,7 @@ export default function Board({
           in index.css instead — a signal card also appears on a research plan's page, and the
           two have to stay identical. */}
       <style>{`
-        .el-board { display:grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); grid-template-rows: 1fr; align-items:stretch; position:relative; z-index:1; flex:1; min-height:0; min-width:900px; }
+        .el-board { display:grid; grid-template-rows: 1fr; align-items:stretch; position:relative; z-index:1; flex:1; min-height:0; min-width:900px; }
         .el-node { position:relative; transition: opacity ${MOTION.base} ${MOTION.ease}; }
         .el-node:hover .el-handle, .el-node:focus-within .el-handle { opacity:0.8; }
         .el-ref-source:hover { color: ${INK_SOFT}; text-decoration: underline; }
@@ -596,9 +596,14 @@ export default function Board({
         // own background is just a border. Inheriting the ground keeps the cards' contrast
         // (white on grey, as everywhere else) and loses the phantom surface; the border and
         // radius still say where the canvas ends.
-        style={{ position: "relative", border: `1px solid ${BORDER}`, borderRadius: "10px", overflowX: "auto", overflowY: "hidden", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+        style={{ position: "relative", border: `1px solid ${BORDER}`, borderRadius: RADIUS.lg, overflowX: "auto", overflowY: "hidden", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
       >
-        <div className="el-board">
+        {/* A column with no cards yet gives up some of its width to the ones that have them, so an
+            empty Action and Result don't leave the signals and insights wrapping every few words. */}
+        <div
+          className="el-board"
+          style={{ gridTemplateColumns: [signalLinks.length, insightLinks.length, actions.length, results.length].map((n) => (n ? "minmax(220px, 1fr)" : "minmax(160px, 0.6fr)")).join(" ") }}
+        >
           <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "visible" }}>
             <defs>
               <marker id="cap" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
