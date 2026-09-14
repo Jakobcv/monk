@@ -154,7 +154,7 @@ export const EDGE = {
   // in the steps above because it is doing the whole job: the ground behind the sheet is the
   // app's own, four units off white, so the hairline is what says "edge" and the penumbra only
   // says "lift". Weaken it and the sheet stops reading as a sheet.
-  paper: "0 0 0 1px rgba(0,0,0,0.07), 0 1px 1px rgba(0,0,0,0.04), 0 6px 14px -4px rgba(0,0,0,0.07), 0 18px 36px -12px rgba(0,0,0,0.12)",
+  paper: "0 0 0 1px rgba(0,0,0,0.07), 0 1px 1px rgba(0,0,0,0.03), 0 4px 10px -4px rgba(0,0,0,0.04), 0 14px 32px -14px rgba(0,0,0,0.06)",
 };
 
 // ---------------------------------------------------------------------------
