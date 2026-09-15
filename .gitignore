@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Monk workspace (internal product research/specs, not for the public repo)
+monk/
