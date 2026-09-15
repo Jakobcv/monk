@@ -144,6 +144,9 @@ function useRoute() {
   if (hash === "#/home-preview") {
     return { name: "homePreview" };
   }
+  if (hash === "#/specs-preview") {
+    return { name: "specsPreview" };
+  }
   if (hash === "#/initiative-preview") {
     return { name: "initiativePreview" };
   }
@@ -1186,6 +1189,20 @@ export default function App() {
     return (
       <div style={{ fontFamily: font, height: "100dvh", overflowY: "auto" }}>
         <Home {...mock} recentHref={(kind, id) => recentHref(kind, id)} folderName="product-research" subfolder="monk" onChangeFolder={() => {}} />
+      </div>
+    );
+  }
+
+  // Dev-only: the Specs page on mock data (#/specs-preview), no folder needed.
+  if (import.meta.env.DEV && route.name === "specsPreview") {
+    const mock = mockWorkspace(1);
+    return (
+      <div style={{ fontFamily: font, height: "100dvh" }}>
+        <SpecsPage
+          specs={mock.specs} initiatives={mock.initiatives}
+          specHref={() => "#/spec-preview"} initiativeHref={() => "#/initiative-preview"}
+          onCreate={() => {}} onCreateInitiative={() => {}} onDelete={() => {}}
+        />
       </div>
     );
   }
