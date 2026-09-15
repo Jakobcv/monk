@@ -1,4 +1,4 @@
-const DB_NAME = "evidence-loop";
+const DB_NAME = "monk";
 const STORE = "handles";
 const KEY = "researchFolder";
 
