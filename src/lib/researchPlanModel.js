@@ -26,6 +26,8 @@ export function blankResearchPlan(title = "Untitled research plan") {
     problem: "", background: "", approach: "", participants: "", discussionGuide: "",
     researchQuestions: [],
     activities: [],
+    // Reference material behind the study — document pointers and uploaded files (sourceModel.js).
+    sources: [],
     board: blankBoard(id),
     // Sections of the file the app doesn't show, kept as raw markdown (see markdown.js).
     extraSections: "",

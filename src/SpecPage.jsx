@@ -13,6 +13,7 @@ import IconButton from "./ui/IconButton";
 import PaperButton from "./ui/PaperButton";
 import LinkPicker from "./ui/LinkPicker";
 import SideRail, { SideRailSection, SideRailDivider } from "./ui/SideRail";
+import SourcesList from "./ui/SourcesList";
 
 // Solution / Plan mirror the shape of the work itself — what you're going to build, then execution —
 // with Overview as the always-there summary tying them together. The research behind the spec lives
@@ -154,6 +155,7 @@ function ResearchPlansList({ researchPlans, ids, onChange, researchPlanHref, onC
 export default function SpecPage({
   spec, initiatives, onChange, activeTab, tabHref, onToast, breadcrumbs,
   researchPlans = [], researchPlanHref, onCreateResearchPlan, onAddResearchQuestion,
+  sections, docHref, onUploadSourceFile, onRemoveSourceFile, onOpenSourceFile,
 }) {
   const [title, setTitle] = useState(spec.title);
   const [status, setStatus] = useState(spec.status);
@@ -165,15 +167,16 @@ export default function SpecPage({
   const [nonGoals, setNonGoals] = useState(spec.nonGoals);
   const [openQuestions, setOpenQuestions] = useState(spec.openQuestions);
   const [acceptanceCriteria, setAcceptanceCriteria] = useState(spec.acceptanceCriteria);
+  const [sources, setSources] = useState(spec.sources || []);
   const [design, setDesign] = useState(spec.design);
   const [plan, setPlan] = useState(spec.plan);
 
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
-    onChange({ title, status, owner, initiativeId, researchPlanIds, problem, goals, nonGoals, openQuestions, acceptanceCriteria, design, plan });
+    onChange({ title, status, owner, initiativeId, researchPlanIds, problem, goals, nonGoals, openQuestions, acceptanceCriteria, sources, design, plan });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, status, owner, initiativeId, researchPlanIds, problem, goals, nonGoals, openQuestions, acceptanceCriteria, design, plan]);
+  }, [title, status, owner, initiativeId, researchPlanIds, problem, goals, nonGoals, openQuestions, acceptanceCriteria, sources, design, plan]);
 
   // An open question handed to a research plan. The picker hangs off the row's button; the plans
   // already linked to this spec come first, since that's almost always where the question goes.
@@ -248,6 +251,18 @@ export default function SpecPage({
             } : null}
           />
           <ChecklistEditor paper label="Acceptance criteria" items={acceptanceCriteria} onChange={setAcceptanceCriteria} />
+
+          <div className="paper-rule" />
+
+          <SourcesList
+            sources={sources}
+            onChange={setSources}
+            sections={sections}
+            docHref={docHref}
+            onUploadFile={onUploadSourceFile}
+            onRemoveFile={onRemoveSourceFile}
+            onOpenFile={onOpenSourceFile}
+          />
         </div>
       </Page>
 

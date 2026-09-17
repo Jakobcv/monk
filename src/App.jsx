@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { FolderOpen, RefreshCw, FileText } from "lucide-react";
-import { loadWorkspace, saveWorkspace, watchWorkspace, canWatchWorkspace, entityIdsFor, ensureAgentGuides, addAgentSection, createWorkspaceDoc, removeWorkspaceDoc } from "./lib/storage";
+import { loadWorkspace, saveWorkspace, watchWorkspace, canWatchWorkspace, entityIdsFor, ensureAgentGuides, addAgentSection, createWorkspaceDoc, removeWorkspaceDoc, uploadSourceFile, removeSourceFile, readSourceFile } from "./lib/storage";
 import { WORKSPACE_DOCS, workspaceDocById } from "./lib/workspaceDocs";
 import { bumpNextId } from "./lib/boardModel";
 import { blankSection, blankDocument, ensureFixedSections, isFixedSection } from "./lib/documentModel";
@@ -900,6 +900,33 @@ export default function App() {
     );
   };
 
+  // A source's uploaded file lives on disk under the record's own folder — "<spec-id>/sources/",
+  // "research-plans/<id>/sources/" or "initiatives/<id>/sources/" (storage.js). Upload and
+  // removal go straight to disk rather than waiting on the debounced autosave (see storage.js
+  // uploadSourceFile); only the file's *name* is state (in the record's `sources` list), saved
+  // the normal way.
+  const sourceBase = (kind, id) => (kind === "spec" ? id : kind === "researchPlan" ? `research-plans/${id}` : `initiatives/${id}`);
+  const uploadSource = (kind, id) => async (file) => {
+    if (!dirHandle) throw new Error("Not connected to a workspace.");
+    return uploadSourceFile(dirHandle, sourceBase(kind, id), file);
+  };
+  const removeSource = (kind, id) => (name) => {
+    if (!dirHandle) return;
+    removeSourceFile(dirHandle, sourceBase(kind, id), name).catch((err) => console.error("Couldn't remove source file:", err));
+  };
+  const openSource = (kind, id) => async (name) => {
+    if (!dirHandle) return;
+    try {
+      const file = await readSourceFile(dirHandle, sourceBase(kind, id), name);
+      const url = URL.createObjectURL(file);
+      window.open(url, "_blank", "noopener");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      console.error("Couldn't open source file:", err);
+      showToast("Couldn't open that file");
+    }
+  };
+
   const isSpecRoute = route.name === "spec" || route.name === "specDesign" || route.name === "specPlan";
 
   const createSpec = (initiativeId = null) => {
@@ -1419,6 +1446,11 @@ export default function App() {
                   researchPlanHref={hrefResearchPlan}
                   onCreateResearchPlan={createResearchPlan}
                   onAddResearchQuestion={addResearchQuestion}
+                  sections={sections}
+                  docHref={hrefDocument}
+                  onUploadSourceFile={uploadSource("spec", activeSpec.id)}
+                  onRemoveSourceFile={removeSource("spec", activeSpec.id)}
+                  onOpenSourceFile={openSource("spec", activeSpec.id)}
                   onChange={(patch) => updateSpec(activeSpec.id, patch)}
                   activeTab={activeSpecTab}
                   tabHref={(tab) => (
@@ -1475,6 +1507,11 @@ export default function App() {
                   specHref={hrefSpec}
                   researchPlans={researchPlansForInitiative(researchPlans, activeInitiative.id)}
                   researchPlanHref={hrefResearchPlan}
+                  sections={sections}
+                  docHref={hrefDocument}
+                  onUploadSourceFile={uploadSource("initiative", activeInitiative.id)}
+                  onRemoveSourceFile={removeSource("initiative", activeInitiative.id)}
+                  onOpenSourceFile={openSource("initiative", activeInitiative.id)}
                   onChange={(patch) => updateInitiative(activeInitiative.id, patch)}
                   onDelete={() => deleteInitiative(activeInitiative.id)}
                   onCreateSpec={() => createSpec(activeInitiative.id)}
@@ -1517,6 +1554,11 @@ export default function App() {
                   tabHref={(tab) => (tab === "analysis" ? hrefResearchPlanAnalysis(activeResearchPlan.id) : hrefResearchPlan(activeResearchPlan.id))}
                   highlightCardId={route.cardId}
                   onOpenBoard={(planId) => goToResearchPlanAnalysis(planId)}
+                  sections={sections}
+                  docHref={hrefDocument}
+                  onUploadSourceFile={uploadSource("researchPlan", activeResearchPlan.id)}
+                  onRemoveSourceFile={removeSource("researchPlan", activeResearchPlan.id)}
+                  onOpenSourceFile={openSource("researchPlan", activeResearchPlan.id)}
                   onChange={(patch) => updateResearchPlan(activeResearchPlan.id, patch)}
                   onDelete={() => deleteResearchPlan(activeResearchPlan.id)}
                   onCreateSignal={createSignal}

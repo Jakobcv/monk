@@ -70,11 +70,14 @@ every record; set \`updatedAt\` to now when you change something.
     spec.md                     see "Spec" below
     solution.md                 markdown in fixed ## sections, NO frontmatter (the Solution tab)
     plan.md                     plain markdown, NO frontmatter (the Plan tab)
+    sources/<filename>          uploaded source files, see "Sources" below (only once one exists)
 
   DESIGN.md                   ← optional: this product's design system (see below)
   signals/<uuid>.md           ← global signal (see "Signal")
   insights/<uuid>.md          ← global insight (see "Insight")
   initiatives/<uuid>.md       ← global initiative (see "Initiative")
+  initiatives/<uuid>/sources/<filename>   uploaded source files (only once one exists — an
+                                            initiative otherwise has no folder of its own)
   research-plans/<uuid>.md    ← global research plan (see "Research plan")
   research-plans/<uuid>/
     board/                      the plan's board (its Analysis tab)
@@ -83,6 +86,7 @@ every record; set \`updatedAt\` to now when you change something.
       insights/<insight-uuid>.md POINTER
       actions/<int>.md          local card
       results/<int>.md          local card
+    sources/<filename>          uploaded source files, see "Sources" below (only once one exists)
   activities/                 ← legacy, don't write here (see "Legacy")
   _migrated-activities/       ← originals of migrated activities; Monk never reads it
 \`\`\`
@@ -100,6 +104,7 @@ repo.
 {"id":"<uuid>","title":"...","status":"draft|active|shipped","owner":"...",
  "initiativeId":"<initiative-uuid> | null",
  "researchPlanIds":["<research-plan-uuid>"],   // optional
+ "sources":[{"kind":"document","sectionId":"...","docId":"..."},{"kind":"file","name":"..."}],  // optional
  "openQuestions":[{"text":"...","checked":false,"resolution":"..."}],
  "acceptanceCriteria":[{"text":"...","checked":false}],
  "createdAt":"...","updatedAt":"..."}
@@ -130,6 +135,9 @@ repo.
   \`solution.md\` Notes and leave the status for a person to confirm.
 - **Research plans**: \`researchPlanIds\` lists the research plans behind the spec, as pointers into
   \`research-plans/\`. Leave it out when there are none.
+- **Sources**: reference material behind the spec — see "Sources" below. Distinct from
+  \`solution.md\`'s Artefacts (external links only): a source is something that lives in or under
+  this workspace. Leave it out when there are none.
 - **Other sections**: text before the first heading, and any \`##\` section other than Problem,
   Goals and Non-goals, is kept as written below Non-goals. The app doesn't show it.
 
@@ -338,7 +346,9 @@ The insight, as free text.
 ---
 {"id":"<uuid>","title":"...","status":"active|paused|done",
  "outcomes":[{"text":"...","metric":"...","baseline":"...","target":"...","current":"..."}],   // optional
- "openQuestions":[{"text":"...","checked":false,"resolution":"..."}],"createdAt":"...","updatedAt":"..."}
+ "openQuestions":[{"text":"...","checked":false,"resolution":"..."}],
+ "sources":[{"kind":"document","sectionId":"...","docId":"..."},{"kind":"file","name":"..."}],  // optional
+ "createdAt":"...","updatedAt":"..."}
 ---
 Freeform description — shared context for every spec under this initiative.
 \`\`\`
@@ -353,7 +363,7 @@ acceptance criterion — every spec can ship without it moving.
 an epic; its specs are the tickets. \`openQuestions\` are the questions that span its specs; an
 unchecked one is unresolved for every spec in the initiative. Answers go in \`resolution\`, the same
 as on a spec. When a spec settles something the initiative's description still calls open, update
-the description too.
+the description too. \`sources\` is reference material behind the initiative — see "Sources" below.
 
 ### Research plan — \`research-plans/<uuid>.md\`
 
@@ -363,6 +373,7 @@ the description too.
  "initiativeId":"<initiative-uuid> | null",
  "researchQuestions":[{"text":"...","insightIds":["<insight-uuid>"]}],
  "activities":["Interview with P3","Survey wave 1"],   // optional
+ "sources":[{"kind":"document","sectionId":"...","docId":"..."},{"kind":"file","name":"..."}],  // optional
  "createdAt":"...","updatedAt":"..."}
 ---
 ## Problem statement
@@ -404,10 +415,30 @@ to find out. Each section is left out while it's empty.
   insights formed from them, and the actions and results they lead to — see "Board cards". Research
   questions are answered by insights, which are usually, but don't have to be, on this board.
 - **Specs informed by this plan** are derived too: any spec whose \`researchPlanIds\` includes it.
+- **Sources**: reference material behind the study — see "Sources" below. Leave it out when there
+  are none.
 - **Status**: \`planned\` before any activity, \`fieldwork\` while they run, \`synthesis\`
   while signals are being turned into insights, \`done\` when the questions are answered or dropped.
 - Any other \`##\` section, and text before the first heading, is kept as written. The app doesn't
   show it.
+
+### Sources — a spec's, initiative's or research plan's \`sources\` array
+
+Reference material behind the record — distinct from a spec's \`solution.md\` Artefacts, which are
+external links only. A source is one of two shapes:
+
+\`\`\`
+{"kind":"document","sectionId":"<section-uuid>","docId":"<doc-uuid>"}   // a pointer to a workspace document
+{"kind":"file","name":"<filename>"}                                     // an uploaded file
+\`\`\`
+
+A \`document\` source points at a document already in the workspace — in a custom section, or in
+Product Knowledge or Standards — the same document, not a copy; editing it changes it everywhere
+it's linked. A \`file\` source is an uploaded file that lives in the record's own \`sources/\`
+subfolder, next to its \`.md\` file (a spec's or research plan's; an initiative gets a \`sources/\`
+folder only once a file is uploaded to it, since it's otherwise a flat file with none). \`name\` is
+that file's name in \`sources/\` — read it, but don't hand-edit \`sources/\` directly: added or
+removed files there aren't picked up unless \`sources\` in the frontmatter is updated to match.
 
 ### Legacy
 

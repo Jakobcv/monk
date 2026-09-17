@@ -1,5 +1,6 @@
 
 import { outcomesFrom } from "./initiativeModel.js";
+import { sourcesFrom } from "./sourceModel.js";
 
 // Frontmatter here is a single line of JSON between `---` fences, not YAML — the data is
 // always simple (strings/numbers/an array/a small object or null), so JSON's own
@@ -279,6 +280,8 @@ export function specToMarkdown(spec) {
     // Written only when there are some, so a spec saved before research plans existed is
     // unchanged on disk until one is linked.
     ...(spec.researchPlanIds?.length ? { researchPlanIds: spec.researchPlanIds } : {}),
+    // Written only when there are some, so a spec saved before sources existed is unchanged.
+    ...(sourcesFrom(spec.sources).length ? { sources: sourcesFrom(spec.sources) } : {}),
     openQuestions: spec.openQuestions || [],
     acceptanceCriteria: spec.acceptanceCriteria || [],
     createdAt: new Date(spec.createdAt || Date.now()).toISOString(),
@@ -303,6 +306,7 @@ export function markdownToSpec(content) {
     owner: data.owner || "",
     initiativeId: data.initiativeId || null,
     researchPlanIds: Array.isArray(data.researchPlanIds) ? data.researchPlanIds : [],
+    sources: sourcesFrom(data.sources),
     openQuestions: Array.isArray(data.openQuestions) ? data.openQuestions : [],
     acceptanceCriteria: Array.isArray(data.acceptanceCriteria) ? data.acceptanceCriteria : [],
     createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
@@ -325,6 +329,8 @@ export function initiativeToMarkdown(initiative) {
     // Written only when there are some, so an initiative saved before outcomes existed is unchanged.
     ...(outcomes.length ? { outcomes } : {}),
     openQuestions: initiative.openQuestions || [],
+    // Written only when there are some, so an initiative saved before sources existed is unchanged.
+    ...(sourcesFrom(initiative.sources).length ? { sources: sourcesFrom(initiative.sources) } : {}),
     createdAt: new Date(initiative.createdAt || Date.now()).toISOString(),
     updatedAt: new Date(initiative.updatedAt || Date.now()).toISOString(),
   };
@@ -339,6 +345,7 @@ export function markdownToInitiative(content) {
     status: data.status || "active",
     outcomes: outcomesFrom(data.outcomes),
     openQuestions: Array.isArray(data.openQuestions) ? data.openQuestions : [],
+    sources: sourcesFrom(data.sources),
     description: body,
     createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
     updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now(),
@@ -383,6 +390,8 @@ export function researchPlanToMarkdown(plan) {
     researchQuestions: researchQuestionsFrom(plan.researchQuestions),
     // Written only when there are some, so a plan saved before activities existed is unchanged.
     ...(activities.length ? { activities } : {}),
+    // Written only when there are some, so a plan saved before sources existed is unchanged.
+    ...(sourcesFrom(plan.sources).length ? { sources: sourcesFrom(plan.sources) } : {}),
     createdAt: new Date(plan.createdAt || Date.now()).toISOString(),
     updatedAt: new Date(plan.updatedAt || Date.now()).toISOString(),
   };
@@ -403,6 +412,7 @@ export function markdownToResearchPlan(content) {
     initiativeId: data.initiativeId || null,
     researchQuestions: researchQuestionsFrom(data.researchQuestions),
     activities: activitiesFrom(data.activities),
+    sources: sourcesFrom(data.sources),
     createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
     updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now(),
   };
