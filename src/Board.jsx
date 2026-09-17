@@ -645,21 +645,9 @@ export default function Board({
         // radius still say where the canvas ends.
         style={{ position: "relative", border: `1px solid ${BORDER}`, borderRadius: RADIUS.lg, overflowX: "auto", overflowY: "hidden", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
       >
-        {/* A column with no cards yet gives up some of its width to the ones that have them, so an
-            empty Action doesn't leave the signals and insights wrapping every few words. Spec is
-            narrower whether or not it's empty — a spec card is a title line plus a status row,
-            not free text, so it never needed as much room as the others and stretching it out
-            just left the card looking hollow. */}
         <div
           className="el-board"
-          style={{
-            gridTemplateColumns: [
-              signalLinks.length ? "minmax(220px, 1fr)" : "minmax(160px, 0.6fr)",
-              insightLinks.length ? "minmax(220px, 1fr)" : "minmax(160px, 0.6fr)",
-              actions.length ? "minmax(220px, 1fr)" : "minmax(160px, 0.6fr)",
-              "minmax(190px, 0.7fr)",
-            ].join(" "),
-          }}
+          style={{ gridTemplateColumns: "repeat(4, minmax(220px, 1fr))" }}
         >
           <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "visible" }}>
             <defs>
