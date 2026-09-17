@@ -67,24 +67,25 @@ export function markdownToBoardMeta(content) {
 // derived from the board's flat `connections` list at save time — see storage.js).
 // "signal" and "insight" cards are pure pointers now — `id` IS the id of a record in the
 // workspace's global `signals`/`insights` collection (see signalToMarkdown/insightToMarkdown
-// below), so there's no local content or `ref` wrapper to carry here at all.
+// below), so there's no local content or `ref` wrapper to carry here at all. "result" is a
+// pointer too, but to a spec (specModel.js) rather than a research record — the board's own
+// numeric `id` is local, `specId` is the linked spec's global id.
 export function cardToMarkdown(card, kind) {
   if (kind === "signal" || kind === "insight") {
     return stringifyFrontmatter({ id: card.id, connectsTo: card.connectsTo || [] }, "");
   }
+  if (kind === "result") {
+    return stringifyFrontmatter({ id: card.id, connectsTo: card.connectsTo || [], specId: card.specId || null }, "");
+  }
 
+  // action — the only kind still capable of `ref`ing a card on another board instead of
+  // authoring its own content.
   const frontmatter = {
     id: card.id,
     connectsTo: card.connectsTo || [],
     ref: card.ref || null,
   };
-
-  let body = "";
-  if (!card.ref) {
-    body = kind === "action"
-      ? ["## If we", card.ifWe || "", "", "## Then", card.then || "", "", "## Expected", card.expected || ""].join("\n")
-      : (card.text || "");
-  }
+  const body = card.ref ? "" : ["## If we", card.ifWe || "", "", "## Then", card.then || "", "", "## Expected", card.expected || ""].join("\n");
   return stringifyFrontmatter(frontmatter, body);
 }
 
@@ -97,22 +98,21 @@ export function markdownToCard(content, kind) {
   if (kind === "signal" || kind === "insight") {
     return { card: { id: data.id }, connectsTo };
   }
+  if (kind === "result") {
+    return { card: { id: data.id, specId: data.specId || null }, connectsTo };
+  }
   if (data.ref) {
     return { card: { id: data.id, ref: data.ref }, connectsTo };
   }
-  if (kind === "action") {
-    return {
-      card: {
-        id: data.id,
-        ifWe: extractSection(body, "If we"),
-        then: extractSection(body, "Then"),
-        expected: extractSection(body, "Expected"),
-      },
-      connectsTo,
-    };
-  }
-  const card = { id: data.id, text: body.trim() };
-  return { card, connectsTo };
+  return {
+    card: {
+      id: data.id,
+      ifWe: extractSection(body, "If we"),
+      then: extractSection(body, "Then"),
+      expected: extractSection(body, "Expected"),
+    },
+    connectsTo,
+  };
 }
 
 // A signal is a global workspace record (see signalModel.js) — Date/Link/Author are optional

@@ -398,6 +398,35 @@ function ResearchPreviewDemo() {
   );
 }
 
+// The real board on sample data (#/board-preview[/<cardId>]) — the sandboxed preview can't open a
+// workspace folder. Picks the sample research plan with the most connections, so the
+// connect/rewire gestures (src/canvas) actually have something to exercise. Real local state
+// (not no-ops) so the Spec column's create/link/rename round-trip is actually exercisable here.
+function BoardPreviewDemo({ cardId }) {
+  const [mock, setMock] = useState(() => mockWorkspace(1));
+  const plan = useMemo(() => [...mock.researchPlans].sort((a, b) => b.board.connections.length - a.board.connections.length)[0], [mock.researchPlans]);
+  const addSpec = (spec) => setMock((prev) => ({ ...prev, specs: [...prev.specs, spec] }));
+  const updateSpec = (id, patch) => setMock((prev) => ({ ...prev, specs: prev.specs.map((s) => (s.id === id ? { ...s, ...patch } : s)) }));
+  return (
+    <Page bleed style={{ fontFamily: font, height: "100dvh" }}>
+      <Board
+        key={plan.id}
+        board={plan.board}
+        onChange={(b) => { window.__board = b; }}
+        allBoards={mock.researchPlans.map((p) => ({ ...p.board, title: p.title }))}
+        onOpenBoard={() => {}}
+        signals={mock.signals} insights={mock.insights}
+        onUpdateSignal={() => {}} onCreateSignal={() => {}} onUpdateInsight={() => {}} onCreateInsight={() => {}}
+        specs={mock.specs}
+        onCreateSpec={addSpec} onUpdateSpec={updateSpec}
+        specHref={() => "#/spec-preview"}
+        onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
+        highlightCardId={cardId}
+      />
+    </Page>
+  );
+}
+
 // A research plan on sample data (#/research-plan-preview, #/research-plan-preview/analysis[/<cardId>]):
 // both tabs — its questions linked to sample insights and its activities, and its board. Edits land
 // in local state; the plan lands on window.__researchPlan.
@@ -425,6 +454,7 @@ function ResearchPlanPreviewDemo({ tab, cardId }) {
       onDelete={noop} onOpenBoard={noop}
       onCreateSignal={create("signals")} onUpdateSignal={update("signals")}
       onCreateInsight={create("insights")} onUpdateInsight={update("insights")}
+      onCreateSpec={create("specs")} onUpdateSpec={update("specs")}
       onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
       specHref={here} insightHref={here}
       breadcrumbs={[{ label: "product-research", icon: FolderOpen }, { label: "Research Repository", href: "#/research-preview" }, { label: plan.title }]}
@@ -936,6 +966,10 @@ export default function App() {
   };
   const updateSpec = (id, patch) =>
     setSpecs((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: Date.now() } : s)));
+  // A research plan's board can also start a spec (its Analysis tab's Spec column) — created
+  // in place there, already carrying the plan in `researchPlanIds`, same "already a complete
+  // object" pattern as createSignal/createInsight.
+  const addSpec = (spec) => setSpecs((prev) => [...prev, spec]);
   const deleteSpec = (id) => {
     const index = specs.findIndex((s) => s.id === id);
     const spec = specs[index];
@@ -1257,22 +1291,7 @@ export default function App() {
   // sample research plan with the most connections, so the connect/rewire gestures (src/canvas)
   // actually have something to exercise.
   if (import.meta.env.DEV && route.name === "boardPreview") {
-    const mock = mockWorkspace(1);
-    const plan = [...mock.researchPlans].sort((a, b) => b.board.connections.length - a.board.connections.length)[0];
-    return (
-      <Page bleed style={{ fontFamily: font, height: "100dvh" }}>
-        <Board
-          board={plan.board}
-          onChange={(b) => { window.__board = b; }}
-          allBoards={mock.researchPlans.map((p) => ({ ...p.board, title: p.title }))}
-          onOpenBoard={() => {}}
-          signals={mock.signals} insights={mock.insights}
-          onUpdateSignal={() => {}} onCreateSignal={() => {}} onUpdateInsight={() => {}} onCreateInsight={() => {}}
-          onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
-          highlightCardId={route.cardId}
-        />
-      </Page>
-    );
+    return <BoardPreviewDemo cardId={route.cardId} />;
   }
 
   if (import.meta.env.DEV && route.name === "researchPreview") {
@@ -1565,6 +1584,8 @@ export default function App() {
                   onUpdateSignal={updateSignal}
                   onCreateInsight={createInsight}
                   onUpdateInsight={updateInsight}
+                  onCreateSpec={addSpec}
+                  onUpdateSpec={updateSpec}
                   onToast={showToast}
                   specHref={hrefSpec}
                   insightHref={hrefInsight}

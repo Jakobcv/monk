@@ -43,6 +43,7 @@ export default function ResearchPlanPage({
   plan, signals, insights, specs, initiatives, boards,
   activeTab = "overview", tabHref, highlightCardId,
   onChange, onDelete, onOpenBoard, onCreateSignal, onUpdateSignal, onCreateInsight, onUpdateInsight, onToast,
+  onCreateSpec, onUpdateSpec,
   specHref, insightHref, breadcrumbs,
   sections, docHref, onUploadSourceFile, onRemoveSourceFile, onOpenSourceFile,
 }) {
@@ -203,6 +204,10 @@ export default function ResearchPlanPage({
           onCreateSignal={onCreateSignal}
           onUpdateInsight={onUpdateInsight}
           onCreateInsight={onCreateInsight}
+          specs={specs}
+          onCreateSpec={onCreateSpec}
+          onUpdateSpec={onUpdateSpec}
+          specHref={specHref}
           onToast={onToast}
           highlightCardId={activeTab === "analysis" ? highlightCardId : null}
         />

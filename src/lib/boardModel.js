@@ -24,10 +24,12 @@ export function blankBoard(id) {
 
 export const KIND_ARRAY_KEY = { signal: "signals", insight: "insights", action: "actions", result: "results" };
 
-// A card is either locally authored, or a live reference to a card of the same kind living
-// in another board (has `ref: { boardId, itemId }` instead of its own content). Resolved at
-// render time — never copied — so edits to the source propagate everywhere it's cited, and
-// a deleted source just resolves to null rather than leaving stale text behind.
+// An action card is either locally authored, or a live reference to an action living on another
+// board (has `ref: { boardId, itemId }` instead of its own content). Resolved at render time —
+// never copied — so edits to the source propagate everywhere it's cited, and a deleted source
+// just resolves to null rather than leaving stale text behind. Result cards don't need this: a
+// result is a pointer to a spec (a global record already shareable across boards), so pointing
+// two boards at the same spec needs no `ref` indirection.
 export function resolveRef(boards, kind, ref) {
   const arrayKey = KIND_ARRAY_KEY[kind];
   const board = (boards || []).find((b) => b.id === ref.boardId);

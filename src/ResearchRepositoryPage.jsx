@@ -16,12 +16,12 @@ import DialogActions from "./ui/DialogActions";
 import Page from "./ui/Page";
 
 // per-type: which array on a board holds these cards, and which of the card's fields to
-// search against (Action has three text fields, everything else has just `text`). Signal and
-// Insight are both handled separately below — their content lives in global lists now
-// (`signals`/`insights`), not on any one board.
+// search against. Signal and Insight are both handled separately below — their content lives in
+// global lists now (`signals`/`insights`), not on any one board. Result isn't here either: a
+// result card is a pointer to a spec (see Board.jsx), which already has its own searchable home
+// on the Specs page, so it carries no text of its own worth indexing here.
 const TYPE_DEFS = [
   { kind: "action", label: "Action", arrayKey: "actions", fields: (x) => [x.ifWe, x.then, x.expected] },
-  { kind: "result", label: "Result", arrayKey: "results", fields: (x) => [x.text] },
 ];
 const RECENT_LIMIT = 20;
 

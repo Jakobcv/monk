@@ -134,7 +134,9 @@ repo.
   doesn't set \`shipped\`: when the build is done and every criterion is checked, say so in
   \`solution.md\` Notes and leave the status for a person to confirm.
 - **Research plans**: \`researchPlanIds\` lists the research plans behind the spec, as pointers into
-  \`research-plans/\`. Leave it out when there are none.
+  \`research-plans/\`. Leave it out when there are none. A plan's own board can also point the other
+  way, at a spec its Analysis led to — see "Board cards" above (\`results/\`) — and adding one there
+  adds this field too, so either side finds the other.
 - **Sources**: reference material behind the spec — see "Sources" below. Distinct from
   \`solution.md\`'s Artefacts (external links only): a source is something that lives in or under
   this workspace. Leave it out when there are none.
@@ -266,13 +268,13 @@ it. Comments, and sections with nothing written under them, carry no rules.
 ### Board cards — \`research-plans/<plan-uuid>/board/<kind>/<id>.md\`
 
 A board belongs to a research plan: it's where the study's signals are collected, turned into
-insights, and followed through to actions and results.
+insights, and followed through to actions — and the specs those actions' results become.
 
 
 The board's connections are **not stored as files**. Each card lists its outgoing edges in a
 \`connectsTo\` array in its own frontmatter; Monk rebuilds the flat connection list from those on
 load. A connection's \`from\`/\`to\` are node ids on that board (a signal/insight node id is its
-global UUID; an action/result node id is its integer).
+global UUID; an action/result node id is its local integer).
 
 - **signals/** and **insights/** entries are **pointers**, not copies:
   \`\`\`
@@ -282,6 +284,15 @@ global UUID; an action/result node id is its integer).
   \`\`\`
   No body. The actual text lives in \`signals/<id>.md\` / \`insights/<id>.md\`. Editing the global
   record changes it on every board it's linked into.
+- **results/** entries are pointers too, but to a spec rather than a research record:
+  \`\`\`
+  ---
+  {"id":1042,"connectsTo":[],"specId":"<spec uuid> | null"}
+  ---
+  \`\`\`
+  No body. \`id\` is this card's own local integer (what a connection's \`from\`/\`to\` uses);
+  \`specId\` points at \`<spec-uuid>/spec.md\`. Linking or creating a spec here also adds this
+  plan's id to that spec's own \`researchPlanIds\` (see "Spec"), so the two stay in sync.
 - **actions/** entries:
   \`\`\`
   ---
@@ -299,9 +310,8 @@ global UUID; an action/result node id is its integer).
 
   ...
   \`\`\`
-- **results/** entries: same frontmatter shape; body is plain text.
-- \`ref\` (actions/results only): normally \`null\`. If set to \`{"boardId":"<plan-uuid>","itemId":<int>}\`
-  the card is a live reference to a card on another research plan's board and its own body is empty.
+- \`ref\` (actions only): normally \`null\`. If set to \`{"boardId":"<plan-uuid>","itemId":<int>}\`
+  the card is a live reference to an action on another research plan's board and its own body is empty.
 
 ### Signal — \`signals/<uuid>.md\`
 
