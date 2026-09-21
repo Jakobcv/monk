@@ -72,7 +72,7 @@ Monk writes these into `monk/`:
 ```
 monk/
   MONK.md              the file formats, for agents (rewritten on every save — don't edit)
-  WRITING.md           how to write what goes in them, field by field (same: generated, don't edit)
+  WRITING.md           how to write what goes in them, field by field — written once, then yours
   AGENTS.md            a briefing for agents working in the folder
   DESIGN.md            optional: the design system, created only when you ask
   product-knowledge/   documents shared by every spec
@@ -84,7 +84,9 @@ monk/
 ```
 
 The full format of every file is in the generated `MONK.md`; `WRITING.md` beside it says what each
-field is for and how much to write in it, which is what keeps an agent's drafts short.
+field is for and how much to write in it, which is what keeps an agent's drafts short. That one is
+seeded with Monk's default and then belongs to the workspace — edit it under **Writing guide** in
+the sidebar to set your team's house rules, and Restore default puts Monk's text back.
 
 If you do connect a folder that already has an `AGENTS.md` or `CLAUDE.md`, Monk won't touch it —
 it asks whether to append a section of its own, and remembers if you say no.
@@ -140,6 +142,7 @@ pages on sample data without any folder:
 | `#/research-plan-preview` | a research plan, Overview and Analysis |
 | `#/research-preview` | the Research Repository |
 | `#/workspace-doc-preview` | the Design system page, from empty |
+| `#/workspace-doc-preview/writing-guide` | the Writing guide page, with the default in it |
 | `#/initiative-preview` | an initiative, with open questions |
 | `#/disk-log-preview` | the header's disk-changes log and its toast |
 

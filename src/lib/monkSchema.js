@@ -15,7 +15,9 @@ documents the layout and file formats so those reads and writes stay valid.
 
 It covers where things go, not what to put in them: \`WRITING.md\`, beside this file, is what each
 field is for and how much to write in it. Read that too before filling one in — the usual failure
-is a well-formed file with three paragraphs where one sentence was the answer.
+is a well-formed file with three paragraphs where one sentence was the answer. Unlike this file it
+belongs to the workspace: Monk writes it once and never again, the team edits it (in the app, or
+here), and its rules are theirs. Follow it; don't rewrite it unless you were asked to.
 
 Monk loads the whole folder when it connects and re-writes what changed (debounced ~700ms). It
 also watches the folder: a file you write is picked up about a second after writing stops, so
@@ -60,7 +62,7 @@ every record; set \`updatedAt\` to now when you change something.
 \`\`\`
 <workspace root>/
   MONK.md                     ← this file: where everything goes
-  WRITING.md                  ← how to write what goes in it (also generated; don't hand-edit)
+  WRITING.md                  ← how to write what goes in it (the workspace's own; see below)
 
   <section-uuid>/             ← a Sidebar section (folder marker: section.md)
     section.md                  { id, name, createdAt, updatedAt }, no body

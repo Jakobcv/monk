@@ -135,8 +135,8 @@ function useRoute() {
   if (hash.startsWith(WORKSPACE_DOC_PREFIX)) {
     return { name: "workspaceDoc", id: decodeURIComponent(hash.slice(WORKSPACE_DOC_PREFIX.length)) };
   }
-  if (hash === "#/workspace-doc-preview") {
-    return { name: "workspaceDocPreview" };
+  if (hash === "#/workspace-doc-preview" || hash.startsWith("#/workspace-doc-preview/")) {
+    return { name: "workspaceDocPreview", id: decodeURIComponent(hash.split("/")[2] || "") };
   }
   if (hash === "#/research-preview") {
     return { name: "researchPreview" };
@@ -279,9 +279,11 @@ function SpecPreviewDemo({ tab }) {
 // The workspace document page with no folder behind it (#/workspace-doc-preview): starts with no
 // file, so both states — the Create button and the editor — can be looked at. The text lands on
 // window.__workspaceDoc after every change.
-function WorkspaceDocPreviewDemo() {
-  const doc = WORKSPACE_DOCS[0];
-  const [text, setText] = useState(null);
+function WorkspaceDocPreviewDemo({ id }) {
+  const doc = workspaceDocById(id) || WORKSPACE_DOCS[0];
+  // A seeded document is never absent in a real workspace, so it previews as it is actually met:
+  // already written, with the default in it.
+  const [text, setText] = useState(() => (doc.seeded ? doc.template({ workspaceName: "product-research" }) : null));
   useEffect(() => { window.__workspaceDoc = text; }, [text]);
   return (
     <WorkspaceDocPage
@@ -758,7 +760,17 @@ export default function App() {
     let cancelled = false;
     ensureAgentGuides(dirHandle)
       .then((result) => {
-        if (cancelled || result.created || result.linked || !result.existing) return;
+        if (cancelled) return;
+        // A seeded document (WRITING.md) may have just been written, after the load that filled
+        // this state read the folder without one. Take what it returned rather than waiting for
+        // the watcher to report our own write — but never over text already in hand, which came
+        // from the file itself and may since have been typed into.
+        setWorkspaceDocs((prev) => {
+          const pending = Object.entries(result.seeded || {})
+            .filter(([id, text]) => typeof text === "string" && typeof prev[id] !== "string");
+          return pending.length ? { ...prev, ...Object.fromEntries(pending) } : prev;
+        });
+        if (result.created || result.linked || !result.existing) return;
         let declined = false;
         try { declined = localStorage.getItem(declinedKey) === "1"; } catch { /* private mode */ }
         if (!declined) setAgentGuide(result.existing);
@@ -1314,7 +1326,7 @@ export default function App() {
   if (import.meta.env.DEV && route.name === "workspaceDocPreview") {
     return (
       <div style={{ fontFamily: font, height: "100dvh" }}>
-        <WorkspaceDocPreviewDemo />
+        <WorkspaceDocPreviewDemo id={route.id} />
       </div>
     );
   }
