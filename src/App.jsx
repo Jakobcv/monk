@@ -1326,7 +1326,10 @@ export default function App() {
   if (import.meta.env.DEV && route.name === "workspaceDocPreview") {
     return (
       <div style={{ fontFamily: font, height: "100dvh" }}>
-        <WorkspaceDocPreviewDemo id={route.id} />
+        {/* Keyed: the demo seeds its text from the document it was given, so switching
+            documents in the hash has to start it over rather than hand DESIGN.md the text of
+            the file you were just looking at. */}
+        <WorkspaceDocPreviewDemo key={route.id} id={route.id} />
       </div>
     );
   }

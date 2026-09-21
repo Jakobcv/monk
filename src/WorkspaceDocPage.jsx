@@ -11,6 +11,7 @@ import WritingGuideEditor from "./WritingGuideEditor";
 import Button from "./ui/Button";
 import SwapIcon from "./ui/SwapIcon";
 import Page from "./ui/Page";
+import SectionMap from "./ui/SectionMap";
 
 // A workspace document's page (see lib/workspaceDocs.js) — DESIGN.md and WRITING.md. Two states,
 // because a file can be missing: with no file, an explanation and a button that creates it; with
@@ -89,6 +90,10 @@ function Editor({ doc, text, onChange, onRemove, onToast }) {
   // typed in the markdown view in between included.
   const [structuredRun, setStructuredRun] = useState(0);
   const [copied, copy] = useCopy();
+  // Callback refs, not ref objects: SectionMap keys its scan and its scroll listener off these
+  // elements, so it has to re-render when they change.
+  const [sheetEl, setSheetEl] = useState(null);
+  const [scrollEl, setScrollEl] = useState(null);
 
   const change = (next) => { setValue(next); onChange(next); };
   // Text arriving from somewhere other than the editor in front of you (Restore default, its
@@ -164,8 +169,9 @@ function Editor({ doc, text, onChange, onRemove, onToast }) {
       </div>
 
       <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-        <Page ground="reading" style={{ overflowAnchor: "none" }}>
+        <Page ref={setScrollEl} ground="reading" style={{ overflowAnchor: "none" }}>
           <div
+            ref={setSheetEl}
             className={`paper-sheet${showStructured && structured.sections ? " paper-sheet--sections" : ""}`}
             style={showStructured ? undefined : { display: "flex", flexDirection: "column", gap: SPACE.xl }}
           >
@@ -180,6 +186,9 @@ function Editor({ doc, text, onChange, onRemove, onToast }) {
               : <MarkdownEditor fill value={value} onChange={change} minHeight={0} placeholder={`Write ${doc.file} in Markdown…`} />}
           </div>
         </Page>
+        {/* On the desk beside the sheet, reading the sections out of it — so the Markdown view,
+            which has none, simply doesn't have one. */}
+        <SectionMap container={sheetEl} scroller={scrollEl} label={`${doc.label} sections`} />
       </div>
     </div>
   );

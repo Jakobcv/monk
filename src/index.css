@@ -1263,10 +1263,109 @@ a.recent-row:hover {
   display: flex;
   flex-direction: column;
   gap: var(--paper-label-gap);
+  scroll-margin-top: 24px;
+}
+/* Jumped to from the section map, which focuses the section so the tab order
+   carries on from there. It's a destination, not a control: the ring belongs on
+   what you focus next, and the scroll is what shows you arrived. */
+.paper-section:focus {
+  outline: none;
 }
 .paper-rule {
   height: 1px;
   background: var(--border);
+}
+
+/* ---------------------------------------------------------------------------
+   Section map (ui/SectionMap.jsx) — the miniature of a sheet's sections, on the
+   desk beside it. One 2px line per section, the current one picked out; the
+   names arrive only on hover or focus, because a permanent list of them would
+   compete with the writing it is a map of.
+
+   Rows are 24px so there is a real target under a 2px line. The label's width
+   is not animated — it snaps from 0 and the text fades in — since animating a
+   layout property is the one thing the motion rules forbid outright.
+
+   The line's box is always as wide as the longest it ever gets, and the current
+   one is the unscaled state rather than a grown one. Scaling up from the short
+   line instead put the active line's extra length into the gap, where it ran
+   into the label — the gap has to be a constant, not what's left over.
+   --------------------------------------------------------------------------- */
+.section-map {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.section-map__row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+}
+.section-map__line {
+  width: 24px;
+  height: 2px;
+  flex-shrink: 0;
+  border-radius: 1px;
+  background: var(--ink-faint);
+  transform: scaleX(0.667);
+  transform-origin: right center;
+  transition:
+    transform var(--motion-fast) var(--ease),
+    background-color var(--motion-fast) var(--ease);
+}
+.section-map__label {
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: right;
+  pointer-events: none;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+.section-map:hover .section-map__label,
+.section-map:focus-within .section-map__label {
+  max-width: 180px;
+  opacity: 1;
+}
+.section-map__row:hover .section-map__line {
+  background: var(--ink-soft);
+}
+.section-map__row[aria-current] .section-map__line {
+  background: var(--ink);
+  transform: none;
+}
+.section-map__row[aria-current] .section-map__label {
+  color: var(--ink);
+}
+/* The desk is what this sits on; below the sheet's full width there isn't one,
+   and a map over the writing is worse than no map. */
+@media (max-width: 1180px) {
+  .section-map {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-map__line,
+  .section-map__label {
+    transition: none;
+  }
 }
 
 /* Below the sheet's full width there's no desk left to show, so the margins
