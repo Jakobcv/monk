@@ -743,7 +743,8 @@ export default function App() {
   });
 
 
-  // On attach: make sure an agent landing here cold finds the schema (MONK.md) and a briefing.
+  // On attach: make sure an agent landing here cold finds the schema (MONK.md), the writing
+  // guide beside it (WRITING.md) and a briefing.
   // Where the folder already has an AGENTS.md or CLAUDE.md of its own we write nothing and ask
   // instead — see ensureAgentGuides. A "no" is remembered per folder, so it is a question, not a
   // recurring prompt.

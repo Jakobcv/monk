@@ -8,6 +8,7 @@ import {
   initiativeToMarkdown, markdownToInitiative,
   researchPlanToMarkdown, markdownToResearchPlan, } from "./markdown.js";
 import { MONK_SCHEMA_DOC } from "./monkSchema.js";
+import { WRITING_GUIDE_DOC } from "./writingGuide.js";
 import { migrateActivities } from "./migrateActivities.js";
 import { AGENTS_DOC, AGENTS_DOC_SECTION, AGENT_MARKER_BEGIN, AGENT_MARKER_END } from "./agentsDoc.js";
 import { WORKSPACE_DOCS, workspaceDocById, workspaceDocByFile } from "./workspaceDocs.js";
@@ -610,11 +611,12 @@ async function writeMerged(dirHandle, name, content, path) {
 }
 
 // ---------------------------------------------------------------------------
-// The two documents an agent needs to find.
+// The documents an agent needs to find.
 //
-// MONK.md is the schema; AGENTS.md is the briefing that points at it. Both are written when a
-// folder is *attached*, not on the first save — a folder you connected and haven't edited yet is
-// exactly the one an agent is most likely to be pointed at cold, and until now it had neither.
+// MONK.md is the schema, WRITING.md is how to fill the fields it describes, and AGENTS.md is the
+// briefing that points at both. All are written when a folder is *attached*, not on the first
+// save — a folder you connected and haven't edited yet is exactly the one an agent is most
+// likely to be pointed at cold, and until now it had neither.
 //
 // The hard rule here is that a connected folder may not be ours alone. Pointing this at a real
 // product repo's root is a documented, supported thing to do, and that repo may well already
@@ -626,6 +628,7 @@ const AGENT_GUIDES = ["AGENTS.md", "CLAUDE.md"];
 
 export async function ensureAgentGuides(dirHandle) {
   await put(dirHandle, "MONK.md", MONK_SCHEMA_DOC, "MONK.md");
+  await put(dirHandle, "WRITING.md", WRITING_GUIDE_DOC, "WRITING.md");
 
   for (const name of AGENT_GUIDES) {
     const existing = await readFileOrNull(dirHandle, name);
@@ -874,11 +877,13 @@ export async function saveWorkspace(dirHandle, workspace, { hold = [] } = {}) {
     await put(dirHandle, doc.file, text, doc.file);
   }
 
-  // A static schema/layout reference for any agent working in the folder (see monkSchema.js).
-  // It's a constant, so after the first save of a session this costs nothing — the ledger sees
-  // identical content and skips it. Top-level files aren't touched by the cleanup loop above
-  // (it only walks directories), so nothing else is needed to protect it.
+  // A static schema/layout reference for any agent working in the folder (see monkSchema.js),
+  // and the guide to writing what goes in those fields (writingGuide.js). Both are constants, so
+  // after the first save of a session they cost nothing — the ledger sees identical content and
+  // skips them. Top-level files aren't touched by the cleanup loop above (it only walks
+  // directories), so nothing else is needed to protect them.
   await put(dirHandle, "MONK.md", MONK_SCHEMA_DOC, "MONK.md");
+  await put(dirHandle, "WRITING.md", WRITING_GUIDE_DOC, "WRITING.md");
 
   return conflicts;
 }

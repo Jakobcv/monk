@@ -13,6 +13,10 @@ This folder is a [Monk](https://monk.local) workspace: product research and spec
 plain markdown so any tool — including an LLM agent — can read and write it directly. This file
 documents the layout and file formats so those reads and writes stay valid.
 
+It covers where things go, not what to put in them: \`WRITING.md\`, beside this file, is what each
+field is for and how much to write in it. Read that too before filling one in — the usual failure
+is a well-formed file with three paragraphs where one sentence was the answer.
+
 Monk loads the whole folder when it connects and re-writes what changed (debounced ~700ms). It
 also watches the folder: a file you write is picked up about a second after writing stops, so
 write whole files rather than streaming into one. Monk never overwrites a file that changed since
@@ -55,7 +59,8 @@ every record; set \`updatedAt\` to now when you change something.
 
 \`\`\`
 <workspace root>/
-  MONK.md                     ← this file
+  MONK.md                     ← this file: where everything goes
+  WRITING.md                  ← how to write what goes in it (also generated; don't hand-edit)
 
   <section-uuid>/             ← a Sidebar section (folder marker: section.md)
     section.md                  { id, name, createdAt, updatedAt }, no body

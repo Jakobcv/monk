@@ -71,6 +71,7 @@ Monk writes these into `monk/`:
 ```
 monk/
   MONK.md              the file formats, for agents (rewritten on every save — don't edit)
+  WRITING.md           how to write what goes in them, field by field (same: generated, don't edit)
   AGENTS.md            a briefing for agents working in the folder
   DESIGN.md            optional: the design system, created only when you ask
   product-knowledge/   documents shared by every spec
@@ -80,7 +81,8 @@ monk/
   signals/  insights/  activities/  initiatives/
 ```
 
-The full format of every file is in the generated `MONK.md`.
+The full format of every file is in the generated `MONK.md`; `WRITING.md` beside it says what each
+field is for and how much to write in it, which is what keeps an agent's drafts short.
 
 If you do connect a folder that already has an `AGENTS.md` or `CLAUDE.md`, Monk won't touch it —
 it asks whether to append a section of its own, and remembers if you say no.
