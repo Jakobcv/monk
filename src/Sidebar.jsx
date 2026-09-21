@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Layers, FileText, Plus, Trash2, Library, ShieldCheck, Palette } from "lucide-react";
+import { BookOpen, Layers, FileText, Plus, Trash2, Library, ShieldCheck, Palette, PenLine } from "lucide-react";
 import { font, INK_FAINT, BORDER, BG_APP, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
 import { FIXED_SECTIONS, isFixedSection } from "./lib/documentModel";
 import Button from "./ui/Button";
@@ -37,7 +37,7 @@ const sectionLabelStyle = {
 // what belongs in them is a matter of purpose, not user choice (see documentModel.js).
 // Workspace documents (lib/workspaceDocs.js) get an icon here rather than in the registry, which
 // stays free of React so storage and the tests can import it.
-const WORKSPACE_DOC_ICONS = { "design-system": Palette };
+const WORKSPACE_DOC_ICONS = { "design-system": Palette, "writing-guide": PenLine };
 
 export default function Sidebar({ sections, workspaceDocs = [], activeView, researchHref, specsHref, docHref, onCreateSection, onRenameSection, onDeleteSection, onCreateDocument, onDeleteDocument }) {
   const [editingSectionId, setEditingSectionId] = useState(null);

@@ -1,4 +1,5 @@
 import { designSystemTemplate } from "./designSystem.js";
+import { WRITING_GUIDE_TEMPLATE } from "./writingGuide.js";
 
 // Files at the root of a workspace that exist for agents to read, in a format defined somewhere
 // else — which the app offers to create from a skeleton rather than leaving you to find the format
@@ -14,6 +15,11 @@ import { designSystemTemplate } from "./designSystem.js";
 //   editor     a structured editor for this format, if there is one ("design-system"); without
 //              one the page edits the raw markdown
 //   template   the skeleton written on create; receives { workspaceName }
+//   formatUrl  where the format is defined, for a format that isn't ours (omitted otherwise)
+//   seeded     true for a file Monk writes on attach rather than waiting to be asked. Its content
+//              is a starting point, not a contract: it's never rewritten afterwards, and the page
+//              offers the template back as "Restore default" instead of a Remove button, because
+//              removing a file the next attach would recreate isn't a thing to offer.
 export const WORKSPACE_DOCS = [
   {
     id: "design-system",
@@ -23,6 +29,15 @@ export const WORKSPACE_DOCS = [
     formatUrl: "https://github.com/google-labs-code/design.md",
     editor: "design-system",
     template: ({ workspaceName }) => designSystemTemplate(workspaceName),
+  },
+  {
+    id: "writing-guide",
+    file: "WRITING.md",
+    label: "Writing guide",
+    summary: "How to fill in the fields MONK.md describes: what each one is for, how much to write, and what a bad answer looks like. Agents read it before writing; edit it to set your team's house rules.",
+    editor: "writing-guide",
+    seeded: true,
+    template: () => WRITING_GUIDE_TEMPLATE,
   },
 ];
 

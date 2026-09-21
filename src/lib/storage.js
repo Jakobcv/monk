@@ -8,7 +8,6 @@ import {
   initiativeToMarkdown, markdownToInitiative,
   researchPlanToMarkdown, markdownToResearchPlan, } from "./markdown.js";
 import { MONK_SCHEMA_DOC } from "./monkSchema.js";
-import { WRITING_GUIDE_DOC } from "./writingGuide.js";
 import { migrateActivities } from "./migrateActivities.js";
 import { AGENTS_DOC, AGENTS_DOC_SECTION, AGENT_MARKER_BEGIN, AGENT_MARKER_END } from "./agentsDoc.js";
 import { WORKSPACE_DOCS, workspaceDocById, workspaceDocByFile } from "./workspaceDocs.js";
@@ -618,6 +617,12 @@ async function writeMerged(dirHandle, name, content, path) {
 // save — a folder you connected and haven't edited yet is exactly the one an agent is most
 // likely to be pointed at cold, and until now it had neither.
 //
+// MONK.md is rewritten every time because it documents a format this app defines. WRITING.md is
+// seeded once and then left alone: how much to write in a field is a team's call, so the file is
+// theirs from the moment it exists (see workspaceDocs.js, and the Writing guide page that edits
+// it). A workspace that already has one — an agent's, an earlier version's, an edited one — keeps
+// what's there.
+//
 // The hard rule here is that a connected folder may not be ours alone. Pointing this at a real
 // product repo's root is a documented, supported thing to do, and that repo may well already
 // have an AGENTS.md — this app's own repo does. So: we create one only where there is none, and
@@ -628,7 +633,13 @@ const AGENT_GUIDES = ["AGENTS.md", "CLAUDE.md"];
 
 export async function ensureAgentGuides(dirHandle) {
   await put(dirHandle, "MONK.md", MONK_SCHEMA_DOC, "MONK.md");
-  await put(dirHandle, "WRITING.md", WRITING_GUIDE_DOC, "WRITING.md");
+  // Seeded documents (WORKSPACE_DOCS `seeded`): created if missing, never replaced. The text is
+  // returned so the caller can show it without waiting for the next load.
+  const seeded = {};
+  for (const doc of WORKSPACE_DOCS.filter((d) => d.seeded)) {
+    const { text } = await createWorkspaceDoc(dirHandle, doc.id, doc.template({}));
+    seeded[doc.id] = text;
+  }
 
   for (const name of AGENT_GUIDES) {
     const existing = await readFileOrNull(dirHandle, name);
@@ -636,11 +647,11 @@ export async function ensureAgentGuides(dirHandle) {
     // Someone else's, unless it carries our marker from a previous run.
     const linked = existing.includes(AGENT_MARKER_BEGIN);
     if (linked) await refreshAgentSection(dirHandle, name, existing);
-    return { created: false, existing: name, linked };
+    return { created: false, existing: name, linked, seeded };
   }
 
   await put(dirHandle, "AGENTS.md", AGENTS_DOC, "AGENTS.md");
-  return { created: true, existing: null, linked: true };
+  return { created: true, existing: null, linked: true, seeded };
 }
 
 // Adds our section to a guide the repo already owns — only ever called because someone said yes.
@@ -877,13 +888,13 @@ export async function saveWorkspace(dirHandle, workspace, { hold = [] } = {}) {
     await put(dirHandle, doc.file, text, doc.file);
   }
 
-  // A static schema/layout reference for any agent working in the folder (see monkSchema.js),
-  // and the guide to writing what goes in those fields (writingGuide.js). Both are constants, so
-  // after the first save of a session they cost nothing — the ledger sees identical content and
-  // skips them. Top-level files aren't touched by the cleanup loop above (it only walks
-  // directories), so nothing else is needed to protect them.
+  // A static schema/layout reference for any agent working in the folder (see monkSchema.js).
+  // It's a constant, so after the first save of a session this costs nothing — the ledger sees
+  // identical content and skips it. Top-level files aren't touched by the cleanup loop above
+  // (it only walks directories), so nothing else is needed to protect it. WRITING.md is not
+  // written here: it's seeded once by ensureAgentGuides and then edited like any other workspace
+  // document, by the loop above.
   await put(dirHandle, "MONK.md", MONK_SCHEMA_DOC, "MONK.md");
-  await put(dirHandle, "WRITING.md", WRITING_GUIDE_DOC, "WRITING.md");
 
   return conflicts;
 }

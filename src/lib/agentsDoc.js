@@ -27,8 +27,10 @@ for, and how short it should be — in \`WRITING.md\`. Read both before writing.
   collected and the insights formed from them.
 - \`activities/\` — legacy. Don't write to it; Monk migrates anything it finds there (see \`MONK.md\`).
 - \`product-knowledge/\`, \`standards/\` — shared context every spec is built against (see "Building from a spec")
-- \`MONK.md\` — the schema, and \`WRITING.md\` — the field-by-field writing guide. Both generated on
-  save; don't edit them by hand.
+- \`MONK.md\` — the schema. Generated on save; don't edit it by hand.
+- \`WRITING.md\` — the field-by-field writing guide: what to put in a field and how much of it.
+  Written once when the folder was attached and the team's from then on, so follow it rather than
+  editing it.
 - \`DESIGN.md\` — optional: this product's design system, in the format at
   <https://github.com/google-labs-code/design.md>. Monk only creates it when asked, as an unfilled
   skeleton. If it's there, it's a contract for everything you build — so that is where tokens,
