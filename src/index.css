@@ -1,5 +1,24 @@
-/* Weight 800 is loaded for the Home wordmark — without it the browser faux-bolds 700. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* Inter, self-hosted from public/fonts/ — no request ever leaves the machine.
+   These are the variable font's latin and latin-ext subsets, so one file per subset covers
+   every weight the app uses (400-800; the Home wordmark needs 800, or the browser faux-bolds
+   700). Upstream is Google Fonts' build of Inter v20, SIL Open Font License; the two .woff2
+   files are vendored into the repo and served from our own origin. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
 
 /* Every value below comes from --custom-properties injected at boot from lib/theme.js,
    so this file never holds a hardcoded token of its own. See theme.js CSS_VARS. */
