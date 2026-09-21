@@ -52,7 +52,7 @@ const toPx = (v) => {
 // Same rhythm as the Solution tab: eyebrow, PAPER.labelGap, content (.paper-section).
 function Section({ title, children }) {
   return (
-    <section className="paper-section">
+    <section className="paper-section" data-section-label={title}>
       <Eyebrow style={{ minHeight: "18px", display: "flex", alignItems: "center" }}>{title}</Eyebrow>
       {children}
     </section>

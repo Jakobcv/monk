@@ -26,7 +26,7 @@ const hasContent = (section) => !!(section.heading?.trim() || section.body?.trim
 
 function Section({ title, children }) {
   return (
-    <section className="paper-section">
+    <section className="paper-section" data-section-label={title}>
       <Eyebrow style={{ minHeight: "18px", display: "flex", alignItems: "center" }}>{title}</Eyebrow>
       {children}
     </section>
@@ -98,7 +98,11 @@ export default function WritingGuideEditor({ value, onChange, onToast }) {
       <div style={{ height: "1px", backgroundColor: BORDER }} />
 
       {guide.sections.map((section, i) => (
-        <section key={i} className="paper-section reveal-group">
+        <section
+          key={i}
+          className="paper-section reveal-group"
+          data-section-label={section.heading?.trim() || `Section ${i + 1}`}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, minHeight: "24px" }}>
             <input
               className="el-edit edit-area"
