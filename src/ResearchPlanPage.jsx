@@ -11,6 +11,7 @@ import SideRail, { SideRailSection, SideRailDivider, SideRailFoot } from "./ui/S
 import ResearchQuestionsEditor from "./ResearchQuestionsEditor";
 import PaperListEditor from "./PaperListEditor";
 import Board from "./Board";
+import SourcesList from "./ui/SourcesList";
 
 const TABS = [
   { key: "overview", label: "Overview" },
@@ -42,7 +43,9 @@ export default function ResearchPlanPage({
   plan, signals, insights, specs, initiatives, boards,
   activeTab = "overview", tabHref, highlightCardId,
   onChange, onDelete, onOpenBoard, onCreateSignal, onUpdateSignal, onCreateInsight, onUpdateInsight, onToast,
+  onCreateSpec, onUpdateSpec,
   specHref, insightHref, breadcrumbs,
+  sections, docHref, onUploadSourceFile, onRemoveSourceFile, onOpenSourceFile,
 }) {
   const [title, setTitle] = useState(plan.title);
   const [status, setStatus] = useState(plan.status);
@@ -54,14 +57,15 @@ export default function ResearchPlanPage({
   const [discussionGuide, setDiscussionGuide] = useState(plan.discussionGuide);
   const [researchQuestions, setResearchQuestions] = useState(plan.researchQuestions || []);
   const [activities, setActivities] = useState(plan.activities || []);
+  const [sources, setSources] = useState(plan.sources || []);
   const [board, setBoard] = useState(plan.board);
 
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
-    onChange({ title, status, initiativeId, problem, background, approach, participants, discussionGuide, researchQuestions, activities, board });
+    onChange({ title, status, initiativeId, problem, background, approach, participants, discussionGuide, researchQuestions, activities, sources, board });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, status, initiativeId, problem, background, approach, participants, discussionGuide, researchQuestions, activities, board]);
+  }, [title, status, initiativeId, problem, background, approach, participants, discussionGuide, researchQuestions, activities, sources, board]);
 
   const informed = specsForPlan(specs, plan.id);
   // The insights on this plan's own board come first when linking one to a question — that's where
@@ -173,6 +177,18 @@ export default function ResearchPlanPage({
             addLabel="Add activity"
             placeholder="Interview with P3, Survey wave 1…"
           />
+
+          <div className="paper-rule" />
+
+          <SourcesList
+            sources={sources}
+            onChange={setSources}
+            sections={sections}
+            docHref={docHref}
+            onUploadFile={onUploadSourceFile}
+            onRemoveFile={onRemoveSourceFile}
+            onOpenFile={onOpenSourceFile}
+          />
         </div>
       </Page>
 
@@ -188,6 +204,10 @@ export default function ResearchPlanPage({
           onCreateSignal={onCreateSignal}
           onUpdateInsight={onUpdateInsight}
           onCreateInsight={onCreateInsight}
+          specs={specs}
+          onCreateSpec={onCreateSpec}
+          onUpdateSpec={onUpdateSpec}
+          specHref={specHref}
           onToast={onToast}
           highlightCardId={activeTab === "analysis" ? highlightCardId : null}
         />

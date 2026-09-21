@@ -13,6 +13,7 @@ import Page from "./ui/Page";
 import PaperButton from "./ui/PaperButton";
 import PaperFrame from "./ui/PaperFrame";
 import SideRail, { SideRailSection, SideRailDivider, SideRailFoot } from "./ui/SideRail";
+import SourcesList from "./ui/SourcesList";
 
 const specTitle = (s) => s.title || "Untitled spec";
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -63,19 +64,21 @@ function Progress({ specs, openQuestions }) {
 export default function InitiativePage({
   initiative, specs, specHref, researchPlans = [], researchPlanHref,
   onChange, onDelete, onCreateSpec, onDetachSpec, breadcrumbs,
+  sections, docHref, onUploadSourceFile, onRemoveSourceFile, onOpenSourceFile,
 }) {
   const [title, setTitle] = useState(initiative.title);
   const [status, setStatus] = useState(initiative.status);
   const [description, setDescription] = useState(initiative.description || "");
   const [outcomes, setOutcomes] = useState(initiative.outcomes || []);
   const [openQuestions, setOpenQuestions] = useState(initiative.openQuestions || []);
+  const [sources, setSources] = useState(initiative.sources || []);
 
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
-    onChange({ title, status, description, outcomes, openQuestions });
+    onChange({ title, status, description, outcomes, openQuestions, sources });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, status, description, outcomes, openQuestions]);
+  }, [title, status, description, outcomes, openQuestions, sources]);
 
   const sorted = [...specs].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
@@ -180,6 +183,18 @@ export default function InitiativePage({
               <PaperButton icon={Plus} onClick={onCreateSpec}>New spec</PaperButton>
             </div>
           </div>
+
+          <div className="paper-rule" />
+
+          <SourcesList
+            sources={sources}
+            onChange={setSources}
+            sections={sections}
+            docHref={docHref}
+            onUploadFile={onUploadSourceFile}
+            onRemoveFile={onRemoveSourceFile}
+            onOpenFile={onOpenSourceFile}
+          />
         </div>
       </Page>
     </PaperFrame>

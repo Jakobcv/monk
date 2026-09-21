@@ -18,7 +18,12 @@ import { genEntityId } from "./boardModel.js";
 // not an acceptance criterion: shipping every spec doesn't mean it moved.
 export function blankInitiative(title = "Untitled initiative") {
   const now = Date.now();
-  return { id: genEntityId(), title, status: "active", description: "", outcomes: [], openQuestions: [], createdAt: now, updatedAt: now };
+  return {
+    id: genEntityId(), title, status: "active", description: "", outcomes: [], openQuestions: [],
+    // Reference material behind the initiative — document pointers and uploaded files (sourceModel.js).
+    sources: [],
+    createdAt: now, updatedAt: now,
+  };
 }
 
 export const OUTCOME_FIELDS = ["text", "metric", "baseline", "target", "current"];

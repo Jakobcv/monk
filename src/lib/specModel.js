@@ -9,6 +9,8 @@ export function blankSpec(title = "Untitled spec", initiativeId = null) {
     id: genEntityId(), title, status: "draft", owner: "", initiativeId, createdAt: now, updatedAt: now,
     // The research plans behind this spec (researchPlanModel.js) — pointers, never copies.
     researchPlanIds: [],
+    // Reference material behind the spec — document pointers and uploaded files (sourceModel.js).
+    sources: [],
     problem: "", goals: "", nonGoals: "",
     // Sections of spec.md the app doesn't show, kept as raw markdown (see markdown.js).
     extraSections: "",

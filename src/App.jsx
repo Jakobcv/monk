@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { FolderOpen, RefreshCw, FileText } from "lucide-react";
-import { loadWorkspace, saveWorkspace, watchWorkspace, canWatchWorkspace, entityIdsFor, ensureAgentGuides, addAgentSection, createWorkspaceDoc, removeWorkspaceDoc } from "./lib/storage";
+import { loadWorkspace, saveWorkspace, watchWorkspace, canWatchWorkspace, entityIdsFor, ensureAgentGuides, addAgentSection, createWorkspaceDoc, removeWorkspaceDoc, uploadSourceFile, removeSourceFile, readSourceFile } from "./lib/storage";
 import { WORKSPACE_DOCS, workspaceDocById } from "./lib/workspaceDocs";
 import { bumpNextId } from "./lib/boardModel";
 import { blankSection, blankDocument, ensureFixedSections, isFixedSection } from "./lib/documentModel";
@@ -398,6 +398,35 @@ function ResearchPreviewDemo() {
   );
 }
 
+// The real board on sample data (#/board-preview[/<cardId>]) — the sandboxed preview can't open a
+// workspace folder. Picks the sample research plan with the most connections, so the
+// connect/rewire gestures (src/canvas) actually have something to exercise. Real local state
+// (not no-ops) so the Spec column's create/link/rename round-trip is actually exercisable here.
+function BoardPreviewDemo({ cardId }) {
+  const [mock, setMock] = useState(() => mockWorkspace(1));
+  const plan = useMemo(() => [...mock.researchPlans].sort((a, b) => b.board.connections.length - a.board.connections.length)[0], [mock.researchPlans]);
+  const addSpec = (spec) => setMock((prev) => ({ ...prev, specs: [...prev.specs, spec] }));
+  const updateSpec = (id, patch) => setMock((prev) => ({ ...prev, specs: prev.specs.map((s) => (s.id === id ? { ...s, ...patch } : s)) }));
+  return (
+    <Page bleed style={{ fontFamily: font, height: "100dvh" }}>
+      <Board
+        key={plan.id}
+        board={plan.board}
+        onChange={(b) => { window.__board = b; }}
+        allBoards={mock.researchPlans.map((p) => ({ ...p.board, title: p.title }))}
+        onOpenBoard={() => {}}
+        signals={mock.signals} insights={mock.insights}
+        onUpdateSignal={() => {}} onCreateSignal={() => {}} onUpdateInsight={() => {}} onCreateInsight={() => {}}
+        specs={mock.specs}
+        onCreateSpec={addSpec} onUpdateSpec={updateSpec}
+        specHref={() => "#/spec-preview"}
+        onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
+        highlightCardId={cardId}
+      />
+    </Page>
+  );
+}
+
 // A research plan on sample data (#/research-plan-preview, #/research-plan-preview/analysis[/<cardId>]):
 // both tabs — its questions linked to sample insights and its activities, and its board. Edits land
 // in local state; the plan lands on window.__researchPlan.
@@ -425,6 +454,7 @@ function ResearchPlanPreviewDemo({ tab, cardId }) {
       onDelete={noop} onOpenBoard={noop}
       onCreateSignal={create("signals")} onUpdateSignal={update("signals")}
       onCreateInsight={create("insights")} onUpdateInsight={update("insights")}
+      onCreateSpec={create("specs")} onUpdateSpec={update("specs")}
       onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
       specHref={here} insightHref={here}
       breadcrumbs={[{ label: "product-research", icon: FolderOpen }, { label: "Research Repository", href: "#/research-preview" }, { label: plan.title }]}
@@ -900,6 +930,33 @@ export default function App() {
     );
   };
 
+  // A source's uploaded file lives on disk under the record's own folder — "<spec-id>/sources/",
+  // "research-plans/<id>/sources/" or "initiatives/<id>/sources/" (storage.js). Upload and
+  // removal go straight to disk rather than waiting on the debounced autosave (see storage.js
+  // uploadSourceFile); only the file's *name* is state (in the record's `sources` list), saved
+  // the normal way.
+  const sourceBase = (kind, id) => (kind === "spec" ? id : kind === "researchPlan" ? `research-plans/${id}` : `initiatives/${id}`);
+  const uploadSource = (kind, id) => async (file) => {
+    if (!dirHandle) throw new Error("Not connected to a workspace.");
+    return uploadSourceFile(dirHandle, sourceBase(kind, id), file);
+  };
+  const removeSource = (kind, id) => (name) => {
+    if (!dirHandle) return;
+    removeSourceFile(dirHandle, sourceBase(kind, id), name).catch((err) => console.error("Couldn't remove source file:", err));
+  };
+  const openSource = (kind, id) => async (name) => {
+    if (!dirHandle) return;
+    try {
+      const file = await readSourceFile(dirHandle, sourceBase(kind, id), name);
+      const url = URL.createObjectURL(file);
+      window.open(url, "_blank", "noopener");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      console.error("Couldn't open source file:", err);
+      showToast("Couldn't open that file");
+    }
+  };
+
   const isSpecRoute = route.name === "spec" || route.name === "specDesign" || route.name === "specPlan";
 
   const createSpec = (initiativeId = null) => {
@@ -909,6 +966,10 @@ export default function App() {
   };
   const updateSpec = (id, patch) =>
     setSpecs((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: Date.now() } : s)));
+  // A research plan's board can also start a spec (its Analysis tab's Spec column) — created
+  // in place there, already carrying the plan in `researchPlanIds`, same "already a complete
+  // object" pattern as createSignal/createInsight.
+  const addSpec = (spec) => setSpecs((prev) => [...prev, spec]);
   const deleteSpec = (id) => {
     const index = specs.findIndex((s) => s.id === id);
     const spec = specs[index];
@@ -1230,22 +1291,7 @@ export default function App() {
   // sample research plan with the most connections, so the connect/rewire gestures (src/canvas)
   // actually have something to exercise.
   if (import.meta.env.DEV && route.name === "boardPreview") {
-    const mock = mockWorkspace(1);
-    const plan = [...mock.researchPlans].sort((a, b) => b.board.connections.length - a.board.connections.length)[0];
-    return (
-      <Page bleed style={{ fontFamily: font, height: "100dvh" }}>
-        <Board
-          board={plan.board}
-          onChange={(b) => { window.__board = b; }}
-          allBoards={mock.researchPlans.map((p) => ({ ...p.board, title: p.title }))}
-          onOpenBoard={() => {}}
-          signals={mock.signals} insights={mock.insights}
-          onUpdateSignal={() => {}} onCreateSignal={() => {}} onUpdateInsight={() => {}} onCreateInsight={() => {}}
-          onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
-          highlightCardId={route.cardId}
-        />
-      </Page>
-    );
+    return <BoardPreviewDemo cardId={route.cardId} />;
   }
 
   if (import.meta.env.DEV && route.name === "researchPreview") {
@@ -1419,6 +1465,11 @@ export default function App() {
                   researchPlanHref={hrefResearchPlan}
                   onCreateResearchPlan={createResearchPlan}
                   onAddResearchQuestion={addResearchQuestion}
+                  sections={sections}
+                  docHref={hrefDocument}
+                  onUploadSourceFile={uploadSource("spec", activeSpec.id)}
+                  onRemoveSourceFile={removeSource("spec", activeSpec.id)}
+                  onOpenSourceFile={openSource("spec", activeSpec.id)}
                   onChange={(patch) => updateSpec(activeSpec.id, patch)}
                   activeTab={activeSpecTab}
                   tabHref={(tab) => (
@@ -1475,6 +1526,11 @@ export default function App() {
                   specHref={hrefSpec}
                   researchPlans={researchPlansForInitiative(researchPlans, activeInitiative.id)}
                   researchPlanHref={hrefResearchPlan}
+                  sections={sections}
+                  docHref={hrefDocument}
+                  onUploadSourceFile={uploadSource("initiative", activeInitiative.id)}
+                  onRemoveSourceFile={removeSource("initiative", activeInitiative.id)}
+                  onOpenSourceFile={openSource("initiative", activeInitiative.id)}
                   onChange={(patch) => updateInitiative(activeInitiative.id, patch)}
                   onDelete={() => deleteInitiative(activeInitiative.id)}
                   onCreateSpec={() => createSpec(activeInitiative.id)}
@@ -1517,12 +1573,19 @@ export default function App() {
                   tabHref={(tab) => (tab === "analysis" ? hrefResearchPlanAnalysis(activeResearchPlan.id) : hrefResearchPlan(activeResearchPlan.id))}
                   highlightCardId={route.cardId}
                   onOpenBoard={(planId) => goToResearchPlanAnalysis(planId)}
+                  sections={sections}
+                  docHref={hrefDocument}
+                  onUploadSourceFile={uploadSource("researchPlan", activeResearchPlan.id)}
+                  onRemoveSourceFile={removeSource("researchPlan", activeResearchPlan.id)}
+                  onOpenSourceFile={openSource("researchPlan", activeResearchPlan.id)}
                   onChange={(patch) => updateResearchPlan(activeResearchPlan.id, patch)}
                   onDelete={() => deleteResearchPlan(activeResearchPlan.id)}
                   onCreateSignal={createSignal}
                   onUpdateSignal={updateSignal}
                   onCreateInsight={createInsight}
                   onUpdateInsight={updateInsight}
+                  onCreateSpec={addSpec}
+                  onUpdateSpec={updateSpec}
                   onToast={showToast}
                   specHref={hrefSpec}
                   insightHref={hrefInsight}

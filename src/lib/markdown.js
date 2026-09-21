@@ -1,5 +1,6 @@
 
 import { outcomesFrom } from "./initiativeModel.js";
+import { sourcesFrom } from "./sourceModel.js";
 
 // Frontmatter here is a single line of JSON between `---` fences, not YAML — the data is
 // always simple (strings/numbers/an array/a small object or null), so JSON's own
@@ -66,24 +67,25 @@ export function markdownToBoardMeta(content) {
 // derived from the board's flat `connections` list at save time — see storage.js).
 // "signal" and "insight" cards are pure pointers now — `id` IS the id of a record in the
 // workspace's global `signals`/`insights` collection (see signalToMarkdown/insightToMarkdown
-// below), so there's no local content or `ref` wrapper to carry here at all.
+// below), so there's no local content or `ref` wrapper to carry here at all. "result" is a
+// pointer too, but to a spec (specModel.js) rather than a research record — the board's own
+// numeric `id` is local, `specId` is the linked spec's global id.
 export function cardToMarkdown(card, kind) {
   if (kind === "signal" || kind === "insight") {
     return stringifyFrontmatter({ id: card.id, connectsTo: card.connectsTo || [] }, "");
   }
+  if (kind === "result") {
+    return stringifyFrontmatter({ id: card.id, connectsTo: card.connectsTo || [], specId: card.specId || null }, "");
+  }
 
+  // action — the only kind still capable of `ref`ing a card on another board instead of
+  // authoring its own content.
   const frontmatter = {
     id: card.id,
     connectsTo: card.connectsTo || [],
     ref: card.ref || null,
   };
-
-  let body = "";
-  if (!card.ref) {
-    body = kind === "action"
-      ? ["## If we", card.ifWe || "", "", "## Then", card.then || "", "", "## Expected", card.expected || ""].join("\n")
-      : (card.text || "");
-  }
+  const body = card.ref ? "" : ["## If we", card.ifWe || "", "", "## Then", card.then || "", "", "## Expected", card.expected || ""].join("\n");
   return stringifyFrontmatter(frontmatter, body);
 }
 
@@ -96,22 +98,21 @@ export function markdownToCard(content, kind) {
   if (kind === "signal" || kind === "insight") {
     return { card: { id: data.id }, connectsTo };
   }
+  if (kind === "result") {
+    return { card: { id: data.id, specId: data.specId || null }, connectsTo };
+  }
   if (data.ref) {
     return { card: { id: data.id, ref: data.ref }, connectsTo };
   }
-  if (kind === "action") {
-    return {
-      card: {
-        id: data.id,
-        ifWe: extractSection(body, "If we"),
-        then: extractSection(body, "Then"),
-        expected: extractSection(body, "Expected"),
-      },
-      connectsTo,
-    };
-  }
-  const card = { id: data.id, text: body.trim() };
-  return { card, connectsTo };
+  return {
+    card: {
+      id: data.id,
+      ifWe: extractSection(body, "If we"),
+      then: extractSection(body, "Then"),
+      expected: extractSection(body, "Expected"),
+    },
+    connectsTo,
+  };
 }
 
 // A signal is a global workspace record (see signalModel.js) — Date/Link/Author are optional
@@ -279,6 +280,8 @@ export function specToMarkdown(spec) {
     // Written only when there are some, so a spec saved before research plans existed is
     // unchanged on disk until one is linked.
     ...(spec.researchPlanIds?.length ? { researchPlanIds: spec.researchPlanIds } : {}),
+    // Written only when there are some, so a spec saved before sources existed is unchanged.
+    ...(sourcesFrom(spec.sources).length ? { sources: sourcesFrom(spec.sources) } : {}),
     openQuestions: spec.openQuestions || [],
     acceptanceCriteria: spec.acceptanceCriteria || [],
     createdAt: new Date(spec.createdAt || Date.now()).toISOString(),
@@ -303,6 +306,7 @@ export function markdownToSpec(content) {
     owner: data.owner || "",
     initiativeId: data.initiativeId || null,
     researchPlanIds: Array.isArray(data.researchPlanIds) ? data.researchPlanIds : [],
+    sources: sourcesFrom(data.sources),
     openQuestions: Array.isArray(data.openQuestions) ? data.openQuestions : [],
     acceptanceCriteria: Array.isArray(data.acceptanceCriteria) ? data.acceptanceCriteria : [],
     createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
@@ -325,6 +329,8 @@ export function initiativeToMarkdown(initiative) {
     // Written only when there are some, so an initiative saved before outcomes existed is unchanged.
     ...(outcomes.length ? { outcomes } : {}),
     openQuestions: initiative.openQuestions || [],
+    // Written only when there are some, so an initiative saved before sources existed is unchanged.
+    ...(sourcesFrom(initiative.sources).length ? { sources: sourcesFrom(initiative.sources) } : {}),
     createdAt: new Date(initiative.createdAt || Date.now()).toISOString(),
     updatedAt: new Date(initiative.updatedAt || Date.now()).toISOString(),
   };
@@ -339,6 +345,7 @@ export function markdownToInitiative(content) {
     status: data.status || "active",
     outcomes: outcomesFrom(data.outcomes),
     openQuestions: Array.isArray(data.openQuestions) ? data.openQuestions : [],
+    sources: sourcesFrom(data.sources),
     description: body,
     createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
     updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now(),
@@ -383,6 +390,8 @@ export function researchPlanToMarkdown(plan) {
     researchQuestions: researchQuestionsFrom(plan.researchQuestions),
     // Written only when there are some, so a plan saved before activities existed is unchanged.
     ...(activities.length ? { activities } : {}),
+    // Written only when there are some, so a plan saved before sources existed is unchanged.
+    ...(sourcesFrom(plan.sources).length ? { sources: sourcesFrom(plan.sources) } : {}),
     createdAt: new Date(plan.createdAt || Date.now()).toISOString(),
     updatedAt: new Date(plan.updatedAt || Date.now()).toISOString(),
   };
@@ -403,6 +412,7 @@ export function markdownToResearchPlan(content) {
     initiativeId: data.initiativeId || null,
     researchQuestions: researchQuestionsFrom(data.researchQuestions),
     activities: activitiesFrom(data.activities),
+    sources: sourcesFrom(data.sources),
     createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
     updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now(),
   };

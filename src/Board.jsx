@@ -3,14 +3,16 @@ import { Plus, Link2, ChevronUp, ChevronDown, ArrowUpRight, X } from "lucide-rea
 import { genId, resolveRef } from "./lib/boardModel";
 import { blankSignal } from "./lib/signalModel";
 import { blankInsight } from "./lib/insightModel";
+import { blankSpec } from "./lib/specModel";
 import { insertAt } from "./lib/arrays";
 import { useDismiss } from "./lib/useDismiss";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, ACCENT, SIZE, WEIGHT, SPACE, RADIUS, MOTION } from "./lib/theme";
-import { Eyebrow } from "./ui/text";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, ACCENT, SPEC_STATUS_COLOR, SIZE, WEIGHT, SPACE, RADIUS, MOTION } from "./lib/theme";
+import { Dot, Eyebrow, Meta } from "./ui/text";
 import { cardSurface, cornerBadge } from "./ui/cardStyles";
 import SignalCardBody from "./SignalCardBody";
 import InsightCardBody from "./InsightCardBody";
 import IconButton from "./ui/IconButton";
+import LinkPicker from "./ui/LinkPicker";
 import { useConnectGesture } from "./canvas/useConnectGesture";
 import { useRects } from "./canvas/useRects";
 
@@ -22,9 +24,9 @@ const orderBtnStyle = (disabled) => ({
   opacity: disabled ? 0.3 : 1, cursor: disabled ? "default" : "pointer",
 });
 
-// `+` always creates a new card directly. Signal/Insight columns also pass `onConnect` — a
-// second, quieter icon button that opens the link-an-existing picker (Action/Result have
-// nothing to link to, so they get the `+` alone).
+// `+` always creates a new card directly. Signal/Insight/Spec columns also pass `onConnect` — a
+// second, quieter icon button that opens the link-an-existing picker (Action has nothing
+// existing to link to, so it gets the `+` alone).
 function ColumnHeader({ kind, title, count, onAdd, addProps, onConnect, connectProps }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: SPACE.base, marginBottom: SPACE.xs }}>
@@ -73,11 +75,17 @@ function Column({ kind, title, count, children, last, onAdd, addProps, onConnect
 // them. Editing a linked signal or insight's content goes straight through `onUpdateSignal`/
 // `onUpdateInsight` (bypassing this component's own onChange/boardState entirely), since that
 // edit isn't board-local data — it's shared, and shows up everywhere else the record is linked.
-// Action/Result keep authoring their content locally, same as always — a study's actions and
-// results are genuinely its own, unlike the signals and insights several studies can share.
+// Action keeps authoring its content locally, same as always — a study's actions are genuinely
+// its own. Result is a pointer too, but of a third kind: not a research record like a signal or
+// insight, but a spec (specModel.js) — this is where an action's result becomes a spec to build.
+// `results` entries are `{id, specId}`; `specs` (prop) is the global list used to resolve them,
+// and creating or linking one here also adds this board's id to that spec's own
+// `researchPlanIds` (via `onUpdateSpec`), so a spec born on this column shows up on the plan's
+// own "Informs" list too, the same field a spec normally sets from its own Overview.
 export default function Board({
   board, onChange, highlightCardId, allBoards, onOpenBoard,
   signals, insights, onUpdateSignal, onCreateSignal, onUpdateInsight, onCreateInsight,
+  specs, onCreateSpec, onUpdateSpec, specHref,
   onToast,
 }) {
   const [signalLinks, setSignalLinks] = useState(board.signals);
@@ -158,7 +166,6 @@ export default function Board({
   };
 
   const patchAction = (id, patch) => setActions((p) => p.map((a) => (a.id === id ? { ...a, ...patch } : a)));
-  const patchResult = (id, patch) => setResults((p) => p.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
   // Which cards were already here when this board opened. Anything that shows up later is an
   // arrival and animates in — without this, every card on the board would fly in each time you
@@ -174,7 +181,33 @@ export default function Board({
   const [focusId, setFocusId] = useState(null);
 
   const addAction = () => { const id = genId(); setActions((p) => [...p, { id, ifWe: "", then: "", expected: "" }]); setFocusId(id); };
-  const addResult = () => { const id = genId(); setResults((p) => [...p, { id, text: "" }]); setFocusId(id); };
+
+  // A result card is a pointer to a spec, not authored content — "New" makes a blank spec and
+  // links it in the same action (mirrors createAndLinkSignal below), pre-set to say this plan is
+  // behind it; "Link" (the picker further down) attaches an already-existing spec instead, and
+  // brings its own researchPlanIds up to date if this plan wasn't already on it.
+  const createAndLinkSpec = () => {
+    const spec = blankSpec("Untitled spec");
+    spec.researchPlanIds = [board.id];
+    onCreateSpec(spec);
+    const id = genId();
+    setResults((p) => [...p, { id, specId: spec.id }]);
+    setFocusId(id);
+  };
+  const linkSpec = (specId) => {
+    const id = genId();
+    setResults((p) => [...p, { id, specId }]);
+    const spec = (specs || []).find((s) => s.id === specId);
+    if (spec && !(spec.researchPlanIds || []).includes(board.id)) {
+      onUpdateSpec(specId, { researchPlanIds: [...(spec.researchPlanIds || []), board.id] });
+    }
+  };
+  const [specPickerOpen, setSpecPickerOpen] = useState(false);
+  const connectSpecBtnRef = useRef(null);
+  const linkableSpecs = useMemo(() => {
+    const linkedIds = new Set(results.map((r) => r.specId));
+    return (specs || []).filter((s) => !linkedIds.has(s.id));
+  }, [specs, results]);
 
   // Linking a signal only ever adds/removes a pointer — never its content, which lives in
   // the global `signals` list and is edited via `onUpdateSignal` (see renderSignalCard).
@@ -295,8 +328,9 @@ export default function Board({
     setConnections((c) => c.filter((x) => x.from !== id && x.to !== id));
 
     const wires = severed.length ? ` and ${severed.length} connection${severed.length === 1 ? "" : "s"}` : "";
+    const unlinkable = { signal: "signal", insight: "insight", result: "spec" };
     onToast?.(
-      kind === "signal" || kind === "insight" ? `Unlinked ${kind} from this board${wires}` : `Deleted ${kind}${wires}`,
+      unlinkable[kind] ? `Unlinked ${unlinkable[kind]} from this board${wires}` : `Deleted ${kind}${wires}`,
       () => {
         setList((p) => insertAt(p, index, item));
         setConnections((c) => [...c, ...severed]);
@@ -347,7 +381,7 @@ export default function Board({
     <IconButton
       className="el-del reveal"
       onClick={() => deleteCard(id, kind)}
-      title={kind === "signal" || kind === "insight" ? "Unlink from this board" : "Delete card"}
+      title={kind === "signal" || kind === "insight" || kind === "result" ? "Unlink from this board" : "Delete card"}
       style={{ ...cornerBadge, right: "-7px" }}
     >
       <X size={12} />
@@ -528,36 +562,49 @@ export default function Board({
     );
   };
 
+  // `r.specId` resolves fresh from `specs` every render, same live-reference behaviour a signal
+  // or insight link already has: renaming the spec here (or from the spec's own page) shows up
+  // everywhere it's linked. A spec is otherwise created from Specs or an Initiative — this is
+  // just a second, in-context place to start one, seeded with this plan already behind it.
   const renderResultCard = (r, idx) => {
-    const ref = r.ref;
-    const resolved = ref ? resolveRef(allBoards, "result", ref) : null;
+    const spec = (specs || []).find((s) => s.id === r.specId);
     return (
       <div key={r.id} className={`el-node reveal-group${isArrival(r.id) ? " enter-up" : ""}`} style={{ opacity: nodeOpacity(r.id) }} {...hoverProps(r.id)}>
         {renderOrder(r.id, idx, results.length, moveResult)}
-        {ref ? (
-          <div
-            ref={setRef(r.id)} data-node-id={r.id} data-node-kind="result"
-            className={cardClass(r.id)}
-            style={{ ...cardSurface("result"), ...targetStyle(r.id), borderStyle: "dashed" }}
-          >
-            {resolved ? (
-              <>
-                <Eyebrow>Result</Eyebrow>
-                <div className="edit-area" style={{ marginTop: "2px" }}>{resolved.item.text}</div>
-                {renderRefSource(resolved.board)}
-              </>
-            ) : (
-              <div style={{ fontFamily: font, fontStyle: "italic", fontSize: SIZE.ui, color: INK_FAINT }}>
-                Referenced result no longer exists.
+        <div ref={setRef(r.id)} data-node-id={r.id} data-node-kind="result" className={cardClass(r.id)} style={{ ...cardSurface("result"), ...targetStyle(r.id) }}>
+          {spec ? (
+            <>
+              <Eyebrow>Spec</Eyebrow>
+              <input
+                className="el-edit edit-area"
+                autoFocus={focusId === r.id}
+                value={spec.title}
+                onChange={(e) => onUpdateSpec(spec.id, { title: e.target.value })}
+                placeholder="Untitled spec"
+                style={{ marginTop: "2px", marginBottom: "8px", fontWeight: WEIGHT.medium }}
+              />
+              <a
+                className="el-ref-source"
+                href={specHref(spec.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: "4px",
+                  fontFamily: font, fontSize: SIZE.micro, fontWeight: WEIGHT.medium, color: INK_FAINT,
+                  textDecoration: "none",
+                }}
+              >
+                <ArrowUpRight size={11} /> Open spec
+              </a>
+              <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginTop: "6px" }}>
+                <Dot color={SPEC_STATUS_COLOR[spec.status] || INK_FAINT} />
+                <Meta style={{ fontSize: SIZE.ui }}>{spec.status}</Meta>
               </div>
-            )}
-          </div>
-        ) : (
-          <div ref={setRef(r.id)} data-node-id={r.id} data-node-kind="result" className={cardClass(r.id)} style={{ ...cardSurface("result"), ...targetStyle(r.id) }}>
-            <Eyebrow>Result</Eyebrow>
-            <textarea className="el-edit edit-area" rows={2} autoFocus={focusId === r.id} value={r.text} onChange={(e) => patchResult(r.id, { text: e.target.value })} placeholder="What actually happened…" style={{ marginTop: "2px" }} />
-          </div>
-        )}
+            </>
+          ) : (
+            <div style={{ fontFamily: font, fontStyle: "italic", fontSize: SIZE.ui, color: INK_FAINT }}>
+              Linked spec no longer exists.
+            </div>
+          )}
+        </div>
         {renderConnectTarget(r.id, "result")}
         {renderDelete(r.id, "result")}
       </div>
@@ -598,11 +645,9 @@ export default function Board({
         // radius still say where the canvas ends.
         style={{ position: "relative", border: `1px solid ${BORDER}`, borderRadius: RADIUS.lg, overflowX: "auto", overflowY: "hidden", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
       >
-        {/* A column with no cards yet gives up some of its width to the ones that have them, so an
-            empty Action and Result don't leave the signals and insights wrapping every few words. */}
         <div
           className="el-board"
-          style={{ gridTemplateColumns: [signalLinks.length, insightLinks.length, actions.length, results.length].map((n) => (n ? "minmax(220px, 1fr)" : "minmax(160px, 0.6fr)")).join(" ") }}
+          style={{ gridTemplateColumns: "repeat(4, minmax(220px, 1fr))" }}
         >
           <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "visible" }}>
             <defs>
@@ -755,8 +800,27 @@ export default function Board({
             {actions.map((a, idx) => renderActionCard(a, idx))}
           </Column>
 
-          {/* RESULT */}
-          <Column kind="result" title="Result" count={results.length} last onAdd={addResult}>
+          {/* SPEC (kind stays "result" internally — see the note above the state, and the
+              comment on renderResultCard) — create a blank spec and link it here in one action,
+              or connect one that already exists. */}
+          <Column
+            kind="result" title="Spec" count={results.length} last
+            onAdd={createAndLinkSpec}
+            onConnect={() => setSpecPickerOpen((open) => !open)}
+            connectProps={{ "data-dismiss-ignore": true, ref: connectSpecBtnRef }}
+          >
+            {specPickerOpen && (
+              <LinkPicker
+                anchorRef={connectSpecBtnRef}
+                onClose={() => setSpecPickerOpen(false)}
+                label="Link a spec"
+                placeholder="Search specs…"
+                emptyText="No other specs to link — use + to create one."
+                items={linkableSpecs.map((s) => ({ id: s.id, label: s.title || "Untitled spec", meta: s.status }))}
+                onPick={linkSpec}
+                action={{ label: "New spec", onClick: createAndLinkSpec }}
+              />
+            )}
             {results.map((r, idx) => renderResultCard(r, idx))}
           </Column>
         </div>

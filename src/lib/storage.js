@@ -153,6 +153,29 @@ async function hasFile(dirHandle, name) {
   }
 }
 
+// Resolves a "/"-joined record base path ("<spec-id>", "research-plans/<id>",
+// "initiatives/<id>") into its directory handle, creating any folder along the way that isn't
+// there yet — an initiative is normally a flat file with no folder of its own, so its first
+// upload is what creates one.
+async function getRecordDir(dirHandle, base, { create = false } = {}) {
+  let handle = dirHandle;
+  for (const part of base.split("/")) handle = await handle.getDirectoryHandle(part, { create });
+  return handle;
+}
+
+// A name not already taken in `dirHandle` — `name` itself if free, else "name (2).ext",
+// "name (3).ext", and so on, the same way a browser dedupes a second download of the same file.
+async function uniqueFileName(dirHandle, name) {
+  if (!(await hasFile(dirHandle, name))) return name;
+  const dot = name.lastIndexOf(".");
+  const stem = dot <= 0 ? name : name.slice(0, dot);
+  const ext = dot <= 0 ? "" : name.slice(dot);
+  for (let i = 2; ; i++) {
+    const candidate = `${stem} (${i})${ext}`;
+    if (!(await hasFile(dirHandle, candidate))) return candidate;
+  }
+}
+
 // Any marker file recognized below makes a folder "ours" for the safety check in
 // saveWorkspace's cleanup step — a folder with none of these is left completely alone.
 // `board.md` is no longer one of these: a board is never its own top-level folder anymore,
@@ -233,6 +256,24 @@ async function loadFlatCollection(dirHandle, folderName, parse) {
     out.push(parse(recordRead(`${folderName}/${fname}`, await (await fhandle.getFile()).text())));
   }
   return out;
+}
+
+// Removes an initiative's `<id>/sources/` folder once the initiative itself is gone — the one
+// per-record folder that isn't already covered by the top-level marker-file cleanup in
+// saveWorkspace (an initiative has no marker file; it's a flat record that only grows a folder
+// once a file is uploaded to it). Same managed-and-current rule as everywhere else in this file.
+async function cleanupInitiativeFolders(dirHandle, initiatives, held) {
+  let initiativesDir;
+  try { initiativesDir = await dirHandle.getDirectoryHandle("initiatives"); } catch { return; }
+  const current = new Set((initiatives || []).map((i) => i.id));
+  for await (const [name, handle] of initiativesDir.entries()) {
+    if (handle.kind !== "directory") continue;
+    const path = `initiatives/${name}`;
+    if (current.has(name) || held.has(name) || !managed.has(path)) continue;
+    await initiativesDir.removeEntry(name, { recursive: true });
+    managed.delete(path);
+    for (const key of [...written.keys()]) if (key.startsWith(`${path}/`)) written.delete(key);
+  }
 }
 
 async function saveFlatCollection(dirHandle, folderName, items, toMarkdown, held = new Set()) {
@@ -429,6 +470,15 @@ export async function loadWorkspace(dirHandle) {
   for (const [folder, items] of [["signals", signals], ["insights", insights], ["activities", activities], ["initiatives", initiatives], ["research-plans", researchPlans]]) {
     for (const item of items) managed.add(`${folder}/${item.id}.md`);
   }
+  // An initiative with uploaded sources also has a folder beside its flat file (see
+  // uploadSourceFile) — mark it managed the same way a spec or section folder is, so a later save
+  // knows it's this session's to clean up if the initiative is deleted.
+  try {
+    const initiativesDir = await dirHandle.getDirectoryHandle("initiatives");
+    for (const initiative of initiatives) {
+      if (await hasDirectory(initiativesDir, initiative.id)) managed.add(`initiatives/${initiative.id}`);
+    }
+  } catch { /* no initiatives folder yet */ }
   let plansDir = null;
   try { plansDir = await dirHandle.getDirectoryHandle("research-plans"); } catch { /* no plans yet */ }
   for (const plan of researchPlans) plan.board = await loadPlanBoard(plansDir, plan.id);
@@ -475,6 +525,50 @@ export async function removeWorkspaceDoc(dirHandle, id) {
   if (!written.has(doc.file) || written.get(doc.file) !== onDisk) return "conflict";
   await removeFile(dirHandle, doc.file, doc.file);
   return "removed";
+}
+
+// ---------------------------------------------------------------------------
+// A record's uploaded sources — files that live in `<base>/sources/`, beside its own file(s)
+// (`base` is "<spec-id>", "research-plans/<id>" or "initiatives/<id>"; the last has no folder of
+// its own otherwise, and gets one the moment a file lands in it — see getRecordDir).
+//
+// Upload and removal are explicit, immediate calls, the same way createWorkspaceDoc and
+// removeWorkspaceDoc are: binary content shouldn't sit waiting on the debounced text autosave,
+// and the ledger's written-bytes conflict check (writeFile, above) exists for text files that get
+// re-diffed on every keystroke, not for a file dropped in once. The record's `sources` list
+// itself — which names the file — is ordinary state, saved the normal way through saveWorkspace.
+// ---------------------------------------------------------------------------
+
+// Writes `file` into the record's sources folder, deduping its name if one's already there.
+// Returns the name it was actually saved under — what the caller stores in the record's
+// `sources` array (sourceModel.js `fileSource`).
+export async function uploadSourceFile(dirHandle, base, file) {
+  const recordDir = await getRecordDir(dirHandle, base, { create: true });
+  const sourcesDir = await recordDir.getDirectoryHandle("sources", { create: true });
+  const name = await uniqueFileName(sourcesDir, file.name || "Untitled");
+  const writable = await (await sourcesDir.getFileHandle(name, { create: true })).createWritable();
+  await writable.write(await file.arrayBuffer());
+  await writable.close();
+  managed.add(base); // a fresh initiative folder wasn't managed until this upload created it
+  return name;
+}
+
+// Deletes one uploaded file. Quiet about a file (or folder) that's already gone — removing a
+// source that was already removed from disk is not an error, just a no-op.
+export async function removeSourceFile(dirHandle, base, name) {
+  try {
+    const recordDir = await getRecordDir(dirHandle, base);
+    const sourcesDir = await recordDir.getDirectoryHandle("sources");
+    await sourcesDir.removeEntry(name);
+  } catch { /* already gone */ }
+}
+
+// Reads one uploaded file's bytes back, for opening it (App.jsx turns the returned File into a
+// blob URL). Throws if it's gone — the caller decides how to tell the user.
+export async function readSourceFile(dirHandle, base, name) {
+  const recordDir = await getRecordDir(dirHandle, base);
+  const sourcesDir = await recordDir.getDirectoryHandle("sources");
+  return await (await sourcesDir.getFileHandle(name)).getFile();
 }
 
 // Which entities a set of changed paths belongs to. A spec or section is its own top-level
@@ -752,6 +846,7 @@ export async function saveWorkspace(dirHandle, workspace, { hold = [] } = {}) {
   await saveFlatCollection(dirHandle, "signals", workspace.signals, signalToMarkdown, held);
   await saveFlatCollection(dirHandle, "insights", workspace.insights, insightToMarkdown, held);
   await saveFlatCollection(dirHandle, "initiatives", workspace.initiatives, initiativeToMarkdown, held);
+  await cleanupInitiativeFolders(dirHandle, workspace.initiatives, held);
   // Only when the caller actually holds the collection. An empty list is an instruction to remove
   // every plan this session loaded; a workspace built by code that predates research plans has no
   // list at all, and must not read as that.
