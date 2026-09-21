@@ -14,7 +14,8 @@ export const AGENT_MARKER_END = "<!-- monk:end -->";
 export const AGENTS_DOC_BODY = `## Monk workspace
 
 This folder holds product specs and the research behind them, as plain markdown. Every file
-format is documented in \`MONK.md\` — read that before writing.
+format is documented in \`MONK.md\`, and how to write what goes in those fields — what each one is
+for, and how short it should be — in \`WRITING.md\`. Read both before writing.
 
 ### What's here
 
@@ -26,7 +27,8 @@ format is documented in \`MONK.md\` — read that before writing.
   collected and the insights formed from them.
 - \`activities/\` — legacy. Don't write to it; Monk migrates anything it finds there (see \`MONK.md\`).
 - \`product-knowledge/\`, \`standards/\` — shared context every spec is built against (see "Building from a spec")
-- \`MONK.md\` — the schema. Generated on save; don't edit it by hand.
+- \`MONK.md\` — the schema, and \`WRITING.md\` — the field-by-field writing guide. Both generated on
+  save; don't edit them by hand.
 - \`DESIGN.md\` — optional: this product's design system, in the format at
   <https://github.com/google-labs-code/design.md>. Monk only creates it when asked, as an unfilled
   skeleton. If it's there, it's a contract for everything you build — so that is where tokens,

@@ -4,10 +4,11 @@ Specs and the research behind them, kept as plain markdown inside your product's
 people writing them and the coding agents building from them read the same files.
 
 - **Research Repository** — signals (what you observed), insights formed from them, and the
-  activities they came from.
+  research plans behind them: why a study was run, with whom, and what it had to answer. Each plan
+  has an Analysis board running signals → insights → actions → the spec they lead to.
 - **Specs** — each with an Overview (problem, goals, non-goals, open questions, acceptance
-  criteria), a Discovery board linking the signals and insights behind it, a Solution and a Plan.
-  Specs can be grouped under initiatives.
+  criteria, and the research plans behind it), a Solution and a Plan. Specs can be grouped under
+  initiatives.
 - **Product Knowledge** and **Standards** — shared documents every spec is built against.
 - **Design system** — an optional `DESIGN.md` in the [google-labs-code/design.md](https://github.com/google-labs-code/design.md)
   format, edited as tokens and sections, and a contract for everything that gets built.
@@ -71,16 +72,19 @@ Monk writes these into `monk/`:
 ```
 monk/
   MONK.md              the file formats, for agents (rewritten on every save — don't edit)
+  WRITING.md           how to write what goes in them, field by field (same: generated, don't edit)
   AGENTS.md            a briefing for agents working in the folder
   DESIGN.md            optional: the design system, created only when you ask
   product-knowledge/   documents shared by every spec
   standards/
   <section-id>/        your own document sections
-  <spec-id>/           spec.md, solution.md, plan.md, board/
-  signals/  insights/  activities/  initiatives/
+  <spec-id>/           spec.md, solution.md, plan.md
+  research-plans/      the study behind a set of signals; each has its own analysis board
+  signals/  insights/  initiatives/
 ```
 
-The full format of every file is in the generated `MONK.md`.
+The full format of every file is in the generated `MONK.md`; `WRITING.md` beside it says what each
+field is for and how much to write in it, which is what keeps an agent's drafts short.
 
 If you do connect a folder that already has an `AGENTS.md` or `CLAUDE.md`, Monk won't touch it —
 it asks whether to append a section of its own, and remembers if you say no.
@@ -130,8 +134,10 @@ pages on sample data without any folder:
 | --- | --- |
 | `#/home-preview` | the start page |
 | `#/spec-preview` | a spec, all tabs |
+| `#/specs-preview` | the specs list |
 | `#/design-preview` | a spec's Solution tab |
-| `#/board-preview` | a Discovery board |
+| `#/board-preview` | an Analysis board on its own |
+| `#/research-plan-preview` | a research plan, Overview and Analysis |
 | `#/research-preview` | the Research Repository |
 | `#/workspace-doc-preview` | the Design system page, from empty |
 | `#/initiative-preview` | an initiative, with open questions |
