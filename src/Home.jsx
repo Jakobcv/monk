@@ -149,7 +149,7 @@ export default function Home({ signals = [], insights = [], specs = [], initiati
             <button
               className="enter-up crumb"
               onClick={onChangeFolder}
-              title={subfolder ? `Working in ${folderName}/${subfolder} — switch to a different project` : "Switch to a different research folder"}
+              title={subfolder ? `Working in ${folderName}/${subfolder} — switch to a different project` : "Switch to a different repository"}
               style={{
                 display: "inline-flex", alignItems: "center", gap: SPACE.sm,
                 marginTop: SPACE.xl, padding: "5px 11px", borderRadius: RADIUS.pill,
@@ -160,7 +160,7 @@ export default function Home({ signals = [], insights = [], specs = [], initiati
             >
               <FolderOpen size={12} style={{ flexShrink: 0 }} />
               <span translate="no">
-                {folderName || "Research folder"}
+                {folderName || "Repository"}
                 {subfolder && <span style={{ color: INK_FAINT }}>/{subfolder}</span>}
               </span>
             </button>

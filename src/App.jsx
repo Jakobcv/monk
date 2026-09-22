@@ -1226,12 +1226,12 @@ export default function App() {
   // The project comes first: that's the thing you need to recognise. The monk/ folder inside it is
   // the same in every project, so it's only in the tooltip.
   const folderCrumb = {
-    label: projectName || "Research folder",
+    label: projectName || "Repository",
     onClick: handleChangeFolder,
     icon: FolderOpen,
     title: rootHandle
       ? `Working in ${rootHandle.name}/${dirHandle?.name} — switch to a different project`
-      : "Switch to a different research folder",
+      : "Switch to a different repository",
   };
 
   // `null` (Home) means no breadcrumb bar at all — it's a standalone landing, not a page you
@@ -1411,12 +1411,12 @@ export default function App() {
     );
   }
   if (phase === "checking") {
-    return <ConnectScreen title="Monk" message="Checking for a connected folder…" />;
+    return <ConnectScreen title="Monk" message="Checking for a connected repository…" />;
   }
   if (phase === "needsConnect") {
     return (
       <ConnectScreen
-        title="Connect your research folder"
+        title="Connect your repository"
         message="Pick your project's repo. Monk keeps its files in a monk/ folder inside it — plain markdown you can read, grep, and commit like any other file."
         buttonLabel="Connect folder"
         onClick={handleConnect}
@@ -1426,20 +1426,20 @@ export default function App() {
   if (phase === "needsReconnect") {
     return (
       <ConnectScreen
-        title="Reconnect your research folder"
-        message="Permission to read and write your research folder needs to be re-granted after a browser restart."
+        title="Reconnect your repository"
+        message="Permission to read and write your repository needs to be re-granted after a browser restart."
         buttonLabel="Reconnect folder"
         onClick={handleReconnect}
       />
     );
   }
   if (phase === "loading") {
-    return <ConnectScreen title="Monk" message="Loading your research folder…" />;
+    return <ConnectScreen title="Monk" message="Loading your repository…" />;
   }
   if (phase === "loadFailed") {
     return (
       <ConnectScreen
-        title="Couldn't read your research folder"
+        title="Couldn't read your repository"
         message={`Nothing has been changed on disk. ${loadError ? loadError.message : ""}`.trim()}
         buttonLabel="Try again"
         onClick={() => { setLoadError(null); setPhase("loading"); }}

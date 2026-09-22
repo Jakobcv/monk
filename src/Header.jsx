@@ -21,13 +21,13 @@ export default function Header({ saveStatus, onRetrySave, onChangeFolder, onDeta
 
       <div style={{ display: "flex", alignItems: "center", gap: SPACE.xl }}>
         <DiskChanges log={diskLog} open={diskLogOpen} onOpenChange={onDiskLogOpenChange} hrefFor={diskLogHref} />
-        <Button variant="subtle" onClick={onChangeFolder} title="Switch to a different research folder">
+        <Button variant="subtle" onClick={onChangeFolder} title="Switch to a different repository">
           <FolderOpen size={16} /> Change folder
         </Button>
         {/* Icon-only and quiet on purpose: detaching is rare, one-way-feeling (back to the
             start screen), and shouldn't compete with "Change folder" for attention. */}
         {onDetachFolder && (
-          <IconButton onClick={onDetachFolder} title="Detach this folder and return to the start screen" style={{ color: INK_SOFT }}>
+          <IconButton onClick={onDetachFolder} title="Detach this repository and return to the start screen" style={{ color: INK_SOFT }}>
             <Unlink size={15} />
           </IconButton>
         )}
