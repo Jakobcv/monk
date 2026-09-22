@@ -31,6 +31,16 @@ async function idbSet(key, value) {
   });
 }
 
+async function idbDelete(key) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 export const fsAccessSupported = typeof window !== "undefined" && "showDirectoryPicker" in window;
 
 // The folder Monk keeps its files in, inside a product's repo.
@@ -99,4 +109,11 @@ export async function tryReuseHandle(handle) {
 // Needs a user gesture — used when a stored handle exists but permission has lapsed.
 export async function reconnectHandle(handle) {
   return (await handle.requestPermission({ mode: "readwrite" })) === "granted";
+}
+
+// Forgets the connected folder so the next load asks for one again instead of silently
+// reusing this handle (see getStoredConnection) — "detach", as opposed to handleChangeFolder's
+// pick-a-different-one-immediately.
+export async function clearStoredConnection() {
+  try { await idbDelete(KEY); } catch { /* nothing stored, or the DB is unavailable — fine either way */ }
 }

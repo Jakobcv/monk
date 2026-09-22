@@ -8,7 +8,7 @@ import { blankSpec } from "./lib/specModel";
 import { blankInitiative, specsForInitiative, researchPlansForInitiative } from "./lib/initiativeModel";
 import { blankResearchPlan } from "./lib/researchPlanModel";
 import { mockWorkspace } from "./lib/mockWorkspace";
-import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, tryReuseHandle, reconnectHandle } from "./lib/fsPersistence";
+import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, tryReuseHandle, reconnectHandle, clearStoredConnection } from "./lib/fsPersistence";
 import { describeChanges } from "./lib/diskLog";
 import { font, INK, INK_SOFT, SIZE, WEIGHT, SPACE } from "./lib/theme";
 import { insertAt } from "./lib/arrays";
@@ -722,6 +722,30 @@ export default function App() {
     }
   };
 
+  // Disconnects the current folder and drops back to the intro screen, rather than
+  // immediately prompting for a new one the way handleChangeFolder does. Forgets the stored
+  // handle too, so a reload doesn't silently reconnect to the folder just left.
+  const handleDetachFolder = async () => {
+    await clearStoredConnection();
+    skipNextSaveRef.current = true;
+    setSections([]);
+    setSpecs([]);
+    setSignals([]);
+    setInsights([]);
+    setRetiredActivityIds([]);
+    setInitiatives([]);
+    setResearchPlans([]);
+    setWorkspaceDocs({});
+    setDiskLog([]);
+    setDiskLogOpen(false);
+    setRootHandle(null);
+    setDirHandle(null);
+    setPendingConnection(null);
+    setLoadError(null);
+    setPhase("needsConnect");
+    goToStart();
+  };
+
   // The project's name — the repo Monk was connected to — or, with no known root, the connected
   // folder's own name.
   const projectName = rootHandle?.name || dirHandle?.name || "";
@@ -1430,6 +1454,7 @@ export default function App() {
         saveStatus={saveStatus}
         onRetrySave={retrySave}
         onChangeFolder={handleChangeFolder}
+        onDetachFolder={handleDetachFolder}
         diskLog={diskLog}
         diskLogOpen={diskLogOpen}
         onDiskLogOpenChange={setDiskLogOpen}
