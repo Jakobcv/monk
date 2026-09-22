@@ -13,6 +13,7 @@
 // one item per line except the two freeform ones:
 //
 //   ## Solution             freeform markdown
+//   ## Sketches             - ![Caption](sketches/file) — outcome
 //   ## Design principles    1. text
 //   ## Constraints          - text
 //   ## Decisions            - text
@@ -24,8 +25,8 @@
 // `##` heading lands in Notes verbatim, title and all, so a file written before the change loses
 // nothing and the writer decides what to do with it.
 const TITLES = {
-  artefacts: "Artefacts", solution: "Solution", principles: "Design principles", constraints: "Constraints",
-  decisions: "Decisions", notes: "Notes",
+  artefacts: "Artefacts", solution: "Solution", sketches: "Sketches", principles: "Design principles",
+  constraints: "Constraints", decisions: "Decisions", notes: "Notes",
 };
 // Headings a section has been known by, beyond its current title — a file written before a rename
 // still parses into the same key rather than falling through to Notes as an unknown heading.
@@ -40,7 +41,7 @@ const KEY_BY_TITLE = {
 const FREEFORM = new Set(["solution", "notes"]);
 
 export function blankDesign() {
-  return { artefacts: [], solution: "", principles: [], constraints: [], decisions: [], notes: "" };
+  return { artefacts: [], solution: "", sketches: [], principles: [], constraints: [], decisions: [], notes: "" };
 }
 
 // List items are one line each in the file; a stray newline typed into a field is collapsed.
@@ -80,6 +81,17 @@ export function designSections(d) {
   // The solution leads: it's the one section that says what is actually being built, and
   // everything under it qualifies that.
   add("solution", [(d.solution || "").trim()]);
+
+  // The sketches come straight after it: they're the same claim as the Solution prose, drawn
+  // rather than written. A sketch with no caption and no image is an empty row and isn't written.
+  add("sketches", d.sketches
+    .map((s) => ({ caption: oneLine(s.caption), path: oneLine(s.path).replace(/\s/g, ""), outcome: oneLine(s.outcome) }))
+    .filter((s) => s.caption || s.path)
+    .map((s) => {
+      const body = s.path ? `![${s.caption}](${s.path})` : s.caption;
+      return `- ${body}${s.outcome ? ` — ${s.outcome}` : ""}`;
+    }));
+
   add("principles", d.principles.map(oneLine).filter(Boolean).map((p, i) => `${i + 1}. ${p}`));
   add("constraints", d.constraints.map(oneLine).filter(Boolean).map((c) => `- ${c}`));
   add("decisions", d.decisions.map(oneLine).filter(Boolean).map((x) => `- ${x}`));
@@ -111,6 +123,25 @@ const PARSERS = {
       const l = joined(group);
       const m = /^\s*[-*+]\s+\[(.*)\]\(([^)]*)\)\s*(?:[—–-]\s*.*)?$/.exec(l);
       d.artefacts.push(m ? { title: m[1], url: m[2] } : { title: bullet(l), url: "" });
+    }
+  },
+  // A sketch is a markdown image and the outcome it's meant to achieve, after an em dash — the
+  // caption names the option, the outcome is what the room is meant to judge it against, and two
+  // sketches carrying the same outcome are one set of alternatives (DesignTab groups on it).
+  // Image syntax rather than a plain link so a reader outside Monk — GitHub reviewing `monk/`,
+  // an agent reading the raw file — sees a picture without inferring one from the extension.
+  // A line that isn't an image keeps its text as the caption, the same way a bare artefact
+  // bullet does, so nothing a person typed by hand is dropped.
+  sketches(d, items) {
+    for (const group of items) {
+      const l = joined(group);
+      const m = /^\s*[-*+]\s+!\[(.*?)\]\(([^)]*)\)\s*(?:[—–-]\s*(.*))?$/.exec(l);
+      if (m) { d.sketches.push({ caption: m[1], path: m[2], outcome: (m[3] || "").trim() }); continue; }
+      const text = bullet(l);
+      const split = /^(.*?)\s+[—–]\s+(.*)$/.exec(text);
+      d.sketches.push(split
+        ? { caption: split[1], path: "", outcome: split[2] }
+        : { caption: text, path: "", outcome: "" });
     }
   },
   principles(d, items) { for (const group of items) d.principles.push(bullet(joined(group))); },

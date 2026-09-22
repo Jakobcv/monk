@@ -7,6 +7,12 @@ An **Export** action on every insight card opens one dialog: a live preview of t
 
 Nothing is configured up front. You see the thing, then you choose how to take it.
 
+## Sketches
+
+- ![Preview left, actions right](sketches/export-preview-left.svg) — Choosing a format without leaving the readout
+- ![Actions under the preview](sketches/export-actions-below.svg) — Choosing a format without leaving the readout
+- ![One button, format on hover](sketches/export-single-action.svg) — Choosing a format without leaving the readout
+
 ## Design principles
 
 1. The evidence is the hero — export chrome should disappear once you've chosen.

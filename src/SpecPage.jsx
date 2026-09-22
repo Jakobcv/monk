@@ -156,6 +156,7 @@ export default function SpecPage({
   spec, initiatives, onChange, activeTab, tabHref, onToast, breadcrumbs,
   researchPlans = [], researchPlanHref, onCreateResearchPlan, onAddResearchQuestion,
   sections, docHref, onUploadSourceFile, onRemoveSourceFile, onOpenSourceFile,
+  onUploadSketch, onReadSketch,
 }) {
   const [title, setTitle] = useState(spec.title);
   const [status, setStatus] = useState(spec.status);
@@ -281,7 +282,10 @@ export default function SpecPage({
 
       <Page ground="reading" hidden={activeTab !== "design"}>
         <div className="paper-sheet">
-          <DesignTab value={spec.design} onChange={setDesign} onToast={onToast} />
+          <DesignTab
+            value={spec.design} onChange={setDesign} onToast={onToast}
+            onUploadSketch={onUploadSketch} onReadSketch={onReadSketch}
+          />
         </div>
       </Page>
 
