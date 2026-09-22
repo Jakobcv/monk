@@ -77,6 +77,7 @@ every record; set \`updatedAt\` to now when you change something.
     spec.md                     see "Spec" below
     solution.md                 markdown in fixed ## sections, NO frontmatter (the Solution tab)
     plan.md                     plain markdown, NO frontmatter (the Plan tab)
+    sketches/<filename>         the spec's sketches, see "Solution" below (only once one exists)
     sources/<filename>          uploaded source files, see "Sources" below (only once one exists)
 
   DESIGN.md                   ← optional: this product's design system (see below)
@@ -157,12 +158,22 @@ in this order, each omitted when empty — one item per line (see "Writing text"
 
 \`\`\`
 ## Solution               freeform markdown — what to build; the sections below qualify it
+## Sketches               - ![Caption](sketches/file) — the outcome it has to achieve
 ## Design principles      1. text — intent to optimise for; how to get there is your call
 ## Constraints            - text — binding; if one can't be met, stop and flag it
 ## Decisions              - text — settled; don't reverse one without flagging it
 ## Artefacts              - [Title](url) — reference material to consult
 ## Notes                  freeform markdown — background
 \`\`\`
+
+A **sketch** is a crude picture of one option, in \`<spec-uuid>/sketches/\`, with the outcome it has
+to achieve after an em dash. Write it as an SVG in that folder and add its line: nothing needs the
+app, and a text sketch diffs in review like every other file here. Two sketches whose outcome text
+matches word for word are shown as one set of alternatives, so reuse the text exactly. The path is
+read as written and only \`sketches/<filename>\` resolves — a sketch is rendered in an \`img\`, never
+inlined, so script inside an SVG never runs. See \`WRITING.md\` for what makes a sketch worth
+drawing. Distinct from an Artefact (a link to something outside the workspace) and from a Source
+(reference material behind the spec, in \`sources/\`): a sketch is a proposal inside it.
 
 Text before the first heading, or under any other \`##\` heading, is kept as Notes — which is also
 where sections Monk has since dropped end up, heading and all, rather than being discarded:

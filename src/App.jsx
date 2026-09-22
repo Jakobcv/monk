@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { FolderOpen, RefreshCw, FileText } from "lucide-react";
-import { loadWorkspace, saveWorkspace, watchWorkspace, canWatchWorkspace, entityIdsFor, ensureAgentGuides, addAgentSection, createWorkspaceDoc, removeWorkspaceDoc, uploadSourceFile, removeSourceFile, readSourceFile } from "./lib/storage";
+import { loadWorkspace, saveWorkspace, watchWorkspace, canWatchWorkspace, entityIdsFor, ensureAgentGuides, addAgentSection, createWorkspaceDoc, removeWorkspaceDoc, uploadSourceFile, removeSourceFile, readSourceFile, SKETCHES_DIR } from "./lib/storage";
 import { WORKSPACE_DOCS, workspaceDocById } from "./lib/workspaceDocs";
 import { bumpNextId } from "./lib/boardModel";
 import { blankSection, blankDocument, ensureFixedSections, isFixedSection } from "./lib/documentModel";
@@ -970,6 +970,20 @@ export default function App() {
     }
   };
 
+  // A spec's sketches are the same two calls against the spec's own `sketches/` folder. Reading
+  // one hands the File straight back rather than making a blob URL here: the Solution tab holds a
+  // thumbnail open for as long as it's on screen, so it owns the URL's lifetime (DesignTab
+  // useSketchUrl). There's no remove call — taking a sketch off the page leaves its file in the
+  // folder so Undo can bring the whole sketch back, not a line pointing at nothing.
+  const uploadSketch = (id) => async (file) => {
+    if (!dirHandle) throw new Error("Not connected to a workspace.");
+    return uploadSourceFile(dirHandle, id, file, SKETCHES_DIR);
+  };
+  const readSketch = (id) => (name) => {
+    if (!dirHandle) return Promise.reject(new Error("Not connected to a workspace."));
+    return readSourceFile(dirHandle, id, name, SKETCHES_DIR);
+  };
+
   const isSpecRoute = route.name === "spec" || route.name === "specDesign" || route.name === "specPlan";
 
   const createSpec = (initiativeId = null) => {
@@ -1486,6 +1500,8 @@ export default function App() {
                   onUploadSourceFile={uploadSource("spec", activeSpec.id)}
                   onRemoveSourceFile={removeSource("spec", activeSpec.id)}
                   onOpenSourceFile={openSource("spec", activeSpec.id)}
+                  onUploadSketch={uploadSketch(activeSpec.id)}
+                  onReadSketch={readSketch(activeSpec.id)}
                   onChange={(patch) => updateSpec(activeSpec.id, patch)}
                   activeTab={activeSpecTab}
                   tabHref={(tab) => (

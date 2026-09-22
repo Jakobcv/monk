@@ -6,8 +6,8 @@ import PaperButton from "./PaperButton";
 import IconButton from "./IconButton";
 import LinkPicker from "./LinkPicker";
 import { documentIndex, resolveDocumentSource, documentSource, fileSource } from "../lib/sourceModel";
+import { pickFile } from "../lib/pickFile";
 
-const fsOpenSupported = typeof window !== "undefined" && "showOpenFilePicker" in window;
 
 // Reference material behind a spec, research plan or initiative: pointers to documents already
 // in the workspace, and files uploaded straight into the record's own sources/ folder (see
@@ -51,13 +51,7 @@ export default function SourcesList({ sources, onChange, sections, docHref, onUp
   const upload = async () => {
     if (!onUploadFile) return;
     try {
-      let file;
-      if (fsOpenSupported) {
-        const [handle] = await window.showOpenFilePicker({ multiple: false });
-        file = await handle.getFile();
-      } else {
-        file = await pickFileViaInput();
-      }
+      const file = await pickFile();
       if (!file) return;
       const name = await onUploadFile(file);
       onChange([...items, fileSource(name)]);
@@ -135,13 +129,3 @@ export default function SourcesList({ sources, onChange, sections, docHref, onUp
   );
 }
 
-// Browsers without showOpenFilePicker (Firefox, Safari) fall back to a plain file input, created
-// fresh each time — nothing to mount, no ref to manage between uploads.
-function pickFileViaInput() {
-  return new Promise((resolve) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.onchange = () => resolve(input.files?.[0] || null);
-    input.click();
-  });
-}

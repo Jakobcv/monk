@@ -528,25 +528,32 @@ export async function removeWorkspaceDoc(dirHandle, id) {
 }
 
 // ---------------------------------------------------------------------------
-// A record's uploaded sources — files that live in `<base>/sources/`, beside its own file(s)
-// (`base` is "<spec-id>", "research-plans/<id>" or "initiatives/<id>"; the last has no folder of
-// its own otherwise, and gets one the moment a file lands in it — see getRecordDir).
+// A record's own files — the sources uploaded behind it, in `<base>/sources/`, and a spec's
+// sketches, in `<base>/sketches/`, both beside its own file(s) (`base` is "<spec-id>",
+// "research-plans/<id>" or "initiatives/<id>"; the last has no folder of its own otherwise, and
+// gets one the moment a file lands in it — see getRecordDir). The three calls below take the
+// folder as an argument because the two cases differ in nothing but where the bytes land; what a
+// sketch and a source *mean* is the difference, and that lives in the models (sourceModel.js,
+// designModel.js), not here.
 //
 // Upload and removal are explicit, immediate calls, the same way createWorkspaceDoc and
 // removeWorkspaceDoc are: binary content shouldn't sit waiting on the debounced text autosave,
 // and the ledger's written-bytes conflict check (writeFile, above) exists for text files that get
-// re-diffed on every keystroke, not for a file dropped in once. The record's `sources` list
-// itself — which names the file — is ordinary state, saved the normal way through saveWorkspace.
+// re-diffed on every keystroke, not for a file dropped in once. The list that names the file —
+// a record's `sources`, a spec's Sketches section — is ordinary state, saved the normal way
+// through saveWorkspace.
 // ---------------------------------------------------------------------------
+export const SOURCES_DIR = "sources";
+export const SKETCHES_DIR = "sketches";
 
-// Writes `file` into the record's sources folder, deduping its name if one's already there.
+// Writes `file` into one of the record's folders, deduping its name if one's already there.
 // Returns the name it was actually saved under — what the caller stores in the record's
-// `sources` array (sourceModel.js `fileSource`).
-export async function uploadSourceFile(dirHandle, base, file) {
+// `sources` array (sourceModel.js `fileSource`), or in a sketch's path.
+export async function uploadSourceFile(dirHandle, base, file, folder = SOURCES_DIR) {
   const recordDir = await getRecordDir(dirHandle, base, { create: true });
-  const sourcesDir = await recordDir.getDirectoryHandle("sources", { create: true });
-  const name = await uniqueFileName(sourcesDir, file.name || "Untitled");
-  const writable = await (await sourcesDir.getFileHandle(name, { create: true })).createWritable();
+  const filesDir = await recordDir.getDirectoryHandle(folder, { create: true });
+  const name = await uniqueFileName(filesDir, file.name || "Untitled");
+  const writable = await (await filesDir.getFileHandle(name, { create: true })).createWritable();
   await writable.write(await file.arrayBuffer());
   await writable.close();
   managed.add(base); // a fresh initiative folder wasn't managed until this upload created it
@@ -555,20 +562,21 @@ export async function uploadSourceFile(dirHandle, base, file) {
 
 // Deletes one uploaded file. Quiet about a file (or folder) that's already gone — removing a
 // source that was already removed from disk is not an error, just a no-op.
-export async function removeSourceFile(dirHandle, base, name) {
+export async function removeSourceFile(dirHandle, base, name, folder = SOURCES_DIR) {
   try {
     const recordDir = await getRecordDir(dirHandle, base);
-    const sourcesDir = await recordDir.getDirectoryHandle("sources");
-    await sourcesDir.removeEntry(name);
+    const filesDir = await recordDir.getDirectoryHandle(folder);
+    await filesDir.removeEntry(name);
   } catch { /* already gone */ }
 }
 
-// Reads one uploaded file's bytes back, for opening it (App.jsx turns the returned File into a
-// blob URL). Throws if it's gone — the caller decides how to tell the user.
-export async function readSourceFile(dirHandle, base, name) {
+// Reads one file's bytes back, for opening a source or drawing a sketch (App.jsx turns the
+// returned File into a blob URL). Throws if it's gone — the caller decides how to tell the user,
+// and for a sketch "gone" is a state the tab draws rather than an error.
+export async function readSourceFile(dirHandle, base, name, folder = SOURCES_DIR) {
   const recordDir = await getRecordDir(dirHandle, base);
-  const sourcesDir = await recordDir.getDirectoryHandle("sources");
-  return await (await sourcesDir.getFileHandle(name)).getFile();
+  const filesDir = await recordDir.getDirectoryHandle(folder);
+  return await (await filesDir.getFileHandle(name)).getFile();
 }
 
 // Which entities a set of changed paths belongs to. A spec or section is its own top-level

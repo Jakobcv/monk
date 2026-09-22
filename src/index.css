@@ -1530,6 +1530,44 @@ a.recent-row:hover {
   color: var(--ink-faint);
 }
 
+/* A sketch on the Solution tab: a crude picture of one option, in its own frame. The frame is
+   what a sketch is bounded by — a drawing has no edge of its own, and without one a pale
+   wireframe bleeds into the sheet. */
+.sketch-frame {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: #fff;
+  overflow: hidden;
+  cursor: zoom-in;
+  transition: border-color var(--motion-fast) var(--ease);
+}
+.sketch-frame:hover {
+  border-color: var(--ink-faint);
+}
+.sketch-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Every sketch arrives desaturated, whatever was brought in: a finished mockup dropped in here
+     is still a proposal, and it should look like one. It does almost nothing to a sketch that was
+     already drawn in greys — there the palette in WRITING.md is what holds the line. */
+  filter: grayscale(1) contrast(0.92);
+}
+/* A sketch whose file isn't there — deleted in git, or a path that points outside sketches/.
+   The caption still says what the option was, so the row keeps its meaning. */
+.sketch-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 3 / 2;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-xs);
+  color: var(--ink-placeholder);
+}
+
 /* A link in a page's side rail — the plans behind a spec, the specs a plan informs. */
 .rail-link {
   display: flex;

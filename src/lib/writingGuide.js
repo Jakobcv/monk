@@ -142,7 +142,18 @@ Avoid: quality adjectives ("fast", "intuitive") without a threshold.
 ### Solution
 
 **Solution.** *What are we building and how does it work?*
-Describe behaviour and flow from the user's side: what they see, what they can do, what happens. Budget: short paragraphs, as long as it needs to be unambiguous and no longer. Leave visual detail to linked artefacts.
+Describe behaviour and flow from the user's side: what they see, what they can do, what happens. Budget: short paragraphs, as long as it needs to be unambiguous and no longer. Leave visual detail to the sketches and linked artefacts below.
+
+**Sketches.** *What could this look like, crudely enough to argue about?*
+One line per sketch: a caption naming the option, and the outcome it has to achieve. Write two or three for the same outcome, never one — a single picture invites critique, a set invites a choice. Reuse the outcome text word for word across a set; matching text is what groups them.
+Write sketches as SVG, by hand, into the spec's \`sketches/\` folder. Greys only: one fill for blocks, one for text placeholders, one for borders. No brand colour, no type scale, no shadows.
+Show layout and hierarchy — where things sit, what is bigger, what is grouped, what comes first. Use grey bars for text, never real sentences. Label a control by its role ("primary action", "filter"), never by its copy ("Save changes"): the moment a sketch contains copy, the conversation is about the copy. A structural label naming a section of the page is not copy, and may be written out.
+Budget: 2–4 sketches per outcome, at most two outcomes per spec.
+Done when: someone could point at one and say "this one, because it gets us X".
+Avoid: a sketch that is the only option; icons; states and transitions; anything that would change if the copy changed.
+
+> ✗ \`![Settings screen](sketches/settings.svg) — Improved settings experience\`
+> ✓ \`![Tabs down the side](sketches/settings-side-tabs.svg) — An admin finds a setting without hunting\`
 
 **Design principles.** *Which trade-offs will guide decisions not covered here?*
 2–4 items, each phrased as "X over Y" so it can settle a disagreement.
