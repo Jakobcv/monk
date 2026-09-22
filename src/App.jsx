@@ -10,7 +10,7 @@ import { blankResearchPlan } from "./lib/researchPlanModel";
 import { mockWorkspace } from "./lib/mockWorkspace";
 import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, tryReuseHandle, reconnectHandle, clearStoredConnection } from "./lib/fsPersistence";
 import { describeChanges } from "./lib/diskLog";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, SIZE, WEIGHT, SPACE, RADIUS, MOTION, withAlpha } from "./lib/theme";
 import { insertAt } from "./lib/arrays";
 import Button from "./ui/Button";
 import Toast from "./ui/Toast";
@@ -517,15 +517,28 @@ function ConnectScreen({ title, message, buttonLabel, onClick, icon: Icon }) {
     <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
       <div className="enter-up" style={{ maxWidth: "380px", textAlign: "center" }}>
         {Icon && (
-          <div
-            style={{
-              width: "52px", height: "52px", margin: `0 auto ${SPACE.lg}`, borderRadius: RADIUS.lg,
-              background: BG_HOVER, border: `1px solid ${BORDER}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >
-            <Icon size={22} color={INK_FAINT} strokeWidth={1.5} />
-          </div>
+          <>
+            {/* A slow breathing ring rather than a one-shot animation — this screen can sit
+                on-screen for a while (waiting on a permission prompt, say), so it needs to read
+                as "quietly alive", not as something that just happened. */}
+            <style>{`
+              @keyframes connect-icon-ring {
+                0%, 100% { box-shadow: 0 0 0 0 ${withAlpha(INK, "00")}; }
+                50% { box-shadow: 0 0 0 5px ${withAlpha(INK, "0A")}; }
+              }
+              .connect-icon-badge { animation: connect-icon-ring 2.6s ${MOTION.ease} infinite; }
+            `}</style>
+            <div
+              className="connect-icon-badge"
+              style={{
+                width: "52px", height: "52px", margin: `0 auto ${SPACE.lg}`, borderRadius: RADIUS.lg,
+                background: BG_HOVER, border: `1px solid ${BORDER}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <Icon size={22} color={INK_FAINT} strokeWidth={1.5} />
+            </div>
+          </>
         )}
         <div style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK, marginBottom: SPACE.base }}>{title}</div>
         <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK_SOFT, lineHeight: 1.5, marginBottom: buttonLabel ? "18px" : 0 }}>
