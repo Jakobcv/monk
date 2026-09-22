@@ -10,7 +10,7 @@ import { blankResearchPlan } from "./lib/researchPlanModel";
 import { mockWorkspace } from "./lib/mockWorkspace";
 import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, tryReuseHandle, reconnectHandle, clearStoredConnection } from "./lib/fsPersistence";
 import { describeChanges } from "./lib/diskLog";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, SIZE, WEIGHT, SPACE, RADIUS, MOTION, withAlpha } from "./lib/theme";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, SIZE, WEIGHT, SPACE, RADIUS, withAlpha } from "./lib/theme";
 import { insertAt } from "./lib/arrays";
 import Button from "./ui/Button";
 import Toast from "./ui/Toast";
@@ -518,15 +518,27 @@ function ConnectScreen({ title, message, buttonLabel, onClick, icon: Icon }) {
       <div className="enter-up" style={{ maxWidth: "380px", textAlign: "center" }}>
         {Icon && (
           <>
-            {/* A slow breathing ring rather than a one-shot animation — this screen can sit
-                on-screen for a while (waiting on a permission prompt, say), so it needs to read
-                as "quietly alive", not as something that just happened. */}
+            {/* The badge's own border stays put — a short bright arc runs around it instead,
+                on a `::before` sized a hair larger and masked down to a ring (the standard
+                spinning-gradient-border trick: two mask layers, one inset by the arc's own
+                width, XORed together so only that inset band shows). The rest of the ring is
+                transparent, so it reads as one comet chasing its own tail, not a full pulse. */}
             <style>{`
-              @keyframes connect-icon-ring {
-                0%, 100% { box-shadow: 0 0 0 0 ${withAlpha(INK, "00")}; }
-                50% { box-shadow: 0 0 0 5px ${withAlpha(INK, "0A")}; }
+              @keyframes connect-icon-chase { to { transform: rotate(360deg); } }
+              .connect-icon-badge { position: relative; }
+              .connect-icon-badge::before {
+                content: "";
+                position: absolute;
+                inset: -1px;
+                border-radius: inherit;
+                padding: 1.5px;
+                background: conic-gradient(${withAlpha(INK, "00")} 0deg, ${withAlpha(INK, "00")} 300deg, ${INK_FAINT} 330deg, ${withAlpha(INK, "00")} 360deg);
+                -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+                -webkit-mask-composite: xor;
+                mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+                mask-composite: exclude;
+                animation: connect-icon-chase 2.4s linear infinite;
               }
-              .connect-icon-badge { animation: connect-icon-ring 2.6s ${MOTION.ease} infinite; }
             `}</style>
             <div
               className="connect-icon-badge"
