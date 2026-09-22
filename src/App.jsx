@@ -534,7 +534,19 @@ function ConnectScreen({ title, message, buttonLabel, onClick, icon: Icon }) {
                 initial-value: 0deg;
                 inherits: false;
               }
-              @keyframes connect-icon-chase { to { --connect-icon-angle: 360deg; } }
+              /* One lap in the first ~60% of the cycle, then the ring parks at zero opacity
+                 for the rest — that gap is the pause between go-arounds. The fade-out lands
+                 exactly as the comet completes the loop, so it dissolves at the finish line
+                 rather than blinking out mid-edge. Angle has stops only at 0%/62%, so it still
+                 interpolates at one constant speed across the lap; the opacity stops in between
+                 don't break that up. */
+              @keyframes connect-icon-chase {
+                0%   { --connect-icon-angle: 0deg; opacity: 0; }
+                6%   { opacity: 1; }
+                52%  { opacity: 1; }
+                62%  { --connect-icon-angle: 360deg; opacity: 0; }
+                100% { --connect-icon-angle: 360deg; opacity: 0; }
+              }
               .connect-icon-badge { position: relative; }
               .connect-icon-badge::before {
                 content: "";
@@ -546,15 +558,15 @@ function ConnectScreen({ title, message, buttonLabel, onClick, icon: Icon }) {
                   from var(--connect-icon-angle),
                   ${withAlpha(INK, "00")} 0deg,
                   ${withAlpha(INK, "00")} 250deg,
-                  ${withAlpha(INK_FAINT, "60")} 320deg,
-                  ${INK_SOFT} 358deg,
+                  ${withAlpha(INK_FAINT, "40")} 320deg,
+                  ${withAlpha(INK_SOFT, "A6")} 358deg,
                   ${withAlpha(INK, "00")} 360deg
                 );
                 -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
                 -webkit-mask-composite: xor;
                 mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
                 mask-composite: exclude;
-                animation: connect-icon-chase 3s linear infinite;
+                animation: connect-icon-chase 4.8s linear infinite;
               }
             `}</style>
             <div
