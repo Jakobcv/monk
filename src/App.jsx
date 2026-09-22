@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { FolderOpen, RefreshCw, FileText } from "lucide-react";
+import { FolderOpen, FolderGit2, RefreshCw, FileText } from "lucide-react";
 import { loadWorkspace, saveWorkspace, watchWorkspace, canWatchWorkspace, entityIdsFor, ensureAgentGuides, addAgentSection, createWorkspaceDoc, removeWorkspaceDoc, uploadSourceFile, removeSourceFile, readSourceFile, SKETCHES_DIR } from "./lib/storage";
 import { WORKSPACE_DOCS, workspaceDocById } from "./lib/workspaceDocs";
 import { bumpNextId } from "./lib/boardModel";
@@ -10,7 +10,7 @@ import { blankResearchPlan } from "./lib/researchPlanModel";
 import { mockWorkspace } from "./lib/mockWorkspace";
 import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, tryReuseHandle, reconnectHandle, clearStoredConnection } from "./lib/fsPersistence";
 import { describeChanges } from "./lib/diskLog";
-import { font, INK, INK_SOFT, SIZE, WEIGHT, SPACE } from "./lib/theme";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
 import { insertAt } from "./lib/arrays";
 import Button from "./ui/Button";
 import Toast from "./ui/Toast";
@@ -512,10 +512,21 @@ const relinkOnBoards = (plans, kind, id, links) => plans.map((p) => {
   };
 });
 
-function ConnectScreen({ title, message, buttonLabel, onClick }) {
+function ConnectScreen({ title, message, buttonLabel, onClick, icon: Icon }) {
   return (
     <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
       <div className="enter-up" style={{ maxWidth: "380px", textAlign: "center" }}>
+        {Icon && (
+          <div
+            style={{
+              width: "52px", height: "52px", margin: `0 auto ${SPACE.lg}`, borderRadius: RADIUS.lg,
+              background: BG_HOVER, border: `1px solid ${BORDER}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <Icon size={22} color={INK_FAINT} strokeWidth={1.5} />
+          </div>
+        )}
         <div style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK, marginBottom: SPACE.base }}>{title}</div>
         <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK_SOFT, lineHeight: 1.5, marginBottom: buttonLabel ? "18px" : 0 }}>
           {message}
@@ -1416,6 +1427,7 @@ export default function App() {
   if (phase === "needsConnect") {
     return (
       <ConnectScreen
+        icon={FolderGit2}
         title="Connect your repository"
         message="Pick your project's repo. Monk keeps its files in a monk/ folder inside it — plain markdown you can read, grep, and commit like any other file."
         buttonLabel="Connect folder"
@@ -1426,6 +1438,7 @@ export default function App() {
   if (phase === "needsReconnect") {
     return (
       <ConnectScreen
+        icon={FolderGit2}
         title="Reconnect your repository"
         message="Permission to read and write your repository needs to be re-granted after a browser restart."
         buttonLabel="Reconnect folder"
