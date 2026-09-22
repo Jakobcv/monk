@@ -518,26 +518,43 @@ function ConnectScreen({ title, message, buttonLabel, onClick, icon: Icon }) {
       <div className="enter-up" style={{ maxWidth: "380px", textAlign: "center" }}>
         {Icon && (
           <>
-            {/* The badge's own border stays put — a short bright arc runs around it instead,
-                on a `::before` sized a hair larger and masked down to a ring (the standard
-                spinning-gradient-border trick: two mask layers, one inset by the arc's own
-                width, XORed together so only that inset band shows). The rest of the ring is
-                transparent, so it reads as one comet chasing its own tail, not a full pulse. */}
+            {/* A comet running around the badge's edge. The ring itself is a `::before` laid
+                exactly over the 1px border (inset -1px + padding 1px), masked down to that band:
+                two mask layers, the inner one inset by the band's width, excluded from each other.
+
+                What travels is the *gradient*, via an animated `--connect-icon-angle` — not the
+                element. Rotating the element (the obvious way to write this) rotates its mask
+                too, and this mask is a rounded square, so the whole outline visibly spins off
+                its own corners. Registering the angle with @property is what makes it animatable
+                at all; plain custom properties can't tween. Chromium-only, like the File System
+                Access API this whole app already needs. */}
             <style>{`
-              @keyframes connect-icon-chase { to { transform: rotate(360deg); } }
+              @property --connect-icon-angle {
+                syntax: "<angle>";
+                initial-value: 0deg;
+                inherits: false;
+              }
+              @keyframes connect-icon-chase { to { --connect-icon-angle: 360deg; } }
               .connect-icon-badge { position: relative; }
               .connect-icon-badge::before {
                 content: "";
                 position: absolute;
                 inset: -1px;
                 border-radius: inherit;
-                padding: 1.5px;
-                background: conic-gradient(${withAlpha(INK, "00")} 0deg, ${withAlpha(INK, "00")} 300deg, ${INK_FAINT} 330deg, ${withAlpha(INK, "00")} 360deg);
+                padding: 1px;
+                background: conic-gradient(
+                  from var(--connect-icon-angle),
+                  ${withAlpha(INK, "00")} 0deg,
+                  ${withAlpha(INK, "00")} 250deg,
+                  ${withAlpha(INK_FAINT, "60")} 320deg,
+                  ${INK_SOFT} 358deg,
+                  ${withAlpha(INK, "00")} 360deg
+                );
                 -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
                 -webkit-mask-composite: xor;
                 mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
                 mask-composite: exclude;
-                animation: connect-icon-chase 2.4s linear infinite;
+                animation: connect-icon-chase 3s linear infinite;
               }
             `}</style>
             <div
