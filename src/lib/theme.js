@@ -42,6 +42,10 @@ export const BORDER_STRONG = "#DDDBD6";
 export const BG = "#FFFFFF";
 export const BG_APP = "#FBFBFA";
 export const BG_HOVER = "#F7F7F5";
+// The selected nav item. It sits *below* the sidebar's ground rather than above it: white on
+// BG_APP was all but invisible, and a recess reads as "you are here" without needing a shadow.
+// Deliberately a step past BG_HOVER so hovering a neighbour never out-shouts the selection.
+export const BG_ACTIVE = "#ECECE9";
 // the four card kinds of a Discovery board
 export const ACCENT = {
   signal: "#D9730D",  // amber
@@ -225,7 +229,7 @@ export const CSS_VARS = `:root{
   --font:${font};
   --ink:${INK}; --ink-soft:${INK_SOFT}; --ink-faint:${INK_FAINT}; --ink-placeholder:${INK_PLACEHOLDER};
   --border:${BORDER}; --border-strong:${BORDER_STRONG};
-  --bg:${BG}; --bg-app:${BG_APP}; --bg-hover:${BG_HOVER};
+  --bg:${BG}; --bg-app:${BG_APP}; --bg-hover:${BG_HOVER}; --bg-active:${BG_ACTIVE};
   --accent-signal:${ACCENT.signal}; --accent-insight:${ACCENT.insight};
   --accent-action:${ACCENT.action}; --accent-result:${ACCENT.result};
   --activity:${ACTIVITY}; --research-plan:${RESEARCH_PLAN}; --danger:${DANGER}; --cited:${CITED};
