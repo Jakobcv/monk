@@ -36,6 +36,7 @@ import { SAMPLE_DESIGN_MD } from "./lib/sampleDesign";
 const DOC_PREFIX = "#/doc/";
 const RESEARCH_ROUTE = "#/research";
 const SPECS_ROUTE = "#/specs";
+const SPECS_PREVIEW_ROUTE = "#/specs-preview";
 const SPEC_PREFIX = "#/spec/";
 const INITIATIVE_PREFIX = "#/initiative/";
 // Legacy: activities were folded into research plans. The route is still parsed so an old link can
@@ -49,7 +50,16 @@ const WORKSPACE_DOC_PREFIX = "#/workspace/";
 // to window.location.hash for the after-an-action programmatic case.
 const hrefStart = () => "#";
 const hrefDocument = (sectionId, docId) => DOC_PREFIX + encodeURIComponent(sectionId) + "/" + encodeURIComponent(docId);
-const hrefSpecs = () => SPECS_ROUTE;
+// Specs keeps which initiatives are expanded in the URL, so a view is linkable and survives a
+// refresh. `open` is a list of initiative ids. An empty list is "?open=" — nothing expanded — which
+// is not the same as no list at all: the bare route restores what this browser remembers.
+const withOpen = (route, open) => route + (open ? "?open=" + open.map(encodeURIComponent).join(",") : "");
+const hrefSpecs = (open) => withOpen(SPECS_ROUTE, open);
+// null when the hash carries no list, so the page can tell a link that says "these" from a bare visit.
+const parseOpen = (query) => {
+  const params = new URLSearchParams(query.replace(/^\?/, ""));
+  return params.has("open") ? params.get("open").split(",").filter(Boolean) : null;
+};
 const hrefSpec = (id) => SPEC_PREFIX + encodeURIComponent(id);
 const hrefSpecDesign = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/design";
 
@@ -108,8 +118,8 @@ function useRoute() {
     const params = new URLSearchParams(hash.slice(RESEARCH_ROUTE.length).replace(/^\?/, ""));
     return { name: "research", q: params.get("q") || "", kind: params.get("kind") || "all" };
   }
-  if (hash === SPECS_ROUTE) {
-    return { name: "specs" };
+  if (hash === SPECS_ROUTE || hash.startsWith(SPECS_ROUTE + "?")) {
+    return { name: "specs", open: parseOpen(hash.slice(SPECS_ROUTE.length)) };
   }
   if (hash.startsWith(SPEC_PREFIX)) {
     // An old #/spec/<id>/discovery link — the board moved to research plans — lands on Overview.
@@ -146,8 +156,8 @@ function useRoute() {
   if (hash === "#/home-preview") {
     return { name: "homePreview" };
   }
-  if (hash === "#/specs-preview") {
-    return { name: "specsPreview" };
+  if (hash === SPECS_PREVIEW_ROUTE || hash.startsWith(SPECS_PREVIEW_ROUTE + "?")) {
+    return { name: "specsPreview", open: parseOpen(hash.slice(SPECS_PREVIEW_ROUTE.length)) };
   }
   if (hash === "#/initiative-preview") {
     return { name: "initiativePreview" };
@@ -1422,6 +1432,7 @@ export default function App() {
       <div style={{ fontFamily: font, height: "100dvh" }}>
         <SpecsPage
           specs={mock.specs} initiatives={mock.initiatives}
+          open={route.open} specsHref={(open) => withOpen(SPECS_PREVIEW_ROUTE, open)}
           specHref={() => "#/spec-preview"} initiativeHref={() => "#/initiative-preview"}
           onCreate={() => {}} onCreateInitiative={() => {}} onDelete={() => {}}
         />
@@ -1695,6 +1706,8 @@ export default function App() {
               <SpecsPage
                 specs={specs}
                 initiatives={initiatives}
+                open={route.open}
+                specsHref={hrefSpecs}
                 specHref={hrefSpec}
                 initiativeHref={hrefInitiative}
                 onCreate={createSpec}

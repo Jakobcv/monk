@@ -1,9 +1,9 @@
-import { Plus, Trash2, Layers, FolderGit2 } from "lucide-react";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, SIZE, WEIGHT, SPACE, PAGE, ACCENT, SPEC_STATUS_COLOR } from "./lib/theme";
+import { useEffect, useId } from "react";
+import { Plus, Trash2, ChevronRight, FolderGit2 } from "lucide-react";
+import { INK_FAINT, SPACE, PAGE, ACCENT, SPEC_STATUS_COLOR } from "./lib/theme";
 import { Dot, Eyebrow, Meta, PageHeading } from "./ui/text";
 import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
-import Card from "./ui/Card";
 import EmptyState from "./ui/EmptyState";
 import Page from "./ui/Page";
 import { parsePlan, taskCounts } from "./lib/planModel";
@@ -12,207 +12,225 @@ const INITIATIVE_STATUS_COLOR = { active: ACCENT.insight, paused: INK_FAINT, don
 
 const byRecency = (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0);
 
-// An initiative's description is markdown; the row only wants its opening words as plain text.
-function plainSummary(markdown = "") {
-  return markdown
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+/gm, "")
-    .replace(/[*_`~]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+// Which initiatives are expanded lives in two places. The URL holds the set the page shows, so a
+// view can be linked. This browser remembers each initiative the person has toggled — true or
+// false by id — so coming back through a bare #/specs restores the page as they left it. An
+// initiative they never touched follows its status: active ones start expanded. How someone likes
+// to look at the page is a fact about them, not the product, so none of this is written to disk.
+const EXPANDED_KEY = "monk:specs-expanded";
+// A private window can refuse localStorage outright. Toggles then last for the session instead.
+const sessionToggles = {};
+
+function readToggles() {
+  let stored = {};
+  try {
+    const parsed = JSON.parse(localStorage.getItem(EXPANDED_KEY) || "{}");
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) stored = parsed;
+  } catch { /* private mode, or a value we didn't write */ }
+  return { ...stored, ...sessionToggles };
 }
 
-function SpecCard({ spec, idx = 0, href, onDelete }) {
-  // Progress through the plan's tasks where there are any; otherwise which tabs have been written.
+function rememberToggle(id, open) {
+  sessionToggles[id] = open;
+  try {
+    const stored = JSON.parse(localStorage.getItem(EXPANDED_KEY) || "{}");
+    const next = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+    next[id] = open;
+    localStorage.setItem(EXPANDED_KEY, JSON.stringify(next));
+  } catch { /* private mode — sessionToggles still has it */ }
+}
+
+function Status({ color, children }) {
+  return (
+    <Meta className="spec-table__status" style={{ color }}>
+      <Dot color={color} /> {children}
+    </Meta>
+  );
+}
+
+// A spec's progress through its plan's tasks, or nothing when the plan has none.
+function progressOf(spec) {
   const counts = taskCounts(parsePlan(spec.plan).tasks);
-  const meta = counts.total
-    ? [`${counts.done}/${counts.total} tasks`, counts.blocked && `${counts.blocked} blocked`].filter(Boolean).join(" · ")
-    : [spec.design && "design", spec.plan && "plan"].filter(Boolean).join(" + ");
+  if (!counts.total) return "";
+  return [`${counts.done}/${counts.total} tasks`, counts.blocked && `${counts.blocked} blocked`].filter(Boolean).join(" · ");
+}
+
+function SpecRow({ spec, href, onDelete, id, hidden, nested }) {
+  const title = spec.title || "Untitled spec";
   return (
-    <Card
-      as="a"
-      href={href}
-      interactive
-      className="reveal-group enter-up"
-      // A gentle stagger on load — capped so a long list doesn't have a visible tail.
-      // fill-mode backwards holds each card hidden through its delay.
-      style={{ position: "relative", textAlign: "left", animationDelay: `${Math.min(idx * 30, 300)}ms`, animationFillMode: "backwards" }}
-    >
-      <IconButton
-        className="reveal"
-        danger
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(spec.id); }}
-        title="Delete spec"
-        aria-label="Delete spec"
-        // Inset 8px from the card corner with 12px between cards, so a 36px target stops just
-        // inside the card's own edge and never reaches the next one.
-        style={{ position: "absolute", top: SPACE.base, right: SPACE.base, "--hit": "36px" }}
-      >
-        <Trash2 size={16} />
-      </IconButton>
-
-      <div style={{
-        fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.md, color: INK,
-        marginBottom: SPACE.md, paddingRight: SPACE["2xl"],
-        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-      }}>
-        {spec.title || "Untitled spec"}
-      </div>
-
-      <div style={{
-        fontFamily: font, fontSize: SIZE.sm, color: INK_SOFT, minHeight: SPACE.xl,
-        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-      }}>
-        {spec.problem || "No problem statement yet"}
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: SPACE.base, marginTop: SPACE.lg }}>
-        <Meta style={{ fontWeight: WEIGHT.semibold, color: SPEC_STATUS_COLOR[spec.status] || INK_FAINT }}>
-          {spec.status}
-        </Meta>
-        {meta && (
-          <>
-            <Dot color={INK_FAINT} size={4} />
-            <Meta style={{ fontVariantNumeric: "tabular-nums" }}>{meta}</Meta>
-          </>
-        )}
-      </div>
-    </Card>
+    <tr id={id} hidden={hidden} className={`spec-table__spec reveal-group${nested ? " spec-table__spec--nested" : ""}`}>
+      <th scope="row" className="spec-table__name">
+        <a href={href} className="spec-table__link" title={title}>{title}</a>
+      </th>
+      <td className="spec-table__count" />
+      <td className="spec-table__progress"><Meta>{progressOf(spec)}</Meta></td>
+      <td><Status color={SPEC_STATUS_COLOR[spec.status] || INK_FAINT}>{spec.status}</Status></td>
+      <td className="spec-table__actions">
+        <IconButton
+          className="reveal"
+          danger
+          onClick={() => onDelete(spec.id)}
+          title="Delete spec"
+          aria-label={`Delete ${title}`}
+          style={{ "--hit": "32px" }}
+        >
+          <Trash2 size={14} />
+        </IconButton>
+      </td>
+    </tr>
   );
 }
 
-function SpecGrid({ specs, specHref, onDelete }) {
+// One initiative and, when it's expanded, its specs — a <tbody> each, so the group is one unit in
+// the table. The chevron and the title are sibling controls: a link can't hold a button, and a
+// keyboard or screen reader user needs to reach "open it" and "show what's in it" separately.
+function InitiativeGroup({ initiative, members, expanded, onToggle, href, specHref, onDelete }) {
+  const baseId = useId();
+  const title = initiative.title || "Untitled initiative";
+  const rowIds = members.map((s, i) => `${baseId}-${i}`);
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: SPACE.lg }}>
-      {specs.map((s, i) => <SpecCard key={s.id} spec={s} idx={i} href={specHref(s.id)} onDelete={onDelete} />)}
-    </div>
+    <tbody className="spec-table__group">
+      <tr className="spec-table__initiative">
+        <th scope="row" className="spec-table__name">
+          <span className="spec-table__lead">
+            {members.length > 0 ? (
+              <IconButton
+                className="spec-table__chevron"
+                onClick={onToggle}
+                aria-expanded={expanded}
+                aria-controls={rowIds.join(" ")}
+                aria-label={`Specs in ${title}`}
+                style={{ "--hit": "32px" }}
+              >
+                <ChevronRight size={14} aria-hidden="true" />
+              </IconButton>
+            ) : (
+              <span className="spec-table__chevron-space" aria-hidden="true" />
+            )}
+            <a href={href} className="spec-table__link" title={title}>{title}</a>
+          </span>
+        </th>
+        <td className="spec-table__count"><Meta>{members.length}</Meta></td>
+        <td className="spec-table__progress" />
+        <td><Status color={INITIATIVE_STATUS_COLOR[initiative.status] || INK_FAINT}>{initiative.status}</Status></td>
+        <td className="spec-table__actions" />
+      </tr>
+      {members.map((s, i) => (
+        <SpecRow key={s.id} id={rowIds[i]} hidden={!expanded} nested spec={s} href={specHref(s.id)} onDelete={onDelete} />
+      ))}
+    </tbody>
   );
 }
 
-// Same shape as Research Repository's research plan row: the name with its status at the end,
-// then what it's about, clamped to two lines — the full text is one click away.
-function InitiativeRow({ initiative, specCount, href }) {
-  const statusColor = INITIATIVE_STATUS_COLOR[initiative.status] || INK_FAINT;
-  const summary = plainSummary(initiative.description) || (initiative.outcomes || []).map((o) => o.text).find(Boolean) || "";
+// The header both tables share. Its cells carry the column widths (fixed layout reads them from
+// the first row), so the loose specs' table lines up under the initiatives' and a long title
+// truncates instead of pushing status off the row. No <colgroup>: a column hidden at phone width
+// has to leave the grid, and a <col> would keep it there as an empty gap.
+function Head({ first }) {
   return (
-    <Card as="a" href={href} interactive style={{ padding: `14px ${SPACE.xl}` }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: SPACE.xl, marginBottom: SPACE.sm }}>
-        <div style={{ fontFamily: font, fontSize: SIZE.lg, fontWeight: WEIGHT.semibold, color: INK, lineHeight: 1.4, minWidth: 0, overflowWrap: "anywhere" }}>
-          {initiative.title || "Untitled initiative"}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: SPACE.lg, flexShrink: 0 }}>
-          <Meta style={{ fontVariantNumeric: "tabular-nums" }}>
-            {specCount} spec{specCount === 1 ? "" : "s"}
-          </Meta>
-          <Meta style={{ display: "flex", alignItems: "center", gap: SPACE.md, fontWeight: WEIGHT.semibold, color: statusColor }}>
-            <Dot color={statusColor} /> {initiative.status}
-          </Meta>
-        </div>
-      </div>
-      <div
-        style={{
-          fontFamily: font, fontSize: SIZE.body, lineHeight: 1.5, color: summary ? INK_SOFT : INK_FAINT,
-          display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden", overflowWrap: "anywhere",
-        }}
-      >
-        {summary || "No description yet"}
-      </div>
-    </Card>
+    <thead>
+      <tr>
+        <th scope="col">{first}</th>
+        <th scope="col" className="spec-table__count">Specs</th>
+        <th scope="col" className="spec-table__progress">Progress</th>
+        <th scope="col">Status</th>
+        <th scope="col"><span className="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
   );
 }
 
-function SectionHeader({ title, children }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg, gap: SPACE.base, flexWrap: "wrap" }}>
-      <PageHeading>{title}</PageHeading>
-      {children}
-    </div>
-  );
-}
-
-const Divider = () => <div style={{ height: "1px", backgroundColor: BORDER, marginBottom: SPACE["4xl"] }} />;
-
-// Specs gets the same sectioned landing page as Research Repository (no search for v1): initiatives
-// first — an initiative is to its specs what an epic is to its tickets (see initiativeModel.js) —
-// then the specs that belong to one, grouped under it, then the loose ones. Renaming happens on
-// the entity's own page, not here; a spec's initiative is set from its own sidebar.
-export default function SpecsPage({ specs, initiatives, specHref, initiativeHref, onCreate, onCreateInitiative, onDelete }) {
+// Specs is one table of initiatives — an initiative is to its specs what an epic is to its tickets
+// (see initiativeModel.js) — each expanding in place to show its specs in the same columns, then
+// the specs that belong to none. Renaming happens on the entity's own page, not here; a spec's
+// initiative is set from its own sidebar.
+export default function SpecsPage({ specs, initiatives, open, specsHref, specHref, initiativeHref, onCreate, onCreateInitiative, onDelete }) {
   const sortedInitiatives = [...(initiatives || [])].sort(byRecency);
   const knownIds = new Set(sortedInitiatives.map((ini) => ini.id));
   const groups = sortedInitiatives
     .map((ini) => ({ initiative: ini, members: specs.filter((s) => s.initiativeId === ini.id).sort(byRecency) }));
-  const grouped = groups.filter((g) => g.members.length > 0);
   // A spec pointing at an initiative that no longer exists is loose, not lost.
   const loose = specs.filter((s) => !s.initiativeId || !knownIds.has(s.initiativeId)).sort(byRecency);
 
+  // Only an initiative with specs can be expanded; one with none has nothing to show.
+  const expandable = groups.filter((g) => g.members.length > 0).map((g) => g.initiative);
+  const remembered = () => {
+    const toggles = readToggles();
+    return expandable.filter((ini) => toggles[ini.id] ?? ini.status === "active").map((ini) => ini.id);
+  };
+  // A URL that lists initiatives wins for this visit; a bare one shows what this browser remembers.
+  const openIds = open ?? remembered();
+  const openSet = new Set(openIds);
+
+  // A bare #/specs — the sidebar's link, a fresh tab — catches the address bar up to what's shown.
+  // replace(), so it doesn't leave a history entry behind for Back to land on.
+  useEffect(() => {
+    if (open == null) window.location.replace(specsHref(remembered()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const toggle = (id) => {
+    const next = !openSet.has(id);
+    rememberToggle(id, next);
+    // In table order, so the same view is always the same URL. replace(), not a new entry: ten
+    // toggles shouldn't take ten Backs to leave the page.
+    const ids = expandable.map((ini) => ini.id).filter((x) => (x === id ? next : openSet.has(x)));
+    window.location.replace(specsHref(ids));
+  };
+
   return (
-    <Page>
+    <Page className="specs-page">
       <div className="enter-up" style={{ maxWidth: PAGE.wide, margin: "0 auto" }}>
-        <SectionHeader title="Initiatives">
-          <Button onClick={onCreateInitiative}>
-            <Plus size={16} /> New initiative
-          </Button>
-        </SectionHeader>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg, gap: SPACE.base, flexWrap: "wrap" }}>
+          <PageHeading>Specs</PageHeading>
+          <div style={{ display: "flex", gap: SPACE.base, flexWrap: "wrap" }}>
+            <Button onClick={onCreateInitiative}>
+              <Plus size={16} /> New initiative
+            </Button>
+            <Button variant="primary" onClick={() => onCreate()}>
+              <Plus size={16} /> New spec
+            </Button>
+          </div>
+        </div>
 
         {groups.length === 0 ? (
           <EmptyState compact icon={FolderGit2} style={{ paddingBottom: SPACE["4xl"] }}>
             No initiatives yet — start one to group the specs that serve the same outcome.
           </EmptyState>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: SPACE.lg, marginBottom: SPACE["4xl"] }}>
-            {groups.map(({ initiative, members }) => (
-              <InitiativeRow key={initiative.id} initiative={initiative} specCount={members.length} href={initiativeHref(initiative.id)} />
-            ))}
-          </div>
-        )}
-
-        <Divider />
-
-        <SectionHeader title="Specs">
-          <Button variant="primary" onClick={() => onCreate()}>
-            <Plus size={16} /> New spec
-          </Button>
-        </SectionHeader>
-
-        {grouped.length === 0 ? (
-          <EmptyState compact icon={Layers} style={{ paddingBottom: SPACE["4xl"] }}>
-            {specs.length === 0
-              ? "No specs yet — create one above."
-              : "No specs in an initiative yet — set one from a spec's sidebar."}
-          </EmptyState>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: SPACE["3xl"], marginBottom: SPACE["4xl"] }}>
-            {grouped.map(({ initiative, members }) => (
-              <section key={initiative.id}>
-                <Eyebrow
-                  as="a"
+          <div className="card spec-table-wrap" style={{ marginBottom: SPACE["4xl"] }}>
+            <table className="spec-table" aria-label="Initiatives and their specs">
+              <Head first="Initiative" />
+              {groups.map(({ initiative, members }) => (
+                <InitiativeGroup
+                  key={initiative.id}
+                  initiative={initiative}
+                  members={members}
+                  expanded={openSet.has(initiative.id)}
+                  onToggle={() => toggle(initiative.id)}
                   href={initiativeHref(initiative.id)}
-                  className="crumb"
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: SPACE.sm, marginBottom: SPACE.base,
-                    padding: `${SPACE.sm} ${SPACE.md}`, marginLeft: `-${SPACE.md}`, textDecoration: "none",
-                  }}
-                >
-                  <FolderGit2 size={12} aria-hidden="true" />
-                  {initiative.title || "Untitled initiative"}
-                </Eyebrow>
-                <SpecGrid specs={members} specHref={specHref} onDelete={onDelete} />
-              </section>
-            ))}
+                  specHref={specHref}
+                  onDelete={onDelete}
+                />
+              ))}
+            </table>
           </div>
         )}
 
-        <Divider />
-
-        <SectionHeader title="Not in an initiative" />
+        <Eyebrow as="h2" section style={{ margin: `0 0 ${SPACE.lg}` }}>Not in an initiative</Eyebrow>
 
         {loose.length === 0 ? (
           <EmptyState compact style={{ paddingBottom: SPACE["4xl"] }}>
-            Every spec belongs to an initiative.
+            {specs.length === 0 ? "No specs yet — create one above." : "Every spec belongs to an initiative."}
           </EmptyState>
         ) : (
-          <div style={{ marginBottom: SPACE["4xl"] }}>
-            <SpecGrid specs={loose} specHref={specHref} onDelete={onDelete} />
+          <div className="card spec-table-wrap" style={{ marginBottom: SPACE["4xl"] }}>
+            <table className="spec-table" aria-label="Specs not in an initiative">
+              <Head first="Spec" />
+              <tbody>
+                {loose.map((s) => <SpecRow key={s.id} spec={s} href={specHref(s.id)} onDelete={onDelete} />)}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
