@@ -1,13 +1,15 @@
-import { FolderOpen, Unlink } from "lucide-react";
+import { Settings as SettingsIcon } from "lucide-react";
 import { font, INK, INK_SOFT, BORDER, SIZE, WEIGHT, SPACE, SAVE_STATUS_COLOR, SAVE_STATUS_LABEL } from "./lib/theme";
 import { Wordmark } from "./ui/text";
-import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
 import DiskChanges from "./DiskChanges";
 
 // One header, identical everywhere — the home page and every board share it rather than
 // each route rendering its own top bar. The brand doubles as the way back home.
-export default function Header({ saveStatus, onRetrySave, onChangeFolder, onDetachFolder, diskLog = [], diskLogOpen = false, onDiskLogOpenChange, diskLogHref }) {
+//
+// The folder controls used to live here as a button and an icon, which is what made a header of
+// three things read as a toolbar. They are in Settings now, one home each.
+export default function Header({ saveStatus, onRetrySave, onOpenSettings, diskLog = [], diskLogOpen = false, onDiskLogOpenChange, diskLogHref }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -21,14 +23,9 @@ export default function Header({ saveStatus, onRetrySave, onChangeFolder, onDeta
 
       <div style={{ display: "flex", alignItems: "center", gap: SPACE.xl }}>
         <DiskChanges log={diskLog} open={diskLogOpen} onOpenChange={onDiskLogOpenChange} hrefFor={diskLogHref} />
-        <Button variant="subtle" onClick={onChangeFolder} title="Switch to a different repository">
-          <FolderOpen size={16} /> Change folder
-        </Button>
-        {/* Icon-only and quiet on purpose: detaching is rare, one-way-feeling (back to the
-            start screen), and shouldn't compete with "Change folder" for attention. */}
-        {onDetachFolder && (
-          <IconButton onClick={onDetachFolder} title="Detach this repository and return to the start screen" style={{ color: INK_SOFT }}>
-            <Unlink size={15} />
+        {onOpenSettings && (
+          <IconButton onClick={onOpenSettings} title="Settings" aria-label="Settings" style={{ color: INK_SOFT }}>
+            <SettingsIcon size={16} />
           </IconButton>
         )}
         <div style={{ display: "flex", alignItems: "center", gap: SPACE.md }}>

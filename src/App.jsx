@@ -11,11 +11,13 @@ import { mockWorkspace } from "./lib/mockWorkspace";
 import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, tryReuseHandle, reconnectHandle, clearStoredConnection } from "./lib/fsPersistence";
 import { describeChanges } from "./lib/diskLog";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
+import { readThemeMode, writeThemeMode } from "./lib/themeMode";
 import { insertAt } from "./lib/arrays";
 import Button from "./ui/Button";
 import Toast from "./ui/Toast";
 import Notice from "./ui/Notice";
 import Header from "./Header";
+import Settings from "./Settings";
 import Home from "./Home";
 import ResearchRepositoryPage from "./ResearchRepositoryPage";
 import Sidebar from "./Sidebar";
@@ -156,6 +158,9 @@ function useRoute() {
   }
   if (hash === "#/disk-log-preview") {
     return { name: "diskLogPreview" };
+  }
+  if (hash === "#/settings-preview") {
+    return { name: "settingsPreview" };
   }
   if (hash === "#/design-preview") {
     return { name: "designPreview" };
@@ -339,6 +344,34 @@ function InitiativePreviewDemo() {
   );
 }
 
+// The Settings overlay on a made-up folder (#/settings-preview) — the real one only renders once
+// a workspace is connected, and a sandboxed preview can't open one. The theme control is the real
+// thing and writes to this browser profile; the two folder actions only report that they fired.
+function SettingsPreviewDemo() {
+  const [open, setOpen] = useState(true);
+  const [themeMode, setThemeMode] = useState(readThemeMode);
+  const [fired, setFired] = useState(null);
+  return (
+    <>
+      <Header saveStatus="saved" onRetrySave={() => {}} onOpenSettings={() => setOpen(true)} diskLog={[]} diskLogHref={() => "#/settings-preview"} />
+      <div style={{ padding: "24px", fontFamily: font, fontSize: SIZE.ui, color: INK_SOFT }}>
+        <Button onClick={() => setOpen(true)}>Open Settings</Button>
+        {fired && <span style={{ marginLeft: SPACE.lg }}>fired: {fired}</span>}
+      </div>
+      {open && (
+        <Settings
+          themeMode={themeMode}
+          onThemeModeChange={(mode) => { setThemeMode(mode); writeThemeMode(mode); }}
+          folderLabel="product-research/monk"
+          onChangeFolder={() => { setOpen(false); setFired("change folder"); }}
+          onDetachFolder={() => { setOpen(false); setFired("detach"); }}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
 // The header's disk-changes log and the toast that opens it, on made-up changes
 // (#/disk-log-preview) — the watcher needs a real folder.
 function DiskLogPreviewDemo() {
@@ -358,7 +391,7 @@ function DiskLogPreviewDemo() {
   ];
   return (
     <>
-      <Header saveStatus="saved" onRetrySave={() => {}} onChangeFolder={() => {}} diskLog={log} diskLogOpen={open} onDiskLogOpenChange={setOpen} diskLogHref={() => "#/disk-log-preview"} />
+      <Header saveStatus="saved" onRetrySave={() => {}} onOpenSettings={() => {}} diskLog={log} diskLogOpen={open} onDiskLogOpenChange={setOpen} diskLogHref={() => "#/disk-log-preview"} />
       <div style={{ padding: "24px" }}>
         <Button onClick={(e) => setToast({ id: e.timeStamp, message: "Updated 4 files from disk", onUndo: () => setOpen(true), actionLabel: "Show" })}>
           Fire the toast
@@ -638,6 +671,9 @@ export default function App() {
   // summarising. See DiskChanges.jsx.
   const [diskLog, setDiskLog] = useState([]);
   const [diskLogOpen, setDiskLogOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  // Read once, from this browser profile. main.jsx has already applied it to the document.
+  const [themeMode, setThemeMode] = useState(readThemeMode);
   const skipNextSaveRef = useRef(true);
   const route = useRoute();
 
@@ -1291,6 +1327,12 @@ export default function App() {
     : recentHref(kind, id)
   );
 
+  // What Settings shows under Folder, so it's clear what its two actions act on. Same two names
+  // the breadcrumb's tooltip uses; null when nothing is connected, which is what hides the group.
+  const folderLabel = dirHandle
+    ? (rootHandle ? `${rootHandle.name}/${dirHandle.name}` : dirHandle.name)
+    : null;
+
   // The project comes first: that's the thing you need to recognise. The monk/ folder inside it is
   // the same in every project, so it's only in the tooltip.
   const folderCrumb = {
@@ -1399,6 +1441,14 @@ export default function App() {
     return (
       <div style={{ fontFamily: font, height: "100dvh" }}>
         <DiskLogPreviewDemo />
+      </div>
+    );
+  }
+
+  if (import.meta.env.DEV && route.name === "settingsPreview") {
+    return (
+      <div style={{ fontFamily: font, height: "100dvh" }}>
+        <SettingsPreviewDemo />
       </div>
     );
   }
@@ -1523,13 +1573,22 @@ export default function App() {
       <Header
         saveStatus={saveStatus}
         onRetrySave={retrySave}
-        onChangeFolder={handleChangeFolder}
-        onDetachFolder={handleDetachFolder}
+        onOpenSettings={() => setSettingsOpen(true)}
         diskLog={diskLog}
         diskLogOpen={diskLogOpen}
         onDiskLogOpenChange={setDiskLogOpen}
         diskLogHref={diskLogHref}
       />
+      {settingsOpen && (
+        <Settings
+          themeMode={themeMode}
+          onThemeModeChange={(mode) => { setThemeMode(mode); writeThemeMode(mode); }}
+          folderLabel={folderLabel}
+          onChangeFolder={() => { setSettingsOpen(false); handleChangeFolder(); }}
+          onDetachFolder={() => { setSettingsOpen(false); handleDetachFolder(); }}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
 
       <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
         <Sidebar

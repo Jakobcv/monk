@@ -350,6 +350,12 @@ const varsFor = (theme) => Object.entries(COLOR_VALUES)
 // `color-scheme` rides along with the palette rather than sitting in index.css, so scrollbars,
 // native controls and the canvas beyond the page can never disagree with the tokens about which
 // theme is in force.
+// Four blocks, not two. The first two are the desktop's answer: light by default, dark when the
+// system asks for it. The last two are a person overriding that answer from Settings — they win on
+// specificity wherever they appear, so the order here doesn't have to be load-bearing.
+const themeBlock = (theme) => `  color-scheme:${theme};
+${varsFor(theme)}`;
+
 export const CSS_VARS = `:root{
   color-scheme:light;
 ${varsFor("light")}
@@ -372,4 +378,10 @@ ${varsFor("light")}
 @media (prefers-color-scheme: dark){:root{
   color-scheme:dark;
 ${varsFor("dark")}
-}}`;
+}}
+:root[data-theme="light"]{
+${themeBlock("light")}
+}
+:root[data-theme="dark"]{
+${themeBlock("dark")}
+}`;

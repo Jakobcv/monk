@@ -2265,3 +2265,106 @@ select.token-field {
   max-width: 100%;
   box-sizing: border-box;
 }
+
+/* ---------------------------------------------------------------------------
+   Settings (src/Settings.jsx) — the one overlay a person changes anything from.
+   Two groups and no more, so this is a short stylesheet on purpose.
+   --------------------------------------------------------------------------- */
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.settings-group--divided {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 32px;
+}
+.settings-label {
+  font-family: var(--font);
+  font-size: var(--size-ui);
+  font-weight: 500;
+  color: var(--ink);
+}
+/* A folder name is user content: it can be one character or a hundred, so it truncates rather
+   than pushing the label off the row. min-width:0 is what lets a flex child shrink at all. */
+.settings-folder {
+  min-width: 0;
+  flex: 1;
+  text-align: right;
+  font-family: var(--font);
+  font-size: var(--size-ui);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.settings-hint {
+  margin: 0;
+  font-family: var(--font);
+  font-size: var(--size-xs);
+  color: var(--ink-faint);
+}
+.settings-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.settings-confirm {
+  margin-top: 12px;
+}
+.settings-confirm__text {
+  margin: 0;
+  font-family: var(--font);
+  font-size: var(--size-ui);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+/* The segmented choice. One track, three options, the selected one raised out of the recess —
+   the same relationship the sidebar uses between its ground and a selected row, inverted. */
+.seg {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  background: var(--bg-active);
+  border-radius: var(--radius-sm);
+}
+.seg__option {
+  appearance: none;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-xs);
+  padding: 5px 12px;
+  min-height: 24px;
+  font-family: var(--font);
+  font-size: var(--size-ui);
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease);
+}
+.seg__option:hover:not([data-selected]) {
+  color: var(--ink);
+}
+.seg__option[data-selected] {
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: var(--edge-raised);
+}
+.seg__option:focus-visible {
+  outline: 2px solid var(--accent-insight);
+  outline-offset: 1px;
+}
