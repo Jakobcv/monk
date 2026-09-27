@@ -50,8 +50,9 @@ function DeskMark({ size = 96 }) {
     <svg className="desk-mark" width={size} height={size} viewBox="0 7 100 100" role="img" aria-label="Monk">
       <defs>
         <linearGradient id={grad} gradientUnits="userSpaceOnUse" x1="16" y1="24" x2="84" y2="92">
-          <stop offset="0%" stopColor={BRAND.from} />
-          <stop offset="100%" stopColor={BRAND.to} />
+          {/* stopColor as an attribute would not resolve a var(); as a style property it does. */}
+          <stop offset="0%" style={{ stopColor: BRAND.from }} />
+          <stop offset="100%" style={{ stopColor: BRAND.to }} />
         </linearGradient>
       </defs>
       <g fill="none" stroke={`url(#${grad})`}>

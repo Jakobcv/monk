@@ -239,10 +239,10 @@ body {
 
 .btn--primary {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 .btn--primary:hover:not(:disabled) {
-  background: #4b4842;
+  background: var(--ink-hover);
 }
 
 .btn--secondary {
@@ -297,7 +297,22 @@ body {
   opacity: 0.75;
 }
 .btn--danger:hover:not(:disabled) {
-  background: rgba(224, 62, 62, 0.08);
+  background: var(--danger-wash);
+}
+
+/* The Research Repository's filter row. Which colour carries the active state is a parameter —
+   eight of them across one row — so it arrives from the call site as --pill and the thinning
+   happens here rather than as eight pairs of tokens. Scoped as .btn.pill so it wins over
+   .btn--sm's own background whatever order they land in. */
+.btn.pill {
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--ink-soft);
+}
+.btn.pill[data-active] {
+  border-color: color-mix(in srgb, var(--pill) 37.647%, transparent);
+  background: color-mix(in srgb, var(--pill) 7.0588%, transparent);
+  color: var(--pill);
 }
 
 /* ---------------------------------------------------------------------------
@@ -341,7 +356,7 @@ body {
   color: var(--ink);
 }
 .icon-btn--danger:hover {
-  background: rgba(224, 62, 62, 0.08);
+  background: var(--danger-wash);
   color: var(--danger);
 }
 .icon-btn:disabled {
@@ -377,7 +392,7 @@ body {
   font-family: var(--font);
   font-size: var(--size-sm);
   color: var(--ink);
-  background: #fff;
+  background: var(--bg);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   padding: 5px 8px;
@@ -391,7 +406,7 @@ body {
 }
 .field:focus {
   border-color: var(--accent-insight);
-  box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.12);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 .field--ui {
   font-size: var(--size-ui);
@@ -405,7 +420,7 @@ body {
 }
 .field--quiet:hover:not(:focus) {
   border-color: var(--border);
-  background: #fff;
+  background: var(--bg);
 }
 
 /* ---------------------------------------------------------------------------
@@ -443,7 +458,7 @@ body {
   transition: box-shadow var(--motion-fast) var(--ease);
 }
 .el-card:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
+  box-shadow: var(--shadow-card);
 }
 
 /* A signal card's metadata controls stay invisible until you reach for them, so a card full of
@@ -456,12 +471,12 @@ body {
 }
 .signal-card:hover .el-meta-input {
   border-color: var(--border);
-  background: #fff;
+  background: var(--bg);
 }
 .el-meta-input:focus {
   outline: none;
   border-color: var(--accent-signal);
-  background: #fff;
+  background: var(--bg);
 }
 .el-meta-input::placeholder {
   color: var(--ink-placeholder);
@@ -537,7 +552,7 @@ body {
 .popover {
   position: fixed;
   z-index: 60;
-  background: #fff;
+  background: var(--bg);
   /* Concentric: the search field and the result rows inside are --radius-sm and sit right
      against the 8px padding, so the outer corner has to be inner + padding or the inner
      surfaces look pinched into it. Written as the sum rather than 14px so it stays true if
@@ -560,7 +575,7 @@ body {
   gap: 14px;
   max-width: 380px;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   font-family: var(--font);
   font-size: var(--size-ui);
   padding: 10px 14px;
@@ -583,7 +598,7 @@ body {
   font-family: var(--font);
   font-size: var(--size-ui);
   font-weight: 600;
-  color: #fff;
+  color: var(--on-ink);
   background: none;
   border: none;
   padding: 0;
@@ -792,8 +807,8 @@ a.recent-row:hover {
   height: 18px;
   border: 1.5px solid var(--border-strong);
   border-radius: var(--radius-xs);
-  background: #fff;
-  color: #fff;
+  background: var(--bg);
+  color: var(--on-accent);
   transition:
     background-color var(--motion-fast) var(--ease),
     border-color var(--motion-fast) var(--ease),
@@ -1432,7 +1447,7 @@ a.recent-row:hover {
   height: 8px;
   border-radius: 50%;
   border: 1.5px solid var(--border-strong);
-  background: #fff;
+  background: var(--bg);
   transition:
     background-color var(--motion-fast) var(--ease),
     border-color var(--motion-fast) var(--ease);
@@ -1453,7 +1468,7 @@ a.recent-row:hover {
   max-width: 100%;
   min-height: 24px;
   border-radius: var(--radius-xs);
-  background: rgba(35, 131, 226, 0.08);
+  background: var(--focus-wash);
   color: var(--accent-insight);
   font-family: var(--font);
   font-size: var(--size-ui);
@@ -1539,7 +1554,7 @@ a.recent-row:hover {
   padding: 0;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-xs);
-  background: #fff;
+  background: var(--sketch-mat);
   overflow: hidden;
   cursor: zoom-in;
   transition: border-color var(--motion-fast) var(--ease);
@@ -1676,7 +1691,7 @@ a.recent-row:hover {
   box-shadow:
     0 0 0 3px var(--bg),
     0 0 0 4px var(--border-strong),
-    0 0 0 7px rgba(35, 131, 226, 0.12);
+    0 0 0 7px var(--focus-ring);
 }
 .outcome-field--target {
   color: var(--ink);
@@ -1755,7 +1770,7 @@ a.recent-row:hover {
   background: var(--bg);
   box-shadow:
     0 0 0 1px var(--border-strong),
-    0 0 0 4px rgba(35, 131, 226, 0.12);
+    0 0 0 4px var(--focus-ring);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1797,15 +1812,15 @@ a.recent-row:hover {
   background: var(--bg);
   box-shadow:
     0 0 0 1px var(--border-strong),
-    0 0 0 4px rgba(35, 131, 226, 0.12);
+    0 0 0 4px var(--focus-ring);
 }
 .token-field[aria-invalid="true"] {
-  box-shadow: inset 0 -1.5px 0 #d44c47;
+  box-shadow: inset 0 -1.5px 0 var(--invalid);
 }
 .token-field[aria-invalid="true"]:focus {
   box-shadow:
-    0 0 0 1px #d44c47,
-    0 0 0 4px rgba(212, 76, 71, 0.12);
+    0 0 0 1px var(--invalid),
+    0 0 0 4px var(--invalid-ring);
 }
 /* Native select: explicit colours, or Windows paints its own. */
 select.token-field {
@@ -1833,7 +1848,7 @@ select.token-field {
   height: 18px;
   margin-top: 5px;
   border-radius: var(--radius-xs);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-inset);
   overflow: hidden;
 }
 /* No valid colour yet: an empty chip with a hairline slash. */
@@ -1939,7 +1954,7 @@ select.token-field {
 .view-switch button[aria-pressed="true"] {
   background: var(--bg);
   color: var(--ink);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-chip);
 }
 .view-switch button:focus-visible {
   outline: 2px solid var(--accent-insight);
@@ -1969,7 +1984,7 @@ select.token-field {
 }
 /* The selected row still answers the pointer — one more step down, not back up. */
 .nav-item[aria-current="page"]:hover {
-  background: #E4E4E0;
+  background: var(--bg-active-hover);
 }
 
 /* ---------------------------------------------------------------------------
@@ -2179,7 +2194,7 @@ select.token-field {
 }
 .select:focus {
   border-color: var(--accent-insight);
-  box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.12);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 .select-chevron {
   position: absolute;
@@ -2226,7 +2241,7 @@ select.token-field {
   justify-content: center;
   padding: 8vh 20px 20px;
   overflow-y: auto;
-  background: rgba(20, 19, 17, 0.28);
+  background: var(--backdrop);
   -webkit-backdrop-filter: blur(3px) saturate(0.92);
   backdrop-filter: blur(3px) saturate(0.92);
   animation: modal-fade var(--motion-base) var(--ease);

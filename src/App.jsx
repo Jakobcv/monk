@@ -10,7 +10,7 @@ import { blankResearchPlan } from "./lib/researchPlanModel";
 import { mockWorkspace } from "./lib/mockWorkspace";
 import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, tryReuseHandle, reconnectHandle, clearStoredConnection } from "./lib/fsPersistence";
 import { describeChanges } from "./lib/diskLog";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, SIZE, WEIGHT, SPACE, RADIUS, withAlpha } from "./lib/theme";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
 import { insertAt } from "./lib/arrays";
 import Button from "./ui/Button";
 import Toast from "./ui/Toast";
@@ -554,13 +554,16 @@ function ConnectScreen({ title, message, buttonLabel, onClick, icon: Icon }) {
                 inset: -1px;
                 border-radius: inherit;
                 padding: 1px;
+                /* The sweep is written as CSS rather than composed in JS: color-mix keeps each
+                   stop a reference to its token, so the comet re-themes with the ink it's made
+                   of. The percentages are the alphas this had as hex — 00, 25.098, 65.098. */
                 background: conic-gradient(
                   from var(--connect-icon-angle),
-                  ${withAlpha(INK, "00")} 0deg,
-                  ${withAlpha(INK, "00")} 250deg,
-                  ${withAlpha(INK_FAINT, "40")} 320deg,
-                  ${withAlpha(INK_SOFT, "A6")} 358deg,
-                  ${withAlpha(INK, "00")} 360deg
+                  color-mix(in srgb, var(--ink) 0%, transparent) 0deg,
+                  color-mix(in srgb, var(--ink) 0%, transparent) 250deg,
+                  color-mix(in srgb, var(--ink-faint) 25.098%, transparent) 320deg,
+                  color-mix(in srgb, var(--ink-soft) 65.098%, transparent) 358deg,
+                  color-mix(in srgb, var(--ink) 0%, transparent) 360deg
                 );
                 -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
                 -webkit-mask-composite: xor;
@@ -577,7 +580,7 @@ function ConnectScreen({ title, message, buttonLabel, onClick, icon: Icon }) {
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}
             >
-              <Icon size={22} color={INK_FAINT} strokeWidth={1.5} />
+              <Icon size={22} strokeWidth={1.5} style={{ color: INK_FAINT }} />
             </div>
           </>
         )}

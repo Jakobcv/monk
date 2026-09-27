@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { Search as SearchIcon, X, ArrowLeft, Star, Plus, Lightbulb } from "lucide-react";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BORDER_STRONG, ACCENT, RESEARCH_PLAN, DANGER, CITED, SIZE, WEIGHT, SPACE, RADIUS, PAGE, withAlpha } from "./lib/theme";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, ACCENT, RESEARCH_PLAN, DANGER, CITED, ON_INK, SIZE, WEIGHT, SPACE, RADIUS, PAGE } from "./lib/theme";
 import { blankSignal, isSignalUnlinked } from "./lib/signalModel";
 import { RESEARCH_PLAN_STATUS_COLOR } from "./lib/researchPlanModel";
 import { blankInsight } from "./lib/insightModel";
@@ -27,18 +27,19 @@ const RECENT_LIMIT = 20;
 
 // The filter row's pills: same shape six times over, differing only in which color carries the
 // active state — a card kind's accent, or one of the three "lens" colors (unlinked/cited/activity).
+//
+// The active pill's edge and fill are that color thinned, and the color is a *parameter* here —
+// eight of them across the row — so there is no token to reach for and nothing at a call site to
+// thin a reference with. It travels in as a custom property instead and `.pill` (index.css) does
+// the mixing, which keeps the whole thing re-themable without eight pairs of tokens for one row.
 function Pill({ color, active, onClick, title, children }) {
   return (
     <button
       onClick={onClick}
       title={title}
-      className="btn btn--sm"
-      style={{
-        borderRadius: RADIUS.pill,
-        border: `1px solid ${active ? withAlpha(color, "60") : BORDER_STRONG}`,
-        background: active ? withAlpha(color, "12") : "#fff",
-        color: active ? color : INK_SOFT,
-      }}
+      className="btn btn--sm pill"
+      data-active={active ? "" : undefined}
+      style={{ "--pill": color, borderRadius: RADIUS.pill }}
     >
       {children}
     </button>
@@ -373,7 +374,7 @@ export default function ResearchRepositoryPage({
         {activated && (
         <div className="enter-up" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: SPACE.base, marginBottom: SPACE["3xl"] }}>
           <Pill color={INK} active={activeKind === "all"} onClick={() => setActiveKind("all")}>
-            <span style={{ color: activeKind === "all" ? "#fff" : INK_SOFT }}>All</span>
+            <span style={{ color: activeKind === "all" ? ON_INK : INK_SOFT }}>All</span>
           </Pill>
           <Pill color={ACCENT.signal} active={activeKind === "signal"} onClick={() => setActiveKind("signal")}>
             <Dot color={ACCENT.signal} /> Signal

@@ -6,7 +6,7 @@ import { blankInsight } from "./lib/insightModel";
 import { blankSpec } from "./lib/specModel";
 import { insertAt } from "./lib/arrays";
 import { useDismiss } from "./lib/useDismiss";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, ACCENT, SPEC_STATUS_COLOR, SIZE, WEIGHT, SPACE, RADIUS, MOTION } from "./lib/theme";
+import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, ACCENT, ACCENT_RING, ACCENT_GLOW, CONNECTOR_DELETE, BG, ON_ACCENT, PULSE_RING, SHADOW, SPEC_STATUS_COLOR, SIZE, WEIGHT, SPACE, RADIUS, MOTION } from "./lib/theme";
 import { Dot, Eyebrow, Meta } from "./ui/text";
 import { cardSurface, cornerBadge } from "./ui/cardStyles";
 import SignalCardBody from "./SignalCardBody";
@@ -19,7 +19,7 @@ import { useRects } from "./canvas/useRects";
 const ALLOWED = { signal: "insight", insight: "action", action: "result" };
 
 const orderBtnStyle = (disabled) => ({
-  width: "20px", height: "20px", borderRadius: RADIUS.xs, border: `1px solid ${BORDER}`, background: "#fff",
+  width: "20px", height: "20px", borderRadius: RADIUS.xs, border: `1px solid ${BORDER}`, background: BG,
   display: "flex", alignItems: "center", justifyContent: "center", color: INK_SOFT, padding: 0,
   opacity: disabled ? 0.3 : 1, cursor: disabled ? "default" : "pointer",
 });
@@ -403,9 +403,9 @@ export default function Board({
         style={{
           position: "absolute", right: "-6px", top: "50%", transform: "translateY(-50%)",
           width: "12px", height: "12px", borderRadius: "50%", padding: 0,
-          backgroundColor: connected || arming ? ACCENT[kind] : "#fff",
+          backgroundColor: connected || arming ? ACCENT[kind] : BG,
           border: `2px solid ${ACCENT[kind]}`, cursor: "grab", zIndex: 3, touchAction: "none",
-          boxShadow: arming ? `0 0 0 3px ${ACCENT[kind]}44` : "none",
+          boxShadow: arming ? `0 0 0 3px ${ACCENT_RING[kind]}` : "none",
         }}
       />
     );
@@ -425,9 +425,9 @@ export default function Board({
         style={{
           position: "absolute", left: "-9px", top: "-9px", zIndex: 5, whiteSpace: "nowrap",
           fontFamily: font, fontSize: SIZE.micro, fontWeight: WEIGHT.semibold,
-          color: "#fff", background: already ? INK_FAINT : ACCENT[kindOf(connectFrom)],
+          color: ON_ACCENT, background: already ? INK_FAINT : ACCENT[kindOf(connectFrom)],
           border: "none", borderRadius: RADIUS.xs, padding: "3px 6px", cursor: "pointer",
-          boxShadow: `0 1px 4px rgba(0,0,0,0.18)`,
+          boxShadow: SHADOW.drag,
         }}
       >
         {already ? "Disconnect" : "Connect"}
@@ -439,7 +439,7 @@ export default function Board({
     const isTarget = pending && pending.over === id;
     if (!isTarget) return {};
     const c = ACCENT[kindOf(pending.from)];
-    return { outline: `2px solid ${c}`, outlineOffset: "2px", boxShadow: `0 4px 14px ${c}33` };
+    return { outline: `2px solid ${c}`, outlineOffset: "2px", boxShadow: `0 4px 14px ${ACCENT_GLOW[kindOf(pending.from)]}` };
   };
 
   const cardClass = (id) => (pulseId === id ? "el-card el-card-pulse" : "el-card");
@@ -625,7 +625,7 @@ export default function Board({
         .el-node:hover .el-handle, .el-node:focus-within .el-handle { opacity:0.8; }
         .el-ref-source:hover { color: ${INK_SOFT}; text-decoration: underline; }
         .el-connector { transition: opacity ${MOTION.base} ${MOTION.ease}, stroke-width ${MOTION.fast} ${MOTION.ease}; }
-        @keyframes el-pulse { 0% { box-shadow: 0 0 0 0 rgba(217,164,6,0.55); } 70% { box-shadow: 0 0 0 9px rgba(217,164,6,0); } 100% { box-shadow: 0 0 0 0 rgba(217,164,6,0); } }
+        @keyframes el-pulse { 0% { box-shadow: 0 0 0 0 ${PULSE_RING}; } 70% { box-shadow: 0 0 0 9px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
         .el-card-pulse { animation: el-pulse 1s ${MOTION.ease} 2; }
         .el-signal-pick { transition: background-color ${MOTION.fast} ${MOTION.ease}; }
         .el-signal-pick:hover { background:${BG_HOVER}; }
@@ -667,7 +667,7 @@ export default function Board({
               const strokeW = isHovered ? "3" : !pending && hoverId != null && active ? "2.25" : "1.5";
               return (
                 <g key={c.id}>
-                  <path className="el-connector" d={d} fill="none" stroke={color} strokeWidth={strokeW} opacity={strokeOpacity} markerEnd="url(#cap)" />
+                  <path className="el-connector" d={d} fill="none" strokeWidth={strokeW} opacity={strokeOpacity} markerEnd="url(#cap)" style={{ stroke: color }} />
                   <path d={d} fill="none" stroke="transparent" strokeWidth="16"
                     role="button" tabIndex={0}
                     aria-label="Connection — Enter or Delete to remove, or drag to reconnect"
@@ -691,12 +691,12 @@ export default function Board({
             {pending && pos[pending.from] && (() => {
               const snap = pending.over != null && pos[pending.over];
               const isDeleteIntent = pending.rewireId != null && !snap;
-              const c = isDeleteIntent ? "#D64545" : ACCENT[kindOf(pending.from)];
+              const c = isDeleteIntent ? CONNECTOR_DELETE : ACCENT[kindOf(pending.from)];
               const tx = snap ? pos[pending.over].left : pending.x;
               const ty = snap ? pos[pending.over].cy : pending.y;
               return (
-                <path d={pathFor(pos[pending.from].right, pos[pending.from].cy, tx, ty)} fill="none" stroke={c}
-                  strokeWidth={snap ? "2.5" : "1.5"} strokeDasharray={snap ? "none" : "4 4"} markerEnd={snap ? "url(#cap)" : "none"} opacity={snap ? 1 : (isDeleteIntent ? 0.85 : 0.7)} />
+                <path d={pathFor(pos[pending.from].right, pos[pending.from].cy, tx, ty)} fill="none"
+                  strokeWidth={snap ? "2.5" : "1.5"} strokeDasharray={snap ? "none" : "4 4"} markerEnd={snap ? "url(#cap)" : "none"} opacity={snap ? 1 : (isDeleteIntent ? 0.85 : 0.7)} style={{ stroke: c }} />
               );
             })()}
           </svg>

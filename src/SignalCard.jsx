@@ -1,5 +1,5 @@
 import { X, Check } from "lucide-react";
-import { BORDER_STRONG, ACCENT } from "./lib/theme";
+import { BORDER_STRONG, ACCENT, BG, ON_ACCENT } from "./lib/theme";
 import { cardSurface, cornerBadge } from "./ui/cardStyles";
 import IconButton from "./ui/IconButton";
 import SignalCardBody from "./SignalCardBody";
@@ -58,7 +58,7 @@ export default function SignalCard({
           style={{
             ...cornerBadge, left: "-7px", borderRadius: "4px",
             border: `1px solid ${selected ? ACCENT.signal : BORDER_STRONG}`,
-            background: selected ? ACCENT.signal : "#fff", color: "#fff",
+            background: selected ? ACCENT.signal : BG, color: ON_ACCENT,
           }}
         >
           {selected && <Check size={12} strokeWidth={3} />}
