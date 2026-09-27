@@ -1825,7 +1825,10 @@ a.recent-row:hover {
 /* Native select: explicit colours, or Windows paints its own. */
 select.token-field {
   cursor: pointer;
-  background-color: transparent;
+  /* Explicit, not transparent: a native select with no background of its own is painted by the
+     platform, which on Windows means a light control sitting in a dark page. The value matches
+     the sheet it sits on, so light mode looks exactly as it did. */
+  background-color: var(--bg);
   color: var(--ink);
 }
 
