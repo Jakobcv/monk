@@ -90,7 +90,7 @@ export default function SourcesList({ sources, onChange, sections, docHref, onUp
               type="button" className="paper-link-row" onClick={() => onOpenFile?.(s.name)}
               style={{ flex: 1, minWidth: 0, textAlign: "left", background: "none", border: "none", cursor: "pointer" }}
             >
-              <FileIcon size={14} color={INK_FAINT} style={{ flexShrink: 0 }} aria-hidden="true" />
+              <FileIcon size={14} style={{ color: INK_FAINT, flexShrink: 0 }} aria-hidden="true" />
               <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</span>
             </button>
             <IconButton

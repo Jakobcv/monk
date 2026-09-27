@@ -1,4 +1,4 @@
-import { font, INK_SOFT, ACCENT, BG, BORDER_STRONG, WEIGHT, RADIUS, withAlpha } from "../lib/theme";
+import { font, INK_SOFT, ACCENT_EDGE, BG, BORDER_STRONG, WEIGHT, RADIUS } from "../lib/theme";
 
 // The small round control hanging off a card's top corner — the Discovery board's unlink/delete,
 // and SignalCard's delete and select box elsewhere. One definition, so a signal card's corners
@@ -6,7 +6,7 @@ import { font, INK_SOFT, ACCENT, BG, BORDER_STRONG, WEIGHT, RADIUS, withAlpha } 
 // the 12px grid gap between cards) and add the side: `{ ...cornerBadge, right: "-7px" }`.
 export const cornerBadge = {
   position: "absolute", top: "-7px", width: "16px", height: "16px", borderRadius: "50%",
-  border: `1px solid ${BORDER_STRONG}`, background: "#fff", color: INK_SOFT,
+  border: `1px solid ${BORDER_STRONG}`, background: BG, color: INK_SOFT,
   display: "flex", alignItems: "center", justifyContent: "center", padding: 0, zIndex: 4,
   cursor: "pointer", "--hit": "26px",
 };
@@ -22,9 +22,13 @@ export const cornerBadge = {
 // hairline plus a 3px solid stripe down the left side — the stock "accent bar" card, which read
 // as generic decoration rather than as this product's. The fill stays pure white, so every text
 // colour on the card (including the already-low-contrast metadata) gets full contrast.
+//
+// That 40% is a token of its own (ACCENT_EDGE) rather than an alpha applied here, because an
+// accent arrives as a reference rather than a value and there is nothing at a call site to apply
+// an alpha to.
 export const cardSurface = (kind) => ({
   backgroundColor: BG,
-  border: `1px solid ${withAlpha(ACCENT[kind], "66")}`,
+  border: `1px solid ${ACCENT_EDGE[kind]}`,
 });
 
 // A card's small metadata controls: quiet until you reach for them (the border only appears on
