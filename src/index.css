@@ -2368,3 +2368,152 @@ select.token-field {
   outline: 2px solid var(--accent-insight);
   outline-offset: 1px;
 }
+
+/* ---------------------------------------------------------------------------
+   Specs table (SpecsPage) — initiatives as rows that expand in place to show
+   their specs in the same columns. Fixed layout, so a long title truncates
+   rather than pushing status off the row, and the loose specs' table below
+   lines up with this one because both take their widths from the header.
+   --------------------------------------------------------------------------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.spec-table-wrap {
+  overflow: hidden;
+}
+.spec-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-family: var(--font);
+}
+.spec-table th,
+.spec-table td {
+  padding: 0 12px;
+  height: 38px;
+  text-align: left;
+  vertical-align: middle;
+  font-weight: 400;
+}
+.spec-table thead th {
+  height: 32px;
+  font-size: var(--size-micro);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.spec-table thead th.spec-table__count { width: 64px; }
+.spec-table thead th.spec-table__progress { width: 148px; }
+.spec-table thead th:nth-child(4) { width: 96px; }
+.spec-table thead th:last-child { width: 44px; }
+.spec-table tbody tr {
+  border-top: 1px solid var(--border);
+}
+.spec-table__initiative {
+  background: var(--bg-hover);
+}
+.spec-table__name {
+  overflow: hidden;
+}
+.spec-table__lead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+/* A spec under an initiative starts where its initiative's title does: past the
+   chevron's 22px and the 6px gap. */
+.spec-table__spec--nested .spec-table__name {
+  padding-left: 40px;
+}
+.spec-table__chevron,
+.spec-table__chevron-space {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+}
+.spec-table__chevron svg {
+  transition: transform var(--motion-fast) var(--ease);
+}
+.spec-table__chevron[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+.spec-table__link {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--size-body);
+  line-height: 38px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  outline-offset: -2px;
+}
+.spec-table__initiative .spec-table__link {
+  font-weight: 600;
+  color: var(--ink);
+}
+.spec-table__link:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.spec-table__count,
+.spec-table__progress {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.spec-table__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.spec-table__actions {
+  text-align: right;
+}
+.spec-table th:last-child,
+.spec-table td:last-child {
+  padding-right: 8px;
+}
+/* A phone has room for the name and its status. Progress goes first: it's the
+   detail, status is what the page is scanned for. */
+@media (max-width: 640px) {
+  .spec-table .spec-table__progress {
+    display: none;
+  }
+  .spec-table th,
+  .spec-table td {
+    padding: 0 8px;
+  }
+  .spec-table thead th.spec-table__count { width: 60px; }
+  .spec-table thead th:nth-child(4) { width: 80px; }
+  .spec-table__spec--nested .spec-table__name {
+    padding-left: 36px;
+  }
+  .specs-page {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+/* Narrower still, the spec count goes too: an expanded initiative shows its
+   specs, and the name needs the room more than the number does. */
+@media (max-width: 480px) {
+  .spec-table .spec-table__count {
+    display: none;
+  }
+}
