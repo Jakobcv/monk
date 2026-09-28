@@ -77,7 +77,7 @@ export default function Sidebar({ sections, workspaceDocs = [], activeView, rese
           aria-current={activeView.type === "specs" ? "page" : undefined}
           style={navItemStyle}
         >
-          <Layers size={16} /> Specs
+          <Layers size={16} /> Initiatives
         </a>
         {/* Always listed, so a workspace without one can see it's missing. The link opens its page
             either way; creating the file is a button there, never a side effect of a click here. */}

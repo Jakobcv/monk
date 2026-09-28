@@ -140,11 +140,11 @@ function Head({ first }) {
   );
 }
 
-// Specs is one table of initiatives — an initiative is to its specs what an epic is to its tickets
+// Initiatives is one table of initiatives — an initiative is to its specs what an epic is to its tickets
 // (see initiativeModel.js) — each expanding in place to show its specs in the same columns, then
 // the specs that belong to none. Renaming happens on the entity's own page, not here; a spec's
 // initiative is set from its own sidebar.
-export default function SpecsPage({ specs, initiatives, open, specsHref, specHref, initiativeHref, onCreate, onCreateInitiative, onDelete }) {
+export default function SpecsPage({ specs, initiatives, open, specsHref, specHref, initiativeHref, onCreateInitiative, onDelete }) {
   const sortedInitiatives = [...(initiatives || [])].sort(byRecency);
   const knownIds = new Set(sortedInitiatives.map((ini) => ini.id));
   const groups = sortedInitiatives
@@ -182,15 +182,10 @@ export default function SpecsPage({ specs, initiatives, open, specsHref, specHre
     <Page className="specs-page">
       <div className="enter-up" style={{ maxWidth: PAGE.wide, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg, gap: SPACE.base, flexWrap: "wrap" }}>
-          <PageHeading>Specs</PageHeading>
-          <div style={{ display: "flex", gap: SPACE.base, flexWrap: "wrap" }}>
-            <Button onClick={onCreateInitiative}>
-              <Plus size={16} /> New initiative
-            </Button>
-            <Button variant="primary" onClick={() => onCreate()}>
-              <Plus size={16} /> New spec
-            </Button>
-          </div>
+          <PageHeading>Initiatives</PageHeading>
+          <Button variant="primary" onClick={onCreateInitiative}>
+            <Plus size={16} /> New initiative
+          </Button>
         </div>
 
         {groups.length === 0 ? (
@@ -221,7 +216,7 @@ export default function SpecsPage({ specs, initiatives, open, specsHref, specHre
 
         {loose.length === 0 ? (
           <EmptyState compact style={{ paddingBottom: SPACE["4xl"] }}>
-            {specs.length === 0 ? "No specs yet — create one above." : "Every spec belongs to an initiative."}
+            {specs.length === 0 ? "No specs yet — open an initiative to create one." : "Every spec belongs to an initiative."}
           </EmptyState>
         ) : (
           <div className="card spec-table-wrap" style={{ marginBottom: SPACE["4xl"] }}>

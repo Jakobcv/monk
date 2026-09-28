@@ -284,7 +284,7 @@ function SpecPreviewDemo({ tab }) {
       onChange={(patch) => setSpec((prev) => ({ ...prev, ...patch }))}
       activeTab={tab}
       tabHref={(t) => `#/spec-preview/${t}`}
-      breadcrumbs={[{ label: "product-research", icon: FolderOpen }, { label: "Specs" }, { label: spec.title }]}
+      breadcrumbs={[{ label: "product-research", icon: FolderOpen }, { label: "Initiatives" }, { label: spec.title }]}
       initiatives={[{ id: "ini-preview", title: "Evidence anywhere" }]}
       onToast={(message, onUndo) => { window.__lastToast = { message, onUndo }; }}
     />
@@ -349,7 +349,7 @@ function InitiativePreviewDemo() {
       onChange={(patch) => setInitiative((prev) => ({ ...prev, ...patch }))}
       onDelete={noop} onCreateSpec={noop}
       onDetachSpec={(id) => setSpecs((prev) => prev.filter((s) => s.id !== id))}
-      breadcrumbs={[{ label: "product-research", icon: FolderOpen, onClick: noop }, { label: "Specs", href: "#" }, { label: initiative.title }]}
+      breadcrumbs={[{ label: "product-research", icon: FolderOpen, onClick: noop }, { label: "Initiatives", href: "#" }, { label: initiative.title }]}
     />
   );
 }
@@ -1361,14 +1361,14 @@ export default function App() {
     : isSpecRoute
     ? [
         folderCrumb,
-        { label: "Specs", href: hrefSpecs() },
+        { label: "Initiatives", href: hrefSpecs() },
         ...(specInitiative ? [{ label: specInitiative.title || "Untitled initiative", href: hrefInitiative(specInitiative.id) }] : []),
         { label: activeSpec ? (activeSpec.title || "Untitled spec") : "Spec not found" },
       ]
     : route.name === "initiative"
-    ? [folderCrumb, { label: "Specs", href: hrefSpecs() }, { label: activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found" }]
+    ? [folderCrumb, { label: "Initiatives", href: hrefSpecs() }, { label: activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found" }]
     : route.name === "specs"
-    ? [folderCrumb, { label: "Specs" }]
+    ? [folderCrumb, { label: "Initiatives" }]
     : route.name === "researchPlan"
     ? [folderCrumb, { label: "Research Repository", href: RESEARCH_ROUTE }, { label: activeResearchPlan ? (activeResearchPlan.title || "Untitled research plan") : "Research plan not found" }]
     : route.name === "research"
@@ -1399,7 +1399,7 @@ export default function App() {
       : isSpecRoute ? (activeSpec ? (activeSpec.title || "Untitled spec") : "Spec not found")
       : route.name === "initiative" ? (activeInitiative ? (activeInitiative.title || "Untitled initiative") : "Initiative not found")
       : route.name === "researchPlan" ? (activeResearchPlan ? (activeResearchPlan.title || "Untitled research plan") : "Research plan not found")
-      : route.name === "specs" ? "Specs"
+      : route.name === "specs" ? "Initiatives"
       : route.name === "research" ? "Research Repository"
       : route.name === "workspaceDoc" ? (activeWorkspaceDoc ? activeWorkspaceDoc.label : "Not found")
       : "";
@@ -1434,7 +1434,7 @@ export default function App() {
           specs={mock.specs} initiatives={mock.initiatives}
           open={route.open} specsHref={(open) => withOpen(SPECS_PREVIEW_ROUTE, open)}
           specHref={() => "#/spec-preview"} initiativeHref={() => "#/initiative-preview"}
-          onCreate={() => {}} onCreateInitiative={() => {}} onDelete={() => {}}
+          onCreateInitiative={() => {}} onDelete={() => {}}
         />
       </div>
     );
@@ -1650,7 +1650,7 @@ export default function App() {
           <main id="main" tabIndex={-1} style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
             {isSpecRoute ? (
               !activeSpec ? (
-                <NotFoundMessage text="Spec not found." backLabel="Back to specs" backHref={hrefSpecs()} />
+                <NotFoundMessage text="Spec not found." backLabel="Back to initiatives" backHref={hrefSpecs()} />
               ) : (
                 <SpecPage
                   key={revKey(activeSpec.id)}
@@ -1710,13 +1710,12 @@ export default function App() {
                 specsHref={hrefSpecs}
                 specHref={hrefSpec}
                 initiativeHref={hrefInitiative}
-                onCreate={createSpec}
                 onCreateInitiative={createInitiative}
                 onDelete={deleteSpec}
               />
             ) : route.name === "initiative" ? (
               !activeInitiative ? (
-                <NotFoundMessage text="Initiative not found." backLabel="Back to specs" backHref={hrefSpecs()} />
+                <NotFoundMessage text="Initiative not found." backLabel="Back to initiatives" backHref={hrefSpecs()} />
               ) : (
                 <InitiativePage
                   key={revKey(activeInitiative.id)}
