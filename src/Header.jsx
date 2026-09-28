@@ -28,7 +28,8 @@ export default function Header({ saveStatus, onRetrySave, onOpenSettings, diskLo
             <SettingsIcon size={16} />
           </IconButton>
         )}
-        <div style={{ display: "flex", alignItems: "center", gap: SPACE.md }}>
+        {/* No status at all when nothing is being saved (the demo), rather than one that lies. */}
+        {saveStatus != null && <div style={{ display: "flex", alignItems: "center", gap: SPACE.md }}>
           <span style={{
             width: "6px", height: "6px", borderRadius: "50%",
             backgroundColor: SAVE_STATUS_COLOR[saveStatus],
@@ -46,7 +47,7 @@ export default function Header({ saveStatus, onRetrySave, onOpenSettings, diskLo
               Retry
             </button>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   );

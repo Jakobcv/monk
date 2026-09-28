@@ -13,11 +13,13 @@ import { describeChanges } from "./lib/diskLog";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
 import { readThemeMode, writeThemeMode } from "./lib/themeMode";
 import { insertAt } from "./lib/arrays";
+import { patched } from "./lib/patched";
 import Button from "./ui/Button";
 import Toast from "./ui/Toast";
 import Notice from "./ui/Notice";
 import Header from "./Header";
 import Settings from "./Settings";
+import DemoBar from "./DemoBar";
 import Home from "./Home";
 import ResearchRepositoryPage from "./ResearchRepositoryPage";
 import Sidebar from "./Sidebar";
@@ -91,6 +93,15 @@ const hrefResearch = (q, kind) => {
 const hrefInsight = (insight) => hrefResearch((insight.text || "").trim().slice(0, 60), "insight");
 
 const goToStart = () => { window.location.hash = hrefStart(); };
+
+// The demo is marked in this tab's sessionStorage and nowhere else, so a reload reopens it — from its
+// starting content, since what was made in it lived only in memory — and closing the tab ends it.
+// Storage that refuses just means a reload returns to the connect screen.
+const DEMO_KEY = "monk:demo";
+const readDemoFlag = () => { try { return sessionStorage.getItem(DEMO_KEY) === "1"; } catch { return false; } };
+const writeDemoFlag = (on) => {
+  try { if (on) sessionStorage.setItem(DEMO_KEY, "1"); else sessionStorage.removeItem(DEMO_KEY); } catch { /* private mode */ }
+};
 const goToDocument = (sectionId, docId) => { window.location.hash = hrefDocument(sectionId, docId); };
 const goToResearch = () => { window.location.hash = RESEARCH_ROUTE; };
 const goToSpecs = () => { window.location.hash = hrefSpecs(); };
@@ -555,7 +566,9 @@ const relinkOnBoards = (plans, kind, id, links) => plans.map((p) => {
   };
 });
 
-function ConnectScreen({ title, message, buttonLabel, onClick, icon: Icon }) {
+// `secondaryLabel`/`onSecondary` is a second, quieter way off the screen — Try the demo, under
+// Connect folder.
+function ConnectScreen({ title, message, buttonLabel, onClick, secondaryLabel, onSecondary, icon: Icon }) {
   return (
     <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
       <div className="enter-up" style={{ maxWidth: "380px", textAlign: "center" }}>
@@ -636,6 +649,13 @@ function ConnectScreen({ title, message, buttonLabel, onClick, icon: Icon }) {
             {buttonLabel}
           </Button>
         )}
+        {secondaryLabel && (
+          <div className="connect-secondary">
+            <Button variant="subtle" size="md" onClick={onSecondary}>
+              {secondaryLabel}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -684,25 +704,63 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Read once, from this browser profile. main.jsx has already applied it to the document.
   const [themeMode, setThemeMode] = useState(readThemeMode);
+  // The demo (src/demo/demoWorkspace.js): the whole app on a folder that exists only in this tab's
+  // memory. Every page runs as it does on a real folder — `dirHandle` is that in-memory folder, so
+  // loading, saving and uploads go through the same storage calls — and what depends on a real
+  // folder (the watcher, the save status, the folder actions) is left out rather than faked.
+  const [demo, setDemo] = useState(false);
+  // Whether anything has been made or changed in the demo, which is when leaving the page loses
+  // something and the browser should ask first.
+  const [demoChanged, setDemoChanged] = useState(false);
   const skipNextSaveRef = useRef(true);
   const route = useRoute();
 
-  // on mount: reuse a previously-granted folder silently if permission is still live,
-  // otherwise ask for a click — showDirectoryPicker/requestPermission both require one
-  useEffect(() => {
+  // Reuse a previously-granted folder silently if permission is still live, otherwise ask for a
+  // click — showDirectoryPicker/requestPermission both require one. Runs on mount, and again on
+  // leaving the demo, which returns to whatever this finds.
+  const checkConnection = async () => {
     if (!fsAccessSupported) { setPhase("unsupported"); return; }
-    (async () => {
-      const stored = await getStoredConnection();
-      if (!stored) { setPhase("needsConnect"); return; }
-      if (await tryReuseHandle(permissionHandle(stored))) {
-        setRootHandle(stored.root);
-        setDirHandle(stored.workspace);
-        setPhase("loading");
-      } else {
-        setPendingConnection(stored);
-        setPhase("needsReconnect");
-      }
-    })();
+    const stored = await getStoredConnection();
+    if (!stored) { setPhase("needsConnect"); return; }
+    if (await tryReuseHandle(permissionHandle(stored))) {
+      setRootHandle(stored.root);
+      setDirHandle(stored.workspace);
+      setPhase("loading");
+    } else {
+      setPendingConnection(stored);
+      setPhase("needsReconnect");
+    }
+  };
+
+  // The demo's content is imported only when it is opened, so a person working in their own folder
+  // never downloads it. It never touches the stored connection: leaving the demo finds that exactly
+  // as it was.
+  const startDemo = async () => {
+    writeDemoFlag(true);
+    setDemo(true);
+    setDemoChanged(false);
+    setLoadError(null);
+    setPhase("loading");
+    try {
+      const { openDemoFolder } = await import("./demo/demoWorkspace.js");
+      const folder = await openDemoFolder();
+      // Changed means the folder's bytes changed, not that state did: opening some pages hands
+      // back equal content as new objects, and the save that follows rightly writes nothing.
+      folder.onChange = () => setDemoChanged(true);
+      skipNextSaveRef.current = true;
+      setRootHandle(null);
+      setDirHandle(folder);
+    } catch (err) {
+      console.error("Couldn't open the demo:", err);
+      setLoadError(err);
+      setPhase("loadFailed");
+    }
+  };
+
+  useEffect(() => {
+    if (readDemoFlag()) startDemo();
+    else checkConnection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -774,6 +832,15 @@ export default function App() {
     return () => clearTimeout(t);
   }, [phase, dirHandle, workspace, staleId]);
 
+  // Reload and closing the tab both throw the demo's work away, so once there is some, the browser
+  // asks first. Nothing made yet, nothing to ask about.
+  useEffect(() => {
+    if (!demo || !demoChanged) return;
+    const warn = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [demo, demoChanged]);
+
   // Retrying the write on its own could never fix the thing that actually goes wrong here: the
   // folder permission lapses mid-session — Chrome drops it on its own schedule — and from then on
   // every autosave fails while your edits live only in memory. Reload at that point and they are
@@ -813,20 +880,32 @@ export default function App() {
       setPhase("loading");
     }
   };
+  // Everything that belongs to the workspace on screen, emptied before another one (or none) takes
+  // its place. The demo's flag goes with it: whichever way you leave the demo, you have left it.
+  const clearWorkspace = () => {
+    skipNextSaveRef.current = true; // skip the redundant re-save right after the next fresh load
+    setSections([]);
+    setSpecs([]);
+    setSignals([]);
+    setInsights([]);
+    setRetiredActivityIds([]);
+    setInitiatives([]);
+    setResearchPlans([]);
+    setWorkspaceDocs({});
+    setDiskLog([]);
+    setDiskLogOpen(false);
+    setToast(null);
+    writeDemoFlag(false);
+    setDemo(false);
+    setDemoChanged(false);
+  };
+
+  // From the demo this is Connect your repository: the demo is left behind rather than carried
+  // into the folder, and a cancelled picker leaves it exactly as it was.
   const handleChangeFolder = async () => {
     try {
       const connection = await pickFolder();
-      skipNextSaveRef.current = true; // skip the redundant re-save right after this fresh load
-      setSections([]);
-      setSpecs([]);
-      setSignals([]);
-      setInsights([]);
-      setRetiredActivityIds([]);
-      setInitiatives([]);
-      setResearchPlans([]);
-      setWorkspaceDocs({});
-      setDiskLog([]);
-      setDiskLogOpen(false);
+      clearWorkspace();
       setRootHandle(connection.root);
       setDirHandle(connection.workspace);
       setPhase("loading");
@@ -841,23 +920,27 @@ export default function App() {
   // handle too, so a reload doesn't silently reconnect to the folder just left.
   const handleDetachFolder = async () => {
     await clearStoredConnection();
-    skipNextSaveRef.current = true;
-    setSections([]);
-    setSpecs([]);
-    setSignals([]);
-    setInsights([]);
-    setRetiredActivityIds([]);
-    setInitiatives([]);
-    setResearchPlans([]);
-    setWorkspaceDocs({});
-    setDiskLog([]);
-    setDiskLogOpen(false);
+    clearWorkspace();
     setRootHandle(null);
     setDirHandle(null);
     setPendingConnection(null);
     setLoadError(null);
     setPhase("needsConnect");
     goToStart();
+  };
+
+  // Back to the screen the demo was opened from. Nothing to confirm: the bar has said all along that
+  // nothing here is kept, and this is the button that says so. The stored connection was never
+  // touched, so checking it again finds whatever was there before.
+  const leaveDemo = () => {
+    clearWorkspace();
+    setSettingsOpen(false);
+    setRootHandle(null);
+    setDirHandle(null);
+    setLoadError(null);
+    setPhase("checking");
+    goToStart();
+    checkConnection();
   };
 
   // The project's name — the repo Monk was connected to — or, with no known root, the connected
@@ -951,7 +1034,8 @@ export default function App() {
   // `skipNextSaveRef` matters here as much as it does on connect — without it the state we just
   // adopted from disk would immediately be written back over the top of it.
   useEffect(() => {
-    if (phase !== "ready" || !dirHandle) return;
+    // The demo's folder is in memory, and nothing outside the tab can write to it.
+    if (phase !== "ready" || !dirHandle || demo) return;
     if (!canWatchWorkspace()) {
       // Chromium has FileSystemObserver; other engines that support the File System Access API
       // may not. Everything else still works — the folder just won't refresh on its own.
@@ -996,7 +1080,7 @@ export default function App() {
         })
         .catch((err) => console.error("Failed to re-read the research folder:", err));
     });
-  }, [phase, dirHandle]);
+  }, [phase, dirHandle, demo]);
 
   // Workspace documents (DESIGN.md today — see lib/workspaceDocs.js). Creating and removing one are
   // explicit calls into storage, not state changes an autosave infers: a save only ever updates a
@@ -1063,7 +1147,7 @@ export default function App() {
   const updateDocument = (sectionId, docId, patch) =>
     setSections((prev) => prev.map((s) => (
       s.id === sectionId
-        ? { ...s, documents: s.documents.map((d) => (d.id === docId ? { ...d, ...patch, updatedAt: Date.now() } : d)) }
+        ? { ...s, documents: s.documents.map((d) => (d.id === docId ? patched(d, patch) : d)) }
         : s
     )));
   const deleteDocument = (sectionId, docId) => {
@@ -1130,7 +1214,7 @@ export default function App() {
     goToSpec(spec.id);
   };
   const updateSpec = (id, patch) =>
-    setSpecs((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: Date.now() } : s)));
+    setSpecs((prev) => prev.map((s) => (s.id === id ? patched(s, patch) : s)));
   // A research plan's board can also start a spec (its Analysis tab's Spec column) — created
   // in place there, already carrying the plan in `researchPlanIds`, same "already a complete
   // object" pattern as createSignal/createInsight.
@@ -1157,7 +1241,7 @@ export default function App() {
     goToInitiative(initiative.id);
   };
   const updateInitiative = (id, patch) =>
-    setInitiatives((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch, updatedAt: Date.now() } : i)));
+    setInitiatives((prev) => prev.map((i) => (i.id === id ? patched(i, patch) : i)));
   const deleteInitiative = (id) => {
     const index = initiatives.findIndex((i) => i.id === id);
     const initiative = initiatives[index];
@@ -1192,7 +1276,7 @@ export default function App() {
     return plan.id;
   };
   const updateResearchPlan = (id, patch) =>
-    setResearchPlans((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch, updatedAt: Date.now() } : p)));
+    setResearchPlans((prev) => prev.map((p) => (p.id === id ? patched(p, patch) : p)));
   // A spec's open question handed to a plan. Undo takes back exactly the row that was added, found
   // by identity, so anything else written into the plan since is left alone.
   const addResearchQuestion = (planId, text) => {
@@ -1232,7 +1316,7 @@ export default function App() {
   // boards. `signal` here already arrives as a complete object, built off blankSignal().
   const createSignal = (signal) => setSignals((prev) => [...prev, signal]);
   const updateSignal = (id, patch) =>
-    setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: Date.now() } : s)));
+    setSignals((prev) => prev.map((s) => (s.id === id ? patched(s, patch) : s)));
   const deleteSignal = (id) => {
     const index = signals.findIndex((s) => s.id === id);
     const signal = signals[index];
@@ -1256,7 +1340,7 @@ export default function App() {
   // answers, which lose it too.
   const createInsight = (insight) => setInsights((prev) => [...prev, insight]);
   const updateInsight = (id, patch) =>
-    setInsights((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch, updatedAt: Date.now() } : i)));
+    setInsights((prev) => prev.map((i) => (i.id === id ? patched(i, patch) : i)));
   const deleteInsight = (id) => {
     const index = insights.findIndex((i) => i.id === id);
     const insight = insights[index];
@@ -1345,7 +1429,9 @@ export default function App() {
 
   // The project comes first: that's the thing you need to recognise. The monk/ folder inside it is
   // the same in every project, so it's only in the tooltip.
-  const folderCrumb = {
+  // In the demo it names the sample product and goes nowhere: there is no folder behind it to switch
+  // from, and the demo bar is where connecting one is offered.
+  const folderCrumb = demo ? { label: projectName, icon: FolderOpen } : {
     label: projectName || "Repository",
     onClick: handleChangeFolder,
     icon: FolderOpen,
@@ -1535,7 +1621,9 @@ export default function App() {
     return (
       <ConnectScreen
         title="Browser not supported"
-        message="Monk stores your research as files in a folder you pick, which needs the File System Access API — available in Chrome, Edge, and other Chromium-based browsers, but not Firefox or Safari."
+        message="Monk stores your research as files in a folder you pick, which needs the File System Access API — available in Chrome, Edge, and other Chromium-based browsers, but not Firefox or Safari. You can still look around a sample workspace here."
+        buttonLabel="Try the demo"
+        onClick={() => { goToStart(); startDemo(); }}
       />
     );
   }
@@ -1550,6 +1638,8 @@ export default function App() {
         message="Pick your project's repo. Monk keeps its files in a monk/ folder inside it — plain markdown you can read, grep, and commit like any other file."
         buttonLabel="Connect folder"
         onClick={handleConnect}
+        secondaryLabel="Try the demo"
+        onSecondary={() => { goToStart(); startDemo(); }}
       />
     );
   }
@@ -1565,7 +1655,19 @@ export default function App() {
     );
   }
   if (phase === "loading") {
-    return <ConnectScreen title="Monk" message="Loading your repository…" />;
+    return <ConnectScreen title="Monk" message={demo ? "Opening the demo…" : "Loading your repository…"} />;
+  }
+  if (phase === "loadFailed" && demo) {
+    return (
+      <ConnectScreen
+        title="Couldn't open the demo"
+        message={loadError ? loadError.message : ""}
+        buttonLabel="Try again"
+        onClick={startDemo}
+        secondaryLabel="Leave demo"
+        onSecondary={leaveDemo}
+      />
+    );
   }
   if (phase === "loadFailed") {
     return (
@@ -1581,8 +1683,10 @@ export default function App() {
   return (
     <div style={{ fontFamily: font, height: "100dvh", display: "flex", flexDirection: "column" }}>
       <a className="skip-link" href="#main">Skip to content</a>
+      {/* In the demo nothing is saved and nothing outside the tab writes, so there is no save
+          status and no disk log to show — the demo bar says what is true instead. */}
       <Header
-        saveStatus={saveStatus}
+        saveStatus={demo ? null : saveStatus}
         onRetrySave={retrySave}
         onOpenSettings={() => setSettingsOpen(true)}
         diskLog={diskLog}
@@ -1594,14 +1698,14 @@ export default function App() {
         <Settings
           themeMode={themeMode}
           onThemeModeChange={(mode) => { setThemeMode(mode); writeThemeMode(mode); }}
-          folderLabel={folderLabel}
+          folderLabel={demo ? null : folderLabel}
           onChangeFolder={() => { setSettingsOpen(false); handleChangeFolder(); }}
           onDetachFolder={() => { setSettingsOpen(false); handleDetachFolder(); }}
           onClose={() => setSettingsOpen(false)}
         />
       )}
 
-      <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
+      <div className="toast-host" style={{ flex: 1, minHeight: 0, display: "flex" }}>
         <Sidebar
           sections={sections}
           workspaceDocs={WORKSPACE_DOCS.map((d) => ({ id: d.id, label: d.label, href: hrefWorkspaceDoc(d.id), exists: typeof workspaceDocs[d.id] === "string" }))}
@@ -1804,14 +1908,16 @@ export default function App() {
                 recentHref={recentHref}
                 folderName={projectName}
                 subfolder={rootHandle ? dirHandle?.name : null}
-                onChangeFolder={handleChangeFolder}
+                onChangeFolder={demo ? undefined : handleChangeFolder}
               />
             )}
           </main>
         </div>
+
+        <Toast toast={toast} onDismiss={dismissToast} />
       </div>
 
-      <Toast toast={toast} onDismiss={dismissToast} />
+      {demo && <DemoBar canConnect={fsAccessSupported} onConnect={handleChangeFolder} onLeave={leaveDemo} />}
     </div>
   );
 }
