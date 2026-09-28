@@ -66,9 +66,9 @@ export default function Settings({ themeMode, onThemeModeChange, folderLabel, on
           {confirmingDetach ? (
             // Inline rather than a second dialog: a dialog over a dialog is two focus traps deep
             // for a question with two answers.
-            <div className="settings-confirm" role="group" aria-label="Confirm detaching this folder">
+            <div className="settings-confirm" role="group" aria-label="Confirm detaching this repository">
               <p className="settings-confirm__text">
-                Detach this folder? Monk forgets it and returns to the start screen. Nothing on disk changes.
+                Detach this repository? Monk forgets it and returns to the start screen. Nothing on disk changes.
               </p>
               {/* Cancel takes the focus, not Detach: the confirmation exists to stop a stray
                   keystroke detaching a folder, and focusing the destructive answer hands that
@@ -83,10 +83,10 @@ export default function Settings({ themeMode, onThemeModeChange, folderLabel, on
           ) : (
             <div className="settings-actions">
               <Button onClick={onChangeFolder}>
-                <FolderOpen size={16} /> Change folder…
+                <FolderOpen size={16} /> Change repository…
               </Button>
               <Button variant="subtle" onClick={() => setConfirmingDetach(true)}>
-                <Unlink size={15} /> Detach…
+                <Unlink size={15} /> Detach repository…
               </Button>
             </div>
           )}

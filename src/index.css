@@ -2674,17 +2674,19 @@ select.token-field {
    the long edges and crawled round the ends. The primary tile carries the comet and full ink; the
    other is the same shape in softer ink. Its first lap waits until the tile has arrived; until then
    the ring holds its first frame, which is clear. */
+/* Content hangs from the top rather than centring, so the icons of a one-line and a two-line label
+   ("Connect repository…" wraps) sit level with each other. */
 .action-tile {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
   width: 112px;
   height: 112px;
   box-sizing: border-box;
-  padding: 12px 8px;
+  padding: 24px 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-hover);

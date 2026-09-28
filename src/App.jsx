@@ -613,7 +613,7 @@ function BrandScreen({ message, actions }) {
 }
 
 // `secondaryLabel`/`onSecondary` is a second, quieter way off the screen — Try the demo, under
-// Connect folder.
+// Connect repository.
 function ConnectScreen({ title, message, buttonLabel, onClick, secondaryLabel, onSecondary, icon: Icon }) {
   return (
     <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
@@ -1381,7 +1381,7 @@ export default function App() {
 
   // Every trail is rooted in the folder the data actually lives in — everything below it is a
   // path *within* that folder, so it belongs at the front. Clicking it re-opens the folder
-  // picker (the same thing "Change folder" does in the corner), because the place you're most
+  // picker (the same thing "Change repository" does in Settings), because the place you're most
   // likely to want to switch folders is while looking at which one you're in.
   // Where a "Recently touched" row on the start page goes. Signals and insights have no page
   // of their own — they're read and edited in the Research Repository — so they land there.
@@ -1601,7 +1601,7 @@ export default function App() {
   if (phase === "unsupported") {
     return (
       <BrandScreen
-        message="Monk stores your research as files in a folder you pick, which needs the File System Access API — available in Chrome, Edge, and other Chromium-based browsers, but not Firefox or Safari. You can still look around a sample workspace here."
+        message="Connecting a repository needs Chrome or Edge. In this browser, you can try Monk on a sample product."
         actions={[{ label: "Try the demo", icon: Compass, onClick: () => { goToStart(); startDemo(); }, comet: true }]}
       />
     );
@@ -1612,9 +1612,10 @@ export default function App() {
   if (phase === "needsConnect") {
     return (
       <BrandScreen
-        message="Pick your project's repo. Monk keeps its files in a monk/ folder inside it — plain markdown you can read, grep, and commit like any other file."
+        // One sentence per line: left to wrap, the second sentence's first word hung off the first line.
+        message={<>Get your team and your agents on the same page.<br />From the first idea to the code that ships.</>}
         actions={[
-          { label: "Connect folder", icon: FolderGit2, onClick: handleConnect, comet: true },
+          { label: "Connect repository…", icon: FolderGit2, onClick: handleConnect, comet: true },
           { label: "Try the demo", icon: Compass, onClick: () => { goToStart(); startDemo(); } },
         ]}
       />
@@ -1625,8 +1626,8 @@ export default function App() {
       <ConnectScreen
         icon={FolderGit2}
         title="Reconnect your repository"
-        message="Permission to read and write your repository needs to be re-granted after a browser restart."
-        buttonLabel="Reconnect folder"
+        message="After a browser restart, Monk needs your permission again to read and write it."
+        buttonLabel="Reconnect repository…"
         onClick={handleReconnect}
       />
     );
