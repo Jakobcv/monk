@@ -20,6 +20,8 @@ import Notice from "./ui/Notice";
 import Header from "./Header";
 import Settings from "./Settings";
 import DemoBar from "./DemoBar";
+import DeskMark from "./ui/DeskMark";
+import { Wordmark } from "./ui/text";
 import Home from "./Home";
 import ResearchRepositoryPage from "./ResearchRepositoryPage";
 import Sidebar from "./Sidebar";
@@ -566,12 +568,38 @@ const relinkOnBoards = (plans, kind, id, links) => plans.map((p) => {
   };
 });
 
+const TAGLINE = "The IDE for product people";
+
+// What Monk is, at the top of the first screen: the desk and the name, then the tagline rising a word
+// at a time. Motion is transform and opacity, runs once and is still in about a second and a half;
+// reduced motion lands it at rest (the global rule in index.css). Styles are .connect-brand*.
+function ConnectBrand() {
+  const words = TAGLINE.split(" ");
+  return (
+    <div className="connect-brand">
+      <div className="connect-brand__lockup">
+        <DeskMark size={30} />
+        <Wordmark size="17px">monk</Wordmark>
+      </div>
+      <h1 className="connect-brand__tagline">
+        {/* The spaces sit between the words, since an inline-block drops a space it ends with. */}
+        {words.flatMap((w, i) => [
+          i > 0 ? " " : null,
+          <span key={i} className="connect-brand__word" style={{ "--i": i }}>{w}</span>,
+        ])}
+      </h1>
+    </div>
+  );
+}
+
 // `secondaryLabel`/`onSecondary` is a second, quieter way off the screen — Try the demo, under
-// Connect folder.
-function ConnectScreen({ title, message, buttonLabel, onClick, secondaryLabel, onSecondary, icon: Icon }) {
+// Connect folder. `brand` is for the first screens a new person meets: the name and tagline take the
+// place of the icon and title, and the rest follows them in rather than arriving at once.
+function ConnectScreen({ title, message, buttonLabel, onClick, secondaryLabel, onSecondary, icon: Icon, brand }) {
   return (
     <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
-      <div className="enter-up" style={{ maxWidth: "380px", textAlign: "center" }}>
+      <div className={brand ? "connect-screen--brand" : "enter-up"} style={{ maxWidth: brand ? "420px" : "380px", textAlign: "center" }}>
+        {brand && <ConnectBrand />}
         {Icon && (
           <>
             {/* A comet running around the badge's edge. The ring itself is a `::before` laid
@@ -640,17 +668,17 @@ function ConnectScreen({ title, message, buttonLabel, onClick, secondaryLabel, o
             </div>
           </>
         )}
-        <div style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK, marginBottom: SPACE.base }}>{title}</div>
-        <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK_SOFT, lineHeight: 1.5, marginBottom: buttonLabel ? "18px" : 0 }}>
+        {title && <div style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK, marginBottom: SPACE.base }}>{title}</div>}
+        <div className="connect-screen__message" style={{ fontFamily: font, fontSize: SIZE.body, color: INK_SOFT, lineHeight: 1.5, marginBottom: buttonLabel ? "18px" : 0 }}>
           {message}
         </div>
         {buttonLabel && (
-          <Button variant="primary" size="md" onClick={onClick} style={{ padding: "9px 18px" }}>
+          <Button className="connect-screen__action" variant="primary" size="md" onClick={onClick} style={{ padding: "9px 18px" }}>
             {buttonLabel}
           </Button>
         )}
         {secondaryLabel && (
-          <div className="connect-secondary">
+          <div className="connect-secondary connect-screen__action">
             <Button variant="subtle" size="md" onClick={onSecondary}>
               {secondaryLabel}
             </Button>
@@ -1489,8 +1517,10 @@ export default function App() {
       : route.name === "research" ? "Research Repository"
       : route.name === "workspaceDoc" ? (activeWorkspaceDoc ? activeWorkspaceDoc.label : "Not found")
       : "";
-    document.title = name ? `${name} · Monk` : "Monk";
-  }, [route, isSpecRoute, activeDocument, activeSpec, activeInitiative, activeResearchPlan, activeWorkspaceDoc]);
+    // Before a workspace is open, the tab says what Monk is.
+    const first = phase === "needsConnect" || phase === "unsupported";
+    document.title = name ? `${name} · Monk` : first ? `Monk — ${TAGLINE}` : "Monk";
+  }, [route, isSpecRoute, activeDocument, activeSpec, activeInitiative, activeResearchPlan, activeWorkspaceDoc, phase]);
 
   // Activities were folded into research plans (lib/migrateActivities.js). An old #/activity/<id>
   // link — in a doc, a bookmark, a commit message — lands on the plan that activity became, if it
@@ -1620,7 +1650,7 @@ export default function App() {
   if (phase === "unsupported") {
     return (
       <ConnectScreen
-        title="Browser not supported"
+        brand
         message="Monk stores your research as files in a folder you pick, which needs the File System Access API — available in Chrome, Edge, and other Chromium-based browsers, but not Firefox or Safari. You can still look around a sample workspace here."
         buttonLabel="Try the demo"
         onClick={() => { goToStart(); startDemo(); }}
@@ -1633,8 +1663,7 @@ export default function App() {
   if (phase === "needsConnect") {
     return (
       <ConnectScreen
-        icon={FolderGit2}
-        title="Connect your repository"
+        brand
         message="Pick your project's repo. Monk keeps its files in a monk/ folder inside it — plain markdown you can read, grep, and commit like any other file."
         buttonLabel="Connect folder"
         onClick={handleConnect}
