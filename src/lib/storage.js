@@ -385,8 +385,12 @@ async function loadSection(handle, base) {
 
   for await (const [fname, fhandle] of handle.entries()) {
     if (fhandle.kind !== "file" || fname === "section.md" || !fname.endsWith(".md")) continue;
-    const text = recordRead(`${base}/${fname}`, await (await fhandle.getFile()).text());
+    const path = `${base}/${fname}`;
+    const text = recordRead(path, await (await fhandle.getFile()).text());
     section.documents.push(markdownToDocument(text));
+    // Loaded, so ours to remove — saveWorkspace only deletes a document file that is managed, and
+    // without this one deleted in the app stayed on disk and came back on the next load.
+    managed.add(path);
   }
   return section;
 }
