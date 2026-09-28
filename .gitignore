@@ -25,3 +25,7 @@ dist-ssr
 
 # Monk workspace (internal product research/specs, not for the public repo)
 monk/
+
+# Written by Monk when src/demo/larder is connected to edit it; the demo supplies its own.
+src/demo/larder/MONK.md
+src/demo/larder/AGENTS.md

@@ -1,0 +1,3 @@
+
+# The demo workspace is loaded as text and compared byte for byte with what the app writes, which is LF.
+src/demo/larder/** text eol=lf
