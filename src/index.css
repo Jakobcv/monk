@@ -2588,16 +2588,16 @@ select.token-field {
    between them, the pair centred a little above the middle of the page:
      brand   the name (--size-md, soft ink, still) over the tagline
              (--size-title) — what Monk is
-     act     the folder badge with its comet, the copy (--size-md, soft ink,
-             three lines at most), and two buttons at one size, told apart
-             by fill — what to do
-   Inside a group the spacing is SPACE steps (12, 12, 24); between them it is
+     act     the copy (--size-md, soft ink, three lines at most) and two
+             buttons at one size, told apart by fill, the first with the
+             comet running round it (.chase) — what to do
+   Inside a group the spacing is SPACE steps (12, 24); between them it is
    one step of 40 — about three times the inside spacing, enough to read as
    a new group without opening an empty band between them.
    Motion: the tagline rises a word at a time and is left alone for a beat,
-   then the action group follows — badge, copy, buttons — about two and a
-   half seconds, once, transform and opacity only; reduced motion lands it
-   all at rest.
+   then the action group follows — copy, then buttons — about two seconds,
+   once, transform and opacity only; the comet's first lap waits until the
+   button it circles has arrived. Reduced motion lands it all at rest.
    --------------------------------------------------------------------------- */
 @keyframes brand-rise {
   from { opacity: 0; transform: translateY(8px); }
@@ -2652,26 +2652,22 @@ select.token-field {
   color: transparent;
   animation: brand-rise 700ms var(--ease-entrance) calc(200ms + var(--i) * 60ms) both;
 }
-.brand-screen .brand-screen__badge {
-  margin: 0;
-  animation: brand-rise 600ms var(--ease-entrance) 1500ms both;
-}
 .brand-screen__copy {
   max-width: 42ch;
-  margin: 12px 0 0;
+  margin: 0;
   font-size: var(--size-md);
   line-height: 1.55;
   color: var(--ink-soft);
   text-wrap: pretty;
-  animation: brand-rise 600ms var(--ease-entrance) 1620ms both;
+  animation: brand-rise 600ms var(--ease-entrance) 1500ms both;
 }
 .brand-screen__actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: 12px; /* the comet ring sits 4px outside the first button; this keeps it clear of the second */
   margin-top: 24px;
-  animation: brand-rise 600ms var(--ease-entrance) 1740ms both;
+  animation: brand-rise 600ms var(--ease-entrance) 1620ms both;
 }
 @media (pointer: coarse) {
   .brand-screen__actions .btn {
@@ -2723,7 +2719,8 @@ select.token-field {
   background: var(--bg-hover);
   border: 1px solid var(--border);
 }
-.connect-icon-badge::before {
+.connect-icon-badge::before,
+.chase::before {
   content: "";
   position: absolute;
   inset: -1px;
@@ -2745,6 +2742,19 @@ select.token-field {
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   mask-composite: exclude;
   animation: connect-icon-chase 4.8s linear infinite;
+}
+/* The same comet on anything else — the first screen's primary button. The ring sits 4px outside
+   the element, its radius the button's plus that gap so the two stay concentric. The first lap
+   waits until the button has arrived; until then the ring holds its first frame, which is clear. */
+.chase {
+  position: relative;
+}
+.chase::before {
+  inset: -4px;
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  animation-delay: 2200ms;
+  animation-fill-mode: backwards;
 }
 
 /* The desk as a still mark — the connect screens' header, where the name should be there before

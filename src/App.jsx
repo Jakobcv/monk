@@ -573,12 +573,13 @@ const TAGLINE = "The IDE for product people";
 
 // The first screens a new person meets — connect, and Browser not supported. Two groups, stacked
 // with a clear gap between them, because they say different things. What Monk is: the name, small,
-// soft and still, with the tagline under it as the one headline. What to do: the folder badge with
-// its comet, the copy, and the ways in, side by side at one size, told apart by fill alone. Sizes
+// soft and still, with the tagline under it as the one headline. What to do: the copy, and the ways
+// in side by side at one size, told apart by fill — the first with a comet running round it (.chase
+// in index.css), so the one moving thing on the page points at where to start. Sizes
 // are steps of the type scale in theme.js. The tagline rises a word at a time and is left alone
 // for a beat before the second group follows — about two and a half seconds, once, transform and
 // opacity only, at rest under reduced motion. Styles are .brand-screen* in index.css.
-function BrandScreen({ message, primaryLabel, onPrimary, secondaryLabel, onSecondary }) {
+function BrandScreen({ message, primaryLabel, primaryIcon: PrimaryIcon, onPrimary, secondaryLabel, onSecondary }) {
   const words = TAGLINE.split(" ");
   return (
     <main className="brand-screen">
@@ -596,10 +597,14 @@ function BrandScreen({ message, primaryLabel, onPrimary, secondaryLabel, onSecon
         </h1>
       </div>
       <div className="brand-screen__act">
-        <ChasingBadge icon={FolderGit2} className="brand-screen__badge" />
         <p className="brand-screen__copy">{message}</p>
         <div className="brand-screen__actions">
-          {primaryLabel && <Button variant="primary" size="md" onClick={onPrimary}>{primaryLabel}</Button>}
+          {primaryLabel && (
+            <Button className="chase" variant="primary" size="md" onClick={onPrimary}>
+              {PrimaryIcon && <PrimaryIcon size={15} strokeWidth={1.75} aria-hidden="true" />}
+              {primaryLabel}
+            </Button>
+          )}
           {secondaryLabel && <Button variant="secondary" size="md" onClick={onSecondary}>{secondaryLabel}</Button>}
         </div>
       </div>
@@ -1610,6 +1615,7 @@ export default function App() {
       <BrandScreen
         message="Pick your project's repo. Monk keeps its files in a monk/ folder inside it — plain markdown you can read, grep, and commit like any other file."
         primaryLabel="Connect folder"
+        primaryIcon={FolderGit2}
         onPrimary={handleConnect}
         secondaryLabel="Try the demo"
         onSecondary={() => { goToStart(); startDemo(); }}
