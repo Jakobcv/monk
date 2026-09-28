@@ -13,10 +13,10 @@ import { BRAND } from "../lib/theme";
 // left and the foot anchors it low, so the window is moved until the midpoint of the ink's
 // bounding-box centre and its centre of mass sits on the page axis — the same rule the crescent
 // used: centring the box alone overcorrects, centring the mass alone undercorrects.
-export default function DeskMark({ size = 96, className }) {
+export default function DeskMark({ size = 96, className, still = false }) {
   const grad = `desk-grad-${useId().replace(/:/g, "")}`;
   return (
-    <svg className={className ? `desk-mark ${className}` : "desk-mark"} width={size} height={size} viewBox="0 7 100 100" role="img" aria-label="Monk">
+    <svg className={["desk-mark", still && "desk-mark--still", className].filter(Boolean).join(" ")} width={size} height={size} viewBox="0 7 100 100" role="img" aria-label="Monk">
       <defs>
         <linearGradient id={grad} gradientUnits="userSpaceOnUse" x1="16" y1="24" x2="84" y2="92">
           {/* stopColor as an attribute would not resolve a var(); as a style property it does. */}

@@ -10,7 +10,7 @@ import { blankResearchPlan } from "./lib/researchPlanModel";
 import { mockWorkspace } from "./lib/mockWorkspace";
 import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, tryReuseHandle, reconnectHandle, clearStoredConnection } from "./lib/fsPersistence";
 import { describeChanges } from "./lib/diskLog";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
+import { font, INK, INK_SOFT, SIZE, WEIGHT, SPACE } from "./lib/theme";
 import { readThemeMode, writeThemeMode } from "./lib/themeMode";
 import { insertAt } from "./lib/arrays";
 import { patched } from "./lib/patched";
@@ -21,6 +21,7 @@ import Header from "./Header";
 import Settings from "./Settings";
 import DemoBar from "./DemoBar";
 import DeskMark from "./ui/DeskMark";
+import ChasingBadge from "./ui/ChasingBadge";
 import { Wordmark } from "./ui/text";
 import Home from "./Home";
 import ResearchRepositoryPage from "./ResearchRepositoryPage";
@@ -570,9 +571,10 @@ const relinkOnBoards = (plans, kind, id, links) => plans.map((p) => {
 
 const TAGLINE = "The IDE for product people";
 
-// The first screens a new person meets — connect, and Browser not supported. Four levels and no
-// more: the name, small and soft, so it identifies without competing; the tagline, the one
-// headline; the copy; the ways in, side by side at one size, told apart by fill alone. Sizes are
+// The first screens a new person meets — connect, and Browser not supported. The name sits still at
+// the top of the page, small and soft, so it identifies without competing. Below it, centred: the
+// folder badge with its comet, the tagline as the one headline, the copy, and the ways in, side by
+// side at one size, told apart by fill alone. Sizes are
 // steps of the type scale in theme.js. The tagline rises a word at a time and is left alone for a
 // beat before the rest follows — about two and a half seconds, once, transform and opacity only,
 // at rest under reduced motion.
@@ -581,11 +583,12 @@ function BrandScreen({ message, primaryLabel, onPrimary, secondaryLabel, onSecon
   const words = TAGLINE.split(" ");
   return (
     <div className="brand-screen">
+      <header className="brand-screen__name">
+        <DeskMark size={22} still />
+        <Wordmark>monk</Wordmark>
+      </header>
       <main className="brand-screen__inner">
-        <div className="brand-screen__name">
-          <DeskMark size={22} />
-          <Wordmark>monk</Wordmark>
-        </div>
+        <ChasingBadge icon={FolderGit2} className="brand-screen__badge" />
         <h1 className="brand-screen__tagline">
           {/* The spaces sit between the words, since an inline-block drops a space it ends with. */}
           {words.flatMap((w, i) => [
@@ -609,74 +612,7 @@ function ConnectScreen({ title, message, buttonLabel, onClick, secondaryLabel, o
   return (
     <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
       <div className="enter-up" style={{ maxWidth: "380px", textAlign: "center" }}>
-        {Icon && (
-          <>
-            {/* A comet running around the badge's edge. The ring itself is a `::before` laid
-                exactly over the 1px border (inset -1px + padding 1px), masked down to that band:
-                two mask layers, the inner one inset by the band's width, excluded from each other.
-
-                What travels is the *gradient*, via an animated `--connect-icon-angle` — not the
-                element. Rotating the element (the obvious way to write this) rotates its mask
-                too, and this mask is a rounded square, so the whole outline visibly spins off
-                its own corners. Registering the angle with @property is what makes it animatable
-                at all; plain custom properties can't tween. Chromium-only, like the File System
-                Access API this whole app already needs. */}
-            <style>{`
-              @property --connect-icon-angle {
-                syntax: "<angle>";
-                initial-value: 0deg;
-                inherits: false;
-              }
-              /* One lap in the first ~60% of the cycle, then the ring parks at zero opacity
-                 for the rest — that gap is the pause between go-arounds. The fade-out lands
-                 exactly as the comet completes the loop, so it dissolves at the finish line
-                 rather than blinking out mid-edge. Angle has stops only at 0%/62%, so it still
-                 interpolates at one constant speed across the lap; the opacity stops in between
-                 don't break that up. */
-              @keyframes connect-icon-chase {
-                0%   { --connect-icon-angle: 0deg; opacity: 0; }
-                6%   { opacity: 1; }
-                52%  { opacity: 1; }
-                62%  { --connect-icon-angle: 360deg; opacity: 0; }
-                100% { --connect-icon-angle: 360deg; opacity: 0; }
-              }
-              .connect-icon-badge { position: relative; }
-              .connect-icon-badge::before {
-                content: "";
-                position: absolute;
-                inset: -1px;
-                border-radius: inherit;
-                padding: 1px;
-                /* The sweep is written as CSS rather than composed in JS: color-mix keeps each
-                   stop a reference to its token, so the comet re-themes with the ink it's made
-                   of. The percentages are the alphas this had as hex — 00, 25.098, 65.098. */
-                background: conic-gradient(
-                  from var(--connect-icon-angle),
-                  color-mix(in srgb, var(--ink) 0%, transparent) 0deg,
-                  color-mix(in srgb, var(--ink) 0%, transparent) 250deg,
-                  color-mix(in srgb, var(--ink-faint) 25.098%, transparent) 320deg,
-                  color-mix(in srgb, var(--ink-soft) 65.098%, transparent) 358deg,
-                  color-mix(in srgb, var(--ink) 0%, transparent) 360deg
-                );
-                -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-                -webkit-mask-composite: xor;
-                mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-                mask-composite: exclude;
-                animation: connect-icon-chase 4.8s linear infinite;
-              }
-            `}</style>
-            <div
-              className="connect-icon-badge"
-              style={{
-                width: "52px", height: "52px", margin: `0 auto ${SPACE.lg}`, borderRadius: RADIUS.lg,
-                background: BG_HOVER, border: `1px solid ${BORDER}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >
-              <Icon size={22} strokeWidth={1.5} style={{ color: INK_FAINT }} />
-            </div>
-          </>
-        )}
+        {Icon && <ChasingBadge icon={Icon} />}
         <div style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK, marginBottom: SPACE.base }}>{title}</div>
         <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK_SOFT, lineHeight: 1.5, marginBottom: buttonLabel ? "18px" : 0 }}>
           {message}

@@ -2586,12 +2586,13 @@ select.token-field {
 /* ---------------------------------------------------------------------------
    The first screens (BrandScreen in App.jsx). Four levels, each a step of the
    type scale and nothing in between:
-     name     --size-md, soft ink — says whose screen this is, and stops there
+     name     --size-md, soft ink, still, at the top of the page — says whose
+              screen this is, and stops there
      tagline  --size-title — the one headline
      copy     --size-md, soft ink, three lines at most
      actions  two buttons, one size, told apart by fill
    Spacing is one rhythm from the SPACE steps: 16 · 12 · 24.
-   Motion: the desk assembles, the name follows, the tagline rises a word at
+   Motion: the badge comes in with its comet, the tagline rises a word at
    a time and is left alone for a beat, then the copy and the actions follow
    — about two and a half seconds, once, transform and opacity only; reduced
    motion lands it all at rest.
@@ -2601,6 +2602,7 @@ select.token-field {
   to { opacity: 1; transform: none; }
 }
 .brand-screen {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2617,6 +2619,10 @@ select.token-field {
   max-width: 400px;
 }
 .brand-screen__name {
+  position: absolute;
+  top: calc(24px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -2624,10 +2630,13 @@ select.token-field {
 .brand-screen__name .wordmark {
   font-size: var(--size-md);
   color: var(--ink-soft);
-  animation: brand-rise 500ms var(--ease-entrance) 480ms both;
+}
+.brand-screen .brand-screen__badge {
+  margin-bottom: 0;
+  animation: brand-rise 500ms var(--ease-entrance) 200ms both;
 }
 .brand-screen__tagline {
-  margin: 16px 0 0;
+  margin: 20px 0 0;
   font-size: var(--size-title);
   font-weight: 600;
   line-height: 1.15;
@@ -2667,4 +2676,80 @@ select.token-field {
   .brand-screen__actions .btn {
     min-height: 44px;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   The chasing badge (ui/ChasingBadge.jsx) on the connect screens.
+   A comet running around the badge's edge. The ring itself is a `::before` laid
+   exactly over the 1px border (inset -1px + padding 1px), masked down to that band:
+   two mask layers, the inner one inset by the band's width, excluded from each other.
+
+   What travels is the *gradient*, via an animated `--connect-icon-angle` — not the
+   element. Rotating the element (the obvious way to write this) rotates its mask
+   too, and this mask is a rounded square, so the whole outline visibly spins off
+   its own corners. Registering the angle with @property is what makes it animatable
+   at all; plain custom properties can't tween. Chromium, Firefox and Safari all support it,
+   which matters here: the Browser not supported screen shows this badge too.
+   --------------------------------------------------------------------------- */
+@property --connect-icon-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+/* One lap in the first ~60% of the cycle, then the ring parks at zero opacity
+   for the rest — that gap is the pause between go-arounds. The fade-out lands
+   exactly as the comet completes the loop, so it dissolves at the finish line
+   rather than blinking out mid-edge. Angle has stops only at 0%/62%, so it still
+   interpolates at one constant speed across the lap; the opacity stops in between
+   don't break that up. */
+@keyframes connect-icon-chase {
+  0%   { --connect-icon-angle: 0deg; opacity: 0; }
+  6%   { opacity: 1; }
+  52%  { opacity: 1; }
+  62%  { --connect-icon-angle: 360deg; opacity: 0; }
+  100% { --connect-icon-angle: 360deg; opacity: 0; }
+}
+.connect-icon-badge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  box-sizing: border-box;
+  border-radius: var(--radius-lg);
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+}
+.connect-icon-badge::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  /* The sweep is written as CSS rather than composed in JS: color-mix keeps each
+     stop a reference to its token, so the comet re-themes with the ink it's made
+     of. The percentages are the alphas this had as hex — 00, 25.098, 65.098. */
+  background: conic-gradient(
+    from var(--connect-icon-angle),
+    color-mix(in srgb, var(--ink) 0%, transparent) 0deg,
+    color-mix(in srgb, var(--ink) 0%, transparent) 250deg,
+    color-mix(in srgb, var(--ink-faint) 25.098%, transparent) 320deg,
+    color-mix(in srgb, var(--ink-soft) 65.098%, transparent) 358deg,
+    color-mix(in srgb, var(--ink) 0%, transparent) 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: connect-icon-chase 4.8s linear infinite;
+}
+
+/* The desk as a still mark — the connect screens' header, where the name should be there before
+   anything moves. */
+.desk-mark--still .desk-mark__foot,
+.desk-mark--still .desk-mark__post,
+.desk-mark--still .desk-mark__board {
+  animation: none;
 }
