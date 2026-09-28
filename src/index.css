@@ -2592,8 +2592,9 @@ select.token-field {
      actions  two buttons, one size, told apart by fill
    Spacing is one rhythm from the SPACE steps: 16 · 12 · 24.
    Motion: the desk assembles, the name follows, the tagline rises a word at
-   a time, then the copy and the actions — about a second and a half, once,
-   transform and opacity only; reduced motion lands it all at rest.
+   a time and is left alone for a beat, then the copy and the actions follow
+   — about two and a half seconds, once, transform and opacity only; reduced
+   motion lands it all at rest.
    --------------------------------------------------------------------------- */
 @keyframes brand-rise {
   from { opacity: 0; transform: translateY(8px); }
@@ -2652,7 +2653,7 @@ select.token-field {
   line-height: 1.55;
   color: var(--ink-soft);
   text-wrap: pretty;
-  animation: brand-rise 600ms var(--ease-entrance) 1000ms both;
+  animation: brand-rise 600ms var(--ease-entrance) 1800ms both;
 }
 .brand-screen__actions {
   display: flex;
@@ -2660,7 +2661,7 @@ select.token-field {
   justify-content: center;
   gap: 8px;
   margin-top: 24px;
-  animation: brand-rise 600ms var(--ease-entrance) 1100ms both;
+  animation: brand-rise 600ms var(--ease-entrance) 1950ms both;
 }
 @media (pointer: coarse) {
   .brand-screen__actions .btn {

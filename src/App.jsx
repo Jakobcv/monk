@@ -573,8 +573,9 @@ const TAGLINE = "The IDE for product people";
 // The first screens a new person meets — connect, and Browser not supported. Four levels and no
 // more: the name, small and soft, so it identifies without competing; the tagline, the one
 // headline; the copy; the ways in, side by side at one size, told apart by fill alone. Sizes are
-// steps of the type scale in theme.js. The tagline rises a word at a time and the rest follows it
-// in — about a second and a half, once, transform and opacity only, at rest under reduced motion.
+// steps of the type scale in theme.js. The tagline rises a word at a time and is left alone for a
+// beat before the rest follows — about two and a half seconds, once, transform and opacity only,
+// at rest under reduced motion.
 // Styles are .brand-screen* in index.css.
 function BrandScreen({ message, primaryLabel, onPrimary, secondaryLabel, onSecondary }) {
   const words = TAGLINE.split(" ");
