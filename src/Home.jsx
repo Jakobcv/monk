@@ -90,6 +90,15 @@ function RecentRow({ item, href, now, delay }) {
     : <div className="enter-up recent-row" style={style}>{inner}</div>;
 }
 
+// The folder you're in, under the wordmark — a button when it can be switched, plain text when not.
+const folderChipStyle = {
+  display: "inline-flex", alignItems: "center", gap: SPACE.sm,
+  marginTop: SPACE.xl, padding: "5px 11px", borderRadius: RADIUS.pill,
+  border: "none", background: "none", cursor: "pointer",
+  fontFamily: font, fontSize: SIZE.sm,
+  animationDelay: "920ms", animationFillMode: "backwards",
+};
+
 // The start page: the mark, and the short list of what you last touched so you can get back
 // into it.
 // `folderName` is the project — the repo Monk was connected to — and `subfolder` the folder inside
@@ -146,18 +155,12 @@ export default function Home({ signals = [], insights = [], specs = [], initiati
               Colour is left to `.crumb` rather than set inline. Setting it here would beat the
               class's :hover and kill the hover state, which is exactly the bug the breadcrumbs
               had. */}
-          {onChangeFolder && (
+          {onChangeFolder ? (
             <button
               className="enter-up crumb"
               onClick={onChangeFolder}
               title={subfolder ? `Working in ${folderName}/${subfolder} — switch to a different project` : "Switch to a different repository"}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: SPACE.sm,
-                marginTop: SPACE.xl, padding: "5px 11px", borderRadius: RADIUS.pill,
-                border: "none", background: "none", cursor: "pointer",
-                fontFamily: font, fontSize: SIZE.sm,
-                animationDelay: "920ms", animationFillMode: "backwards",
-              }}
+              style={folderChipStyle}
             >
               <FolderOpen size={12} style={{ flexShrink: 0 }} />
               <span translate="no">
@@ -165,6 +168,12 @@ export default function Home({ signals = [], insights = [], specs = [], initiati
                 {subfolder && <span style={{ color: INK_FAINT }}>/{subfolder}</span>}
               </span>
             </button>
+          ) : folderName && (
+            // No folder to switch from (the demo): the name, and no way out of it here.
+            <span className="enter-up" style={{ ...folderChipStyle, cursor: "default", color: INK_SOFT }}>
+              <FolderOpen size={12} style={{ flexShrink: 0 }} />
+              <span translate="no">{folderName}</span>
+            </span>
           )}
         </div>
 

@@ -21,11 +21,20 @@ No accounts, no server, no API keys: the app reads and writes a folder you pick.
 
 - Node.js and npm.
 - **Chrome or Edge.** Monk needs the File System Access API. Firefox and Safari don't have it, and
-  Brave turns it off by default; the app says "browser not supported" rather than failing.
+  Brave turns it off by default; the app says "browser not supported" rather than failing, and
+  offers the demo instead.
 
 ```bash
 npm install
 ```
+
+## Trying it without a folder
+
+The first screen has **Try the demo** under Connect folder. It opens the whole app on a sample
+workspace that lives only in the tab's memory: every page works and anything can be created or
+edited, but nothing is written anywhere, a bar along the bottom says so, and a reload starts it
+over. It runs in any browser, including the ones that can't connect a folder. The sample content
+is `openDemoFolder()` in `src/demo/demoWorkspace.js`.
 
 ## Using Monk alongside a product
 

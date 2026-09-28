@@ -583,6 +583,16 @@ body {
   box-shadow: var(--shadow-pop);
   animation: toast-in var(--motion-base) var(--ease-entrance);
 }
+/* Inside the app the toast belongs to the area under the header — which, in the demo, ends above
+   the demo bar rather than at the bottom of the window. Anchoring to that area keeps it clear of
+   the bar with no measuring; outside the demo the area reaches the window's bottom edge, so it sits
+   exactly where a fixed toast would. */
+.toast-host {
+  position: relative;
+}
+.toast-host > .toast {
+  position: absolute;
+}
 @keyframes toast-in {
   from {
     opacity: 0;
@@ -2518,4 +2528,57 @@ select.token-field {
   .spec-table .spec-table__count {
     display: none;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Demo bar (src/DemoBar.jsx) — the demo's standing reminder, along the bottom of the window.
+   The one tinted strip in the app: it has to be noticed on every page without being read on
+   every page, so it takes the hover ground and a stronger top border rather than a colour.
+   --------------------------------------------------------------------------- */
+.demo-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 10px max(20px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  background: var(--bg-hover);
+  border-top: 1px solid var(--border-strong);
+  font-family: var(--font);
+  font-size: var(--size-ui);
+}
+.demo-bar__text {
+  min-width: 0;
+  flex: 1 1 280px;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+.demo-bar__title {
+  font-weight: 600;
+  color: var(--ink);
+}
+.demo-bar__detail {
+  color: var(--ink-soft);
+}
+.demo-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .demo-bar {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+}
+@media (pointer: coarse) {
+  .demo-bar .btn {
+    min-height: 44px;
+  }
+}
+
+/* The connect screen's second way in: under the primary action, and quieter than it. */
+.connect-secondary {
+  margin-top: 10px;
 }

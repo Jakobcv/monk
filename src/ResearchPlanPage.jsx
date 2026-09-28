@@ -12,6 +12,7 @@ import ResearchQuestionsEditor from "./ResearchQuestionsEditor";
 import PaperListEditor from "./PaperListEditor";
 import Board from "./Board";
 import SourcesList from "./ui/SourcesList";
+import { patched } from "./lib/patched";
 
 const TABS = [
   { key: "overview", label: "Overview" },
@@ -195,7 +196,7 @@ export default function ResearchPlanPage({
       <Page bleed hidden={activeTab !== "analysis"}>
         <Board
           board={board}
-          onChange={(patch) => setBoard((prev) => ({ ...prev, ...patch, updatedAt: Date.now() }))}
+          onChange={(patch) => setBoard((prev) => patched(prev, patch))}
           allBoards={boards}
           onOpenBoard={onOpenBoard}
           signals={signals}
