@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 420" width="240" height="420" role="img" aria-labelledby="t">
+  <title id="t">A remote tick struck through where the item already was</title>
+  <g font-family="sans-serif" font-size="8" fill="#77776F">
+    <rect x="0.5" y="0.5" width="239" height="419" rx="18" fill="#F2F2F0" stroke="#9A9A96"/>
+    <rect x="16" y="24" width="90" height="10" fill="#C6C6C3"/>
+    <rect x="16.5" y="48.5" width="207" height="36" fill="#FFFFFF" stroke="#9A9A96"/>
+    <rect x="28.5" y="60.5" width="12" height="12" fill="#FFFFFF" stroke="#77776F"/>
+    <rect x="50" y="63" width="130" height="7" fill="#C6C6C3"/>
+    <rect x="16.5" y="90.5" width="207" height="36" fill="#FFFFFF" stroke="#9A9A96"/>
+    <rect x="28.5" y="102.5" width="12" height="12" fill="#FFFFFF" stroke="#77776F"/>
+    <rect x="50" y="105" width="100" height="7" fill="#C6C6C3"/>
+    <line x1="48" y1="108" x2="154" y2="108" stroke="#77776F" stroke-width="2"/>
+    <rect x="180" y="103" width="32" height="10" fill="#DCDCDA"/>
+    <rect x="16.5" y="132.5" width="207" height="36" fill="#FFFFFF" stroke="#9A9A96"/>
+    <rect x="28.5" y="144.5" width="12" height="12" fill="#FFFFFF" stroke="#77776F"/>
+    <rect x="50" y="147" width="140" height="7" fill="#C6C6C3"/>
+    <rect x="16.5" y="174.5" width="207" height="36" fill="#FFFFFF" stroke="#9A9A96"/>
+    <rect x="28.5" y="186.5" width="12" height="12" fill="#FFFFFF" stroke="#77776F"/>
+    <rect x="50" y="189" width="90" height="7" fill="#C6C6C3"/>
+    <rect x="16.5" y="236.5" width="207" height="1" fill="#9A9A96"/>
+    <rect x="16.5" y="250.5" width="207" height="36" fill="#FFFFFF" stroke="#9A9A96"/>
+    <rect x="28.5" y="262.5" width="12" height="12" fill="#FFFFFF" stroke="#77776F"/>
+    <rect x="50" y="265" width="110" height="7" fill="#C6C6C3"/>
+    <line x1="48" y1="268" x2="164" y2="268" stroke="#77776F" stroke-width="2"/>
+    <rect x="16.5" y="292.5" width="207" height="36" fill="#FFFFFF" stroke="#9A9A96"/>
+    <rect x="28.5" y="304.5" width="12" height="12" fill="#FFFFFF" stroke="#77776F"/>
+    <rect x="50" y="307" width="80" height="7" fill="#C6C6C3"/>
+    <line x1="48" y1="310" x2="134" y2="310" stroke="#77776F" stroke-width="2"/>
+  </g>
+</svg>
