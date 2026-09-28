@@ -22,6 +22,7 @@ import Settings from "./Settings";
 import DemoBar from "./DemoBar";
 import DeskMark from "./ui/DeskMark";
 import ChasingBadge from "./ui/ChasingBadge";
+import ChaseRing from "./ui/ChaseRing";
 import { Wordmark } from "./ui/text";
 import Home from "./Home";
 import ResearchRepositoryPage from "./ResearchRepositoryPage";
@@ -574,8 +575,8 @@ const TAGLINE = "The IDE for product people";
 // The first screens a new person meets — connect, and Browser not supported. Two groups, stacked
 // with a clear gap between them, because they say different things. What Monk is: the name, small,
 // soft and still, with the tagline under it as the one headline. What to do: the copy, and the ways
-// in side by side at one size, told apart by fill — the first with a comet running round it (.chase
-// in index.css), so the one moving thing on the page points at where to start. Sizes
+// in side by side at one size, told apart by fill — the first with a comet running round it
+// (ui/ChaseRing.jsx), so the one moving thing on the page points at where to start. Sizes
 // are steps of the type scale in theme.js. The tagline rises a word at a time and is left alone
 // for a beat before the second group follows — about two and a half seconds, once, transform and
 // opacity only, at rest under reduced motion. Styles are .brand-screen* in index.css.
@@ -601,6 +602,7 @@ function BrandScreen({ message, primaryLabel, primaryIcon: PrimaryIcon, onPrimar
         <div className="brand-screen__actions">
           {primaryLabel && (
             <Button className="chase" variant="primary" size="md" onClick={onPrimary}>
+              <ChaseRing />
               {PrimaryIcon && <PrimaryIcon size={15} strokeWidth={1.75} aria-hidden="true" />}
               {primaryLabel}
             </Button>
