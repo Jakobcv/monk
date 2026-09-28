@@ -574,9 +574,9 @@ const TAGLINE = "The IDE for product people";
 // The first screens a new person meets — connect, and Browser not supported. Two groups, stacked
 // with a clear gap between them, because they say different things. What Monk is: the name, small,
 // soft and still, with the tagline under it as the one headline. What to do: the copy, and the ways
-// in as square tiles side by side, icon over label — the first with a comet running round its edge,
-// so the one moving thing on the page points at where to start. The tiles are square because the
-// comet is a sweep round the centre, which only runs evenly round a square. Sizes
+// in stacked as large full-width buttons, icon chip then label. The first chip has a comet running
+// round it, so the one moving thing on the page points at where to start — on the chip rather than
+// the button because the comet is a sweep round the centre, which only runs evenly round a square. Sizes
 // are steps of the type scale in theme.js. The tagline rises a word at a time and is left alone
 // for a beat before the second group follows — about two and a half seconds, once, transform and
 // opacity only, at rest under reduced motion. Styles are .brand-screen* in index.css.
@@ -600,10 +600,12 @@ function BrandScreen({ message, actions }) {
       <div className="brand-screen__act">
         <p className="brand-screen__copy">{message}</p>
         <div className="brand-screen__actions">
-          {actions.map(({ label, icon: Icon, onClick, comet }) => (
-            <button key={label} type="button" className={comet ? "action-tile action-tile--comet" : "action-tile"} onClick={onClick}>
-              <Icon size={22} strokeWidth={1.5} aria-hidden="true" />
-              <span>{label}</span>
+          {actions.map(({ label, icon: Icon, onClick, comet }, i) => (
+            <button key={label} type="button" className={i === 0 ? "way-in way-in--primary" : "way-in"} onClick={onClick}>
+              <span className={comet ? "way-in__chip way-in__chip--comet" : "way-in__chip"} aria-hidden="true">
+                <Icon size={17} strokeWidth={1.6} />
+              </span>
+              <span className="way-in__label">{label}</span>
             </button>
           ))}
         </div>

@@ -2588,9 +2588,9 @@ select.token-field {
    between them, the pair centred a little above the middle of the page:
      brand   the name (--size-md, soft ink, still) over the tagline
              (--size-title) — what Monk is
-     act     the copy (--size-md, soft ink, three lines at most) and the
-             ways in as square tiles, icon over label, the first with the
-             comet running round its edge (.action-tile) — what to do
+     act     the copy (--size-md, soft ink, one line per sentence) and the
+             ways in, stacked as large full-width buttons (.way-in), the
+             first's icon chip carrying the comet — what to do
    Inside a group the spacing is SPACE steps (12, 24); between them it is
    one step of 40 — about three times the inside spacing, enough to read as
    a new group without opening an empty band between them.
@@ -2663,60 +2663,71 @@ select.token-field {
 }
 .brand-screen__actions {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
+  width: min(288px, 100%);
   margin-top: 24px;
   animation: brand-rise 600ms var(--ease-entrance) 1620ms both;
 }
-/* A way in, as a badge: square, icon over label. Square because the comet that runs round the
-   primary one is a sweep round the centre, even only on a square — on a wide button it raced along
-   the long edges and crawled round the ends. The primary tile carries the comet and full ink; the
-   other is the same shape in softer ink. Its first lap waits until the tile has arrived; until then
-   the ring holds its first frame, which is clear. */
-/* Content hangs from the top rather than centring, so the icons of a one-line and a two-line label
-   ("Connect repository…" wraps) sit level with each other. */
-.action-tile {
-  position: relative;
+/* A way in: a large button, an icon chip then the label, left-aligned so a stack of them reads as
+   a list. Both share one surface; the first has full ink and its chip carries the comet, the other
+   is softer. The comet runs round the chip, not the button, because it is a sweep round the centre
+   and only even on a square. Its first lap waits until the button has arrived; until then the ring
+   holds its first frame, which is clear. */
+.way-in {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  width: 112px;
-  height: 112px;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
   box-sizing: border-box;
-  padding: 24px 8px 12px;
+  padding: 9px 16px 9px 9px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-hover);
   color: var(--ink-soft);
   font-family: var(--font);
-  font-size: var(--size-ui);
+  font-size: var(--size-md);
   font-weight: 600;
-  line-height: 1.2;
+  text-align: left;
   cursor: pointer;
   touch-action: manipulation;
   transition: background-color var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
 }
-.action-tile svg {
-  color: var(--ink-faint);
-  transition: color var(--motion-fast) var(--ease);
-}
-.action-tile:hover {
+.way-in:hover {
   background: var(--bg-active);
   border-color: var(--border-strong);
   color: var(--ink);
 }
-.action-tile:hover svg,
-.action-tile--comet svg {
-  color: var(--ink-soft);
-}
-.action-tile--comet {
+.way-in--primary {
   color: var(--ink);
 }
+/* Concentric with the button: its 8px radius is the button's 10px less the 9px inset, rounded up so
+   a chip this small still reads as rounded. */
+.way-in__chip {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--ink-faint);
+  transition: color var(--motion-fast) var(--ease);
+}
+.way-in--primary .way-in__chip,
+.way-in:hover .way-in__chip {
+  color: var(--ink-soft);
+}
+.way-in__label {
+  min-width: 0;
+}
 /* Scoped so it outranks the shared ring rule further down, whose animation shorthand would reset the delay. */
-.brand-screen .action-tile--comet::before {
+.brand-screen .way-in__chip--comet::before {
   animation-delay: 2200ms;
   animation-fill-mode: backwards;
 }
@@ -2766,7 +2777,7 @@ select.token-field {
   border: 1px solid var(--border);
 }
 .connect-icon-badge::before,
-.action-tile--comet::before {
+.way-in__chip--comet::before {
   content: "";
   position: absolute;
   inset: -1px;
