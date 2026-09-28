@@ -2584,56 +2584,86 @@ select.token-field {
 }
 
 /* ---------------------------------------------------------------------------
-   The first screen's name and tagline (ConnectBrand in App.jsx). The desk
-   assembles, the name follows, the tagline rises a word at a time, and then
-   the copy and the two ways in — about a second and a half, once. Only
-   transform and opacity move; reduced motion lands it all at rest.
+   The first screens (BrandScreen in App.jsx). Four levels, each a step of the
+   type scale and nothing in between:
+     name     --size-md, soft ink — says whose screen this is, and stops there
+     tagline  --size-title — the one headline
+     copy     --size-md, soft ink, three lines at most
+     actions  two buttons, one size, told apart by fill
+   Spacing is one rhythm from the SPACE steps: 16 · 12 · 24.
+   Motion: the desk assembles, the name follows, the tagline rises a word at
+   a time, then the copy and the actions — about a second and a half, once,
+   transform and opacity only; reduced motion lands it all at rest.
    --------------------------------------------------------------------------- */
-@keyframes connect-rise {
-  from { opacity: 0; transform: translateY(10px); }
+@keyframes brand-rise {
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
-.connect-brand {
-  margin-bottom: 20px;
-}
-.connect-brand__lockup {
+.brand-screen {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-}
-.connect-brand__lockup .wordmark {
-  animation: connect-rise 500ms var(--ease-entrance) 480ms both;
-}
-.connect-brand__tagline {
-  margin: 22px 0 0;
+  min-height: 100dvh;
+  padding: 24px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
+  box-sizing: border-box;
   font-family: var(--font);
-  font-size: 32px;
+  text-align: center;
+}
+.brand-screen__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 400px;
+}
+.brand-screen__name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.brand-screen__name .wordmark {
+  font-size: var(--size-md);
+  color: var(--ink-soft);
+  animation: brand-rise 500ms var(--ease-entrance) 480ms both;
+}
+.brand-screen__tagline {
+  margin: 16px 0 0;
+  font-size: var(--size-title);
   font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   text-wrap: balance;
   color: var(--ink);
 }
 /* The gradient is on each word rather than the heading: text clipped to a parent's background goes
    missing in Chromium once its children are transformed. */
-.connect-brand__word {
+.brand-screen__word {
   display: inline-block;
   padding-bottom: 0.08em; /* room for descenders inside the clipped background */
-  background: linear-gradient(180deg, var(--ink) 40%, color-mix(in srgb, var(--ink) 60%, var(--bg-app)));
+  background: linear-gradient(180deg, var(--ink) 45%, color-mix(in srgb, var(--ink) 65%, var(--bg-app)));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: connect-rise 700ms var(--ease-entrance) calc(620ms + var(--i) * 60ms) both;
+  animation: brand-rise 700ms var(--ease-entrance) calc(620ms + var(--i) * 60ms) both;
 }
-.connect-screen--brand .connect-screen__message {
-  animation: connect-rise 600ms var(--ease-entrance) 1000ms both;
+.brand-screen__copy {
+  max-width: 42ch;
+  margin: 12px 0 0;
+  font-size: var(--size-md);
+  line-height: 1.55;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+  animation: brand-rise 600ms var(--ease-entrance) 1000ms both;
 }
-.connect-screen--brand .connect-screen__action {
-  animation: connect-rise 600ms var(--ease-entrance) 1100ms both;
+.brand-screen__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+  animation: brand-rise 600ms var(--ease-entrance) 1100ms both;
 }
 @media (pointer: coarse) {
-  .connect-screen--brand .btn {
+  .brand-screen__actions .btn {
     min-height: 44px;
   }
 }

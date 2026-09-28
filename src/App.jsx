@@ -570,36 +570,44 @@ const relinkOnBoards = (plans, kind, id, links) => plans.map((p) => {
 
 const TAGLINE = "The IDE for product people";
 
-// What Monk is, at the top of the first screen: the desk and the name, then the tagline rising a word
-// at a time. Motion is transform and opacity, runs once and is still in about a second and a half;
-// reduced motion lands it at rest (the global rule in index.css). Styles are .connect-brand*.
-function ConnectBrand() {
+// The first screens a new person meets — connect, and Browser not supported. Four levels and no
+// more: the name, small and soft, so it identifies without competing; the tagline, the one
+// headline; the copy; the ways in, side by side at one size, told apart by fill alone. Sizes are
+// steps of the type scale in theme.js. The tagline rises a word at a time and the rest follows it
+// in — about a second and a half, once, transform and opacity only, at rest under reduced motion.
+// Styles are .brand-screen* in index.css.
+function BrandScreen({ message, primaryLabel, onPrimary, secondaryLabel, onSecondary }) {
   const words = TAGLINE.split(" ");
   return (
-    <div className="connect-brand">
-      <div className="connect-brand__lockup">
-        <DeskMark size={30} />
-        <Wordmark size="17px">monk</Wordmark>
-      </div>
-      <h1 className="connect-brand__tagline">
-        {/* The spaces sit between the words, since an inline-block drops a space it ends with. */}
-        {words.flatMap((w, i) => [
-          i > 0 ? " " : null,
-          <span key={i} className="connect-brand__word" style={{ "--i": i }}>{w}</span>,
-        ])}
-      </h1>
+    <div className="brand-screen">
+      <main className="brand-screen__inner">
+        <div className="brand-screen__name">
+          <DeskMark size={22} />
+          <Wordmark>monk</Wordmark>
+        </div>
+        <h1 className="brand-screen__tagline">
+          {/* The spaces sit between the words, since an inline-block drops a space it ends with. */}
+          {words.flatMap((w, i) => [
+            i > 0 ? " " : null,
+            <span key={i} className="brand-screen__word" style={{ "--i": i }}>{w}</span>,
+          ])}
+        </h1>
+        <p className="brand-screen__copy">{message}</p>
+        <div className="brand-screen__actions">
+          {primaryLabel && <Button variant="primary" size="md" onClick={onPrimary}>{primaryLabel}</Button>}
+          {secondaryLabel && <Button variant="secondary" size="md" onClick={onSecondary}>{secondaryLabel}</Button>}
+        </div>
+      </main>
     </div>
   );
 }
 
 // `secondaryLabel`/`onSecondary` is a second, quieter way off the screen — Try the demo, under
-// Connect folder. `brand` is for the first screens a new person meets: the name and tagline take the
-// place of the icon and title, and the rest follows them in rather than arriving at once.
-function ConnectScreen({ title, message, buttonLabel, onClick, secondaryLabel, onSecondary, icon: Icon, brand }) {
+// Connect folder.
+function ConnectScreen({ title, message, buttonLabel, onClick, secondaryLabel, onSecondary, icon: Icon }) {
   return (
     <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
-      <div className={brand ? "connect-screen--brand" : "enter-up"} style={{ maxWidth: brand ? "420px" : "380px", textAlign: "center" }}>
-        {brand && <ConnectBrand />}
+      <div className="enter-up" style={{ maxWidth: "380px", textAlign: "center" }}>
         {Icon && (
           <>
             {/* A comet running around the badge's edge. The ring itself is a `::before` laid
@@ -668,17 +676,17 @@ function ConnectScreen({ title, message, buttonLabel, onClick, secondaryLabel, o
             </div>
           </>
         )}
-        {title && <div style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK, marginBottom: SPACE.base }}>{title}</div>}
-        <div className="connect-screen__message" style={{ fontFamily: font, fontSize: SIZE.body, color: INK_SOFT, lineHeight: 1.5, marginBottom: buttonLabel ? "18px" : 0 }}>
+        <div style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK, marginBottom: SPACE.base }}>{title}</div>
+        <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK_SOFT, lineHeight: 1.5, marginBottom: buttonLabel ? "18px" : 0 }}>
           {message}
         </div>
         {buttonLabel && (
-          <Button className="connect-screen__action" variant="primary" size="md" onClick={onClick} style={{ padding: "9px 18px" }}>
+          <Button variant="primary" size="md" onClick={onClick} style={{ padding: "9px 18px" }}>
             {buttonLabel}
           </Button>
         )}
         {secondaryLabel && (
-          <div className="connect-secondary connect-screen__action">
+          <div className="connect-secondary">
             <Button variant="subtle" size="md" onClick={onSecondary}>
               {secondaryLabel}
             </Button>
@@ -1649,11 +1657,10 @@ export default function App() {
 
   if (phase === "unsupported") {
     return (
-      <ConnectScreen
-        brand
+      <BrandScreen
         message="Monk stores your research as files in a folder you pick, which needs the File System Access API — available in Chrome, Edge, and other Chromium-based browsers, but not Firefox or Safari. You can still look around a sample workspace here."
-        buttonLabel="Try the demo"
-        onClick={() => { goToStart(); startDemo(); }}
+        primaryLabel="Try the demo"
+        onPrimary={() => { goToStart(); startDemo(); }}
       />
     );
   }
@@ -1662,11 +1669,10 @@ export default function App() {
   }
   if (phase === "needsConnect") {
     return (
-      <ConnectScreen
-        brand
+      <BrandScreen
         message="Pick your project's repo. Monk keeps its files in a monk/ folder inside it — plain markdown you can read, grep, and commit like any other file."
-        buttonLabel="Connect folder"
-        onClick={handleConnect}
+        primaryLabel="Connect folder"
+        onPrimary={handleConnect}
         secondaryLabel="Try the demo"
         onSecondary={() => { goToStart(); startDemo(); }}
       />
