@@ -2591,8 +2591,9 @@ select.token-field {
      act     the folder badge with its comet, the copy (--size-md, soft ink,
              three lines at most), and two buttons at one size, told apart
              by fill — what to do
-   Inside a group the spacing is SPACE steps (12, 12, 24); between them it
-   grows with the window, so a tall screen doesn't cram them together.
+   Inside a group the spacing is SPACE steps (12, 12, 24); between them it is
+   one step of 40 — about three times the inside spacing, enough to read as
+   a new group without opening an empty band between them.
    Motion: the tagline rises a word at a time and is left alone for a beat,
    then the action group follows — badge, copy, buttons — about two and a
    half seconds, once, transform and opacity only; reduced motion lands it
@@ -2607,7 +2608,7 @@ select.token-field {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(48px, 11vh, 96px);
+  gap: 40px;
   min-height: 100dvh;
   /* The extra room below lifts the pair a little above centre, where the eye lands first. */
   padding: calc(32px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(72px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
