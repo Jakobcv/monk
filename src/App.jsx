@@ -571,24 +571,22 @@ const relinkOnBoards = (plans, kind, id, links) => plans.map((p) => {
 
 const TAGLINE = "The IDE for product people";
 
-// The first screens a new person meets — connect, and Browser not supported. The name sits still at
-// the top of the page, small and soft, so it identifies without competing. Below it, centred: the
-// folder badge with its comet, the tagline as the one headline, the copy, and the ways in, side by
-// side at one size, told apart by fill alone. Sizes are
-// steps of the type scale in theme.js. The tagline rises a word at a time and is left alone for a
-// beat before the rest follows — about two and a half seconds, once, transform and opacity only,
-// at rest under reduced motion.
-// Styles are .brand-screen* in index.css.
+// The first screens a new person meets — connect, and Browser not supported. Two groups, stacked
+// with a clear gap between them, because they say different things. What Monk is: the name, small,
+// soft and still, with the tagline under it as the one headline. What to do: the folder badge with
+// its comet, the copy, and the ways in, side by side at one size, told apart by fill alone. Sizes
+// are steps of the type scale in theme.js. The tagline rises a word at a time and is left alone
+// for a beat before the second group follows — about two and a half seconds, once, transform and
+// opacity only, at rest under reduced motion. Styles are .brand-screen* in index.css.
 function BrandScreen({ message, primaryLabel, onPrimary, secondaryLabel, onSecondary }) {
   const words = TAGLINE.split(" ");
   return (
-    <div className="brand-screen">
-      <header className="brand-screen__name">
-        <DeskMark size={22} still />
-        <Wordmark>monk</Wordmark>
-      </header>
-      <main className="brand-screen__inner">
-        <ChasingBadge icon={FolderGit2} className="brand-screen__badge" />
+    <main className="brand-screen">
+      <div className="brand-screen__brand">
+        <div className="brand-screen__name">
+          <DeskMark size={22} still />
+          <Wordmark>monk</Wordmark>
+        </div>
         <h1 className="brand-screen__tagline">
           {/* The spaces sit between the words, since an inline-block drops a space it ends with. */}
           {words.flatMap((w, i) => [
@@ -596,13 +594,16 @@ function BrandScreen({ message, primaryLabel, onPrimary, secondaryLabel, onSecon
             <span key={i} className="brand-screen__word" style={{ "--i": i }}>{w}</span>,
           ])}
         </h1>
+      </div>
+      <div className="brand-screen__act">
+        <ChasingBadge icon={FolderGit2} className="brand-screen__badge" />
         <p className="brand-screen__copy">{message}</p>
         <div className="brand-screen__actions">
           {primaryLabel && <Button variant="primary" size="md" onClick={onPrimary}>{primaryLabel}</Button>}
           {secondaryLabel && <Button variant="secondary" size="md" onClick={onSecondary}>{secondaryLabel}</Button>}
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
 
