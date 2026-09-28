@@ -2588,9 +2588,9 @@ select.token-field {
    between them, the pair centred a little above the middle of the page:
      brand   the name (--size-md, soft ink, still) over the tagline
              (--size-title) — what Monk is
-     act     the copy (--size-md, soft ink, three lines at most) and two
-             buttons at one size, told apart by fill, the first with the
-             comet running round it (.chase-ring) — what to do
+     act     the copy (--size-md, soft ink, three lines at most) and the
+             ways in as square tiles, icon over label, the first with the
+             comet running round its edge (.action-tile) — what to do
    Inside a group the spacing is SPACE steps (12, 24); between them it is
    one step of 40 — about three times the inside spacing, enough to read as
    a new group without opening an empty band between them.
@@ -2665,14 +2665,58 @@ select.token-field {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 12px; /* the comet ring sits 4px outside the first button; this keeps it clear of the second */
+  gap: 12px;
   margin-top: 24px;
   animation: brand-rise 600ms var(--ease-entrance) 1620ms both;
 }
-@media (pointer: coarse) {
-  .brand-screen__actions .btn {
-    min-height: 44px;
-  }
+/* A way in, as a badge: square, icon over label. Square because the comet that runs round the
+   primary one is a sweep round the centre, even only on a square — on a wide button it raced along
+   the long edges and crawled round the ends. The primary tile carries the comet and full ink; the
+   other is the same shape in softer ink. Its first lap waits until the tile has arrived; until then
+   the ring holds its first frame, which is clear. */
+.action-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 112px;
+  height: 112px;
+  box-sizing: border-box;
+  padding: 12px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-hover);
+  color: var(--ink-soft);
+  font-family: var(--font);
+  font-size: var(--size-ui);
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+}
+.action-tile svg {
+  color: var(--ink-faint);
+  transition: color var(--motion-fast) var(--ease);
+}
+.action-tile:hover {
+  background: var(--bg-active);
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+.action-tile:hover svg,
+.action-tile--comet svg {
+  color: var(--ink-soft);
+}
+.action-tile--comet {
+  color: var(--ink);
+}
+/* Scoped so it outranks the shared ring rule further down, whose animation shorthand would reset the delay. */
+.brand-screen .action-tile--comet::before {
+  animation-delay: 2200ms;
+  animation-fill-mode: backwards;
 }
 
 /* ---------------------------------------------------------------------------
@@ -2719,7 +2763,8 @@ select.token-field {
   background: var(--bg-hover);
   border: 1px solid var(--border);
 }
-.connect-icon-badge::before {
+.connect-icon-badge::before,
+.action-tile--comet::before {
   content: "";
   position: absolute;
   inset: -1px;
@@ -2741,49 +2786,6 @@ select.token-field {
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   mask-composite: exclude;
   animation: connect-icon-chase 4.8s linear infinite;
-}
-/* A comet round anything else — the first screen's primary button (ui/ChaseRing.jsx). The outline
-   sits 4px outside the element, its 10px radius the button's 6px plus that gap, so the two stay
-   concentric. It keeps the badge's rhythm — one lap in the first 62% of 4.8s, fading in and out at
-   either end, then a rest — but the dashes move at one speed along the outline, so the lap is even
-   on a wide button, where the badge's sweep round the centre was not. The first lap waits until the
-   button has arrived; until then the ring holds its first frame, which is clear. */
-.chase {
-  position: relative;
-}
-@keyframes chase-ring-run {
-  0% { stroke-dashoffset: 0; }
-  62%, 100% { stroke-dashoffset: -100; }
-}
-@keyframes chase-ring-fade {
-  0% { opacity: 0; }
-  6%, 52% { opacity: 1; }
-  62%, 100% { opacity: 0; }
-}
-.chase-ring {
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  width: calc(100% + 8px);
-  height: calc(100% + 8px);
-  overflow: visible;
-  pointer-events: none;
-  fill: none;
-  animation: chase-ring-fade 4.8s linear 2200ms infinite backwards;
-}
-.chase-ring rect {
-  stroke-width: 1.25;
-  stroke-linecap: round;
-  animation: chase-ring-run 4.8s linear 2200ms infinite backwards;
-}
-.chase-ring__head {
-  stroke: var(--ink-soft);
-}
-.chase-ring__trail {
-  stroke: color-mix(in srgb, var(--ink-soft) 45%, transparent);
-}
-.chase-ring__trail--far {
-  stroke: color-mix(in srgb, var(--ink-faint) 20%, transparent);
 }
 
 /* The desk as a still mark — the connect screens' header, where the name should be there before

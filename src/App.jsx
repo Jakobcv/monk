@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { FolderOpen, FolderGit2, RefreshCw, FileText } from "lucide-react";
+import { FolderOpen, FolderGit2, Compass, RefreshCw, FileText } from "lucide-react";
 import { loadWorkspace, saveWorkspace, watchWorkspace, canWatchWorkspace, entityIdsFor, ensureAgentGuides, addAgentSection, createWorkspaceDoc, removeWorkspaceDoc, uploadSourceFile, removeSourceFile, readSourceFile, SKETCHES_DIR } from "./lib/storage";
 import { WORKSPACE_DOCS, workspaceDocById } from "./lib/workspaceDocs";
 import { bumpNextId } from "./lib/boardModel";
@@ -22,7 +22,6 @@ import Settings from "./Settings";
 import DemoBar from "./DemoBar";
 import DeskMark from "./ui/DeskMark";
 import ChasingBadge from "./ui/ChasingBadge";
-import ChaseRing from "./ui/ChaseRing";
 import { Wordmark } from "./ui/text";
 import Home from "./Home";
 import ResearchRepositoryPage from "./ResearchRepositoryPage";
@@ -575,12 +574,13 @@ const TAGLINE = "The IDE for product people";
 // The first screens a new person meets — connect, and Browser not supported. Two groups, stacked
 // with a clear gap between them, because they say different things. What Monk is: the name, small,
 // soft and still, with the tagline under it as the one headline. What to do: the copy, and the ways
-// in side by side at one size, told apart by fill — the first with a comet running round it
-// (ui/ChaseRing.jsx), so the one moving thing on the page points at where to start. Sizes
+// in as square tiles side by side, icon over label — the first with a comet running round its edge,
+// so the one moving thing on the page points at where to start. The tiles are square because the
+// comet is a sweep round the centre, which only runs evenly round a square. Sizes
 // are steps of the type scale in theme.js. The tagline rises a word at a time and is left alone
 // for a beat before the second group follows — about two and a half seconds, once, transform and
 // opacity only, at rest under reduced motion. Styles are .brand-screen* in index.css.
-function BrandScreen({ message, primaryLabel, primaryIcon: PrimaryIcon, onPrimary, secondaryLabel, onSecondary }) {
+function BrandScreen({ message, actions }) {
   const words = TAGLINE.split(" ");
   return (
     <main className="brand-screen">
@@ -600,14 +600,12 @@ function BrandScreen({ message, primaryLabel, primaryIcon: PrimaryIcon, onPrimar
       <div className="brand-screen__act">
         <p className="brand-screen__copy">{message}</p>
         <div className="brand-screen__actions">
-          {primaryLabel && (
-            <Button className="chase" variant="primary" size="md" onClick={onPrimary}>
-              <ChaseRing />
-              {PrimaryIcon && <PrimaryIcon size={15} strokeWidth={1.75} aria-hidden="true" />}
-              {primaryLabel}
-            </Button>
-          )}
-          {secondaryLabel && <Button variant="secondary" size="md" onClick={onSecondary}>{secondaryLabel}</Button>}
+          {actions.map(({ label, icon: Icon, onClick, comet }) => (
+            <button key={label} type="button" className={comet ? "action-tile action-tile--comet" : "action-tile"} onClick={onClick}>
+              <Icon size={22} strokeWidth={1.5} aria-hidden="true" />
+              <span>{label}</span>
+            </button>
+          ))}
         </div>
       </div>
     </main>
@@ -1604,8 +1602,7 @@ export default function App() {
     return (
       <BrandScreen
         message="Monk stores your research as files in a folder you pick, which needs the File System Access API — available in Chrome, Edge, and other Chromium-based browsers, but not Firefox or Safari. You can still look around a sample workspace here."
-        primaryLabel="Try the demo"
-        onPrimary={() => { goToStart(); startDemo(); }}
+        actions={[{ label: "Try the demo", icon: Compass, onClick: () => { goToStart(); startDemo(); }, comet: true }]}
       />
     );
   }
@@ -1616,11 +1613,10 @@ export default function App() {
     return (
       <BrandScreen
         message="Pick your project's repo. Monk keeps its files in a monk/ folder inside it — plain markdown you can read, grep, and commit like any other file."
-        primaryLabel="Connect folder"
-        primaryIcon={FolderGit2}
-        onPrimary={handleConnect}
-        secondaryLabel="Try the demo"
-        onSecondary={() => { goToStart(); startDemo(); }}
+        actions={[
+          { label: "Connect folder", icon: FolderGit2, onClick: handleConnect, comet: true },
+          { label: "Try the demo", icon: Compass, onClick: () => { goToStart(); startDemo(); } },
+        ]}
       />
     );
   }
