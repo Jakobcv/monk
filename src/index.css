@@ -2418,8 +2418,10 @@ select.token-field {
 .spec-table tbody tr {
   border-top: 1px solid var(--border);
 }
-.spec-table__initiative {
-  background: var(--bg-hover);
+/* A row answers the pointer, and a keyboard user tabbing through it, the same way. */
+.spec-table tbody tr:hover,
+.spec-table tbody tr:focus-within {
+  background: var(--bg-hover-raised);
 }
 .spec-table__name {
   overflow: hidden;

@@ -72,6 +72,9 @@ export const BORDER_STRONG = color("border-strong", "#DDDBD6", "#3B3833");
 export const BG = color("bg", "#FFFFFF", "#211F1C");
 export const BG_APP = color("bg-app", "#FBFBFA", "#171614");
 export const BG_HOVER = color("bg-hover", "#F7F7F5", "#1E1D1A");
+// Hover on a row that sits on a BG surface (a card's table). In light the two agree; in dark
+// BG_HOVER is a step *below* BG, which on a card reads as nothing, so this one steps up instead.
+export const BG_HOVER_RAISED = color("bg-hover-raised", "#F7F7F5", "#292724");
 // The selected nav item. It sits *below* the sidebar's ground rather than above it: white on
 // BG_APP was all but invisible, and a recess reads as "you are here" without needing a shadow.
 // Deliberately a step past BG_HOVER so hovering a neighbour never out-shouts the selection.
