@@ -30,7 +30,7 @@ npm install
 
 ## Trying it without a folder
 
-The first screen has **Try the demo** under Connect folder. It opens the whole app on a sample
+The first screen has **Try the demo** beside Connect repository. It opens the whole app on a sample
 workspace that lives only in the tab's memory: every page works and anything can be created or
 edited, but nothing is written anywhere, a bar along the bottom says so, and a reload starts it
 over. It runs in any browser, including the ones that can't connect a folder. The sample content

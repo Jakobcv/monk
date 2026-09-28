@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { FolderOpen, FolderGit2, RefreshCw, FileText } from "lucide-react";
+import { FolderOpen, FolderGit2, Compass, RefreshCw, FileText } from "lucide-react";
 import { loadWorkspace, saveWorkspace, watchWorkspace, canWatchWorkspace, entityIdsFor, ensureAgentGuides, addAgentSection, createWorkspaceDoc, removeWorkspaceDoc, uploadSourceFile, removeSourceFile, readSourceFile, SKETCHES_DIR } from "./lib/storage";
 import { WORKSPACE_DOCS, workspaceDocById } from "./lib/workspaceDocs";
 import { bumpNextId } from "./lib/boardModel";
@@ -10,7 +10,7 @@ import { blankResearchPlan } from "./lib/researchPlanModel";
 import { mockWorkspace } from "./lib/mockWorkspace";
 import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, tryReuseHandle, reconnectHandle, clearStoredConnection } from "./lib/fsPersistence";
 import { describeChanges } from "./lib/diskLog";
-import { font, INK, INK_SOFT, INK_FAINT, BORDER, BG_HOVER, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
+import { font, INK, INK_SOFT, SIZE, WEIGHT, SPACE } from "./lib/theme";
 import { readThemeMode, writeThemeMode } from "./lib/themeMode";
 import { insertAt } from "./lib/arrays";
 import { patched } from "./lib/patched";
@@ -20,6 +20,9 @@ import Notice from "./ui/Notice";
 import Header from "./Header";
 import Settings from "./Settings";
 import DemoBar from "./DemoBar";
+import DeskMark from "./ui/DeskMark";
+import ChasingBadge from "./ui/ChasingBadge";
+import { Wordmark } from "./ui/text";
 import Home from "./Home";
 import ResearchRepositoryPage from "./ResearchRepositoryPage";
 import Sidebar from "./Sidebar";
@@ -566,80 +569,58 @@ const relinkOnBoards = (plans, kind, id, links) => plans.map((p) => {
   };
 });
 
+const TAGLINE = "The IDE for product people";
+
+// The first screens a new person meets — connect, and Browser not supported. Two groups, stacked
+// with a clear gap between them, because they say different things. What Monk is: the name, small,
+// soft and still, with the tagline under it as the one headline. What to do: the copy, and the ways
+// in stacked as large full-width buttons, icon chip then label. The first chip has a comet running
+// round it, so the one moving thing on the page points at where to start — on the chip rather than
+// the button because the comet is a sweep round the centre, which only runs evenly round a square. Sizes
+// are steps of the type scale in theme.js. The tagline rises a word at a time and is left alone
+// for a beat before the second group follows — about two and a half seconds, once, transform and
+// opacity only, at rest under reduced motion. Styles are .brand-screen* in index.css.
+function BrandScreen({ message, actions }) {
+  const words = TAGLINE.split(" ");
+  return (
+    <main className="brand-screen">
+      <div className="brand-screen__brand">
+        <div className="brand-screen__name">
+          <DeskMark size={22} still />
+          <Wordmark>monk</Wordmark>
+        </div>
+        <h1 className="brand-screen__tagline">
+          {/* The spaces sit between the words, since an inline-block drops a space it ends with. */}
+          {words.flatMap((w, i) => [
+            i > 0 ? " " : null,
+            <span key={i} className="brand-screen__word" style={{ "--i": i }}>{w}</span>,
+          ])}
+        </h1>
+      </div>
+      <div className="brand-screen__act">
+        <p className="brand-screen__copy">{message}</p>
+        <div className="brand-screen__actions">
+          {actions.map(({ label, icon: Icon, onClick, comet }, i) => (
+            <button key={label} type="button" className={i === 0 ? "way-in way-in--primary" : "way-in"} onClick={onClick}>
+              <span className={comet ? "way-in__chip way-in__chip--comet" : "way-in__chip"} aria-hidden="true">
+                <Icon size={17} strokeWidth={1.6} />
+              </span>
+              <span className="way-in__label">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
+
 // `secondaryLabel`/`onSecondary` is a second, quieter way off the screen — Try the demo, under
-// Connect folder.
+// Connect repository.
 function ConnectScreen({ title, message, buttonLabel, onClick, secondaryLabel, onSecondary, icon: Icon }) {
   return (
     <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
       <div className="enter-up" style={{ maxWidth: "380px", textAlign: "center" }}>
-        {Icon && (
-          <>
-            {/* A comet running around the badge's edge. The ring itself is a `::before` laid
-                exactly over the 1px border (inset -1px + padding 1px), masked down to that band:
-                two mask layers, the inner one inset by the band's width, excluded from each other.
-
-                What travels is the *gradient*, via an animated `--connect-icon-angle` — not the
-                element. Rotating the element (the obvious way to write this) rotates its mask
-                too, and this mask is a rounded square, so the whole outline visibly spins off
-                its own corners. Registering the angle with @property is what makes it animatable
-                at all; plain custom properties can't tween. Chromium-only, like the File System
-                Access API this whole app already needs. */}
-            <style>{`
-              @property --connect-icon-angle {
-                syntax: "<angle>";
-                initial-value: 0deg;
-                inherits: false;
-              }
-              /* One lap in the first ~60% of the cycle, then the ring parks at zero opacity
-                 for the rest — that gap is the pause between go-arounds. The fade-out lands
-                 exactly as the comet completes the loop, so it dissolves at the finish line
-                 rather than blinking out mid-edge. Angle has stops only at 0%/62%, so it still
-                 interpolates at one constant speed across the lap; the opacity stops in between
-                 don't break that up. */
-              @keyframes connect-icon-chase {
-                0%   { --connect-icon-angle: 0deg; opacity: 0; }
-                6%   { opacity: 1; }
-                52%  { opacity: 1; }
-                62%  { --connect-icon-angle: 360deg; opacity: 0; }
-                100% { --connect-icon-angle: 360deg; opacity: 0; }
-              }
-              .connect-icon-badge { position: relative; }
-              .connect-icon-badge::before {
-                content: "";
-                position: absolute;
-                inset: -1px;
-                border-radius: inherit;
-                padding: 1px;
-                /* The sweep is written as CSS rather than composed in JS: color-mix keeps each
-                   stop a reference to its token, so the comet re-themes with the ink it's made
-                   of. The percentages are the alphas this had as hex — 00, 25.098, 65.098. */
-                background: conic-gradient(
-                  from var(--connect-icon-angle),
-                  color-mix(in srgb, var(--ink) 0%, transparent) 0deg,
-                  color-mix(in srgb, var(--ink) 0%, transparent) 250deg,
-                  color-mix(in srgb, var(--ink-faint) 25.098%, transparent) 320deg,
-                  color-mix(in srgb, var(--ink-soft) 65.098%, transparent) 358deg,
-                  color-mix(in srgb, var(--ink) 0%, transparent) 360deg
-                );
-                -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-                -webkit-mask-composite: xor;
-                mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-                mask-composite: exclude;
-                animation: connect-icon-chase 4.8s linear infinite;
-              }
-            `}</style>
-            <div
-              className="connect-icon-badge"
-              style={{
-                width: "52px", height: "52px", margin: `0 auto ${SPACE.lg}`, borderRadius: RADIUS.lg,
-                background: BG_HOVER, border: `1px solid ${BORDER}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >
-              <Icon size={22} strokeWidth={1.5} style={{ color: INK_FAINT }} />
-            </div>
-          </>
-        )}
+        {Icon && <ChasingBadge icon={Icon} />}
         <div style={{ fontFamily: font, fontWeight: WEIGHT.semibold, fontSize: SIZE.lg, color: INK, marginBottom: SPACE.base }}>{title}</div>
         <div style={{ fontFamily: font, fontSize: SIZE.body, color: INK_SOFT, lineHeight: 1.5, marginBottom: buttonLabel ? "18px" : 0 }}>
           {message}
@@ -1402,7 +1383,7 @@ export default function App() {
 
   // Every trail is rooted in the folder the data actually lives in — everything below it is a
   // path *within* that folder, so it belongs at the front. Clicking it re-opens the folder
-  // picker (the same thing "Change folder" does in the corner), because the place you're most
+  // picker (the same thing "Change repository" does in Settings), because the place you're most
   // likely to want to switch folders is while looking at which one you're in.
   // Where a "Recently touched" row on the start page goes. Signals and insights have no page
   // of their own — they're read and edited in the Research Repository — so they land there.
@@ -1489,8 +1470,10 @@ export default function App() {
       : route.name === "research" ? "Research Repository"
       : route.name === "workspaceDoc" ? (activeWorkspaceDoc ? activeWorkspaceDoc.label : "Not found")
       : "";
-    document.title = name ? `${name} · Monk` : "Monk";
-  }, [route, isSpecRoute, activeDocument, activeSpec, activeInitiative, activeResearchPlan, activeWorkspaceDoc]);
+    // Before a workspace is open, the tab says what Monk is.
+    const first = phase === "needsConnect" || phase === "unsupported";
+    document.title = name ? `${name} · Monk` : first ? `Monk — ${TAGLINE}` : "Monk";
+  }, [route, isSpecRoute, activeDocument, activeSpec, activeInitiative, activeResearchPlan, activeWorkspaceDoc, phase]);
 
   // Activities were folded into research plans (lib/migrateActivities.js). An old #/activity/<id>
   // link — in a doc, a bookmark, a commit message — lands on the plan that activity became, if it
@@ -1619,11 +1602,9 @@ export default function App() {
 
   if (phase === "unsupported") {
     return (
-      <ConnectScreen
-        title="Browser not supported"
-        message="Monk stores your research as files in a folder you pick, which needs the File System Access API — available in Chrome, Edge, and other Chromium-based browsers, but not Firefox or Safari. You can still look around a sample workspace here."
-        buttonLabel="Try the demo"
-        onClick={() => { goToStart(); startDemo(); }}
+      <BrandScreen
+        message="Connecting a repository needs Chrome or Edge. In this browser, you can try Monk on a sample product."
+        actions={[{ label: "Try the demo", icon: Compass, onClick: () => { goToStart(); startDemo(); }, comet: true }]}
       />
     );
   }
@@ -1632,14 +1613,13 @@ export default function App() {
   }
   if (phase === "needsConnect") {
     return (
-      <ConnectScreen
-        icon={FolderGit2}
-        title="Connect your repository"
-        message="Pick your project's repo. Monk keeps its files in a monk/ folder inside it — plain markdown you can read, grep, and commit like any other file."
-        buttonLabel="Connect folder"
-        onClick={handleConnect}
-        secondaryLabel="Try the demo"
-        onSecondary={() => { goToStart(); startDemo(); }}
+      <BrandScreen
+        // One sentence per line: left to wrap, the second sentence's first word hung off the first line.
+        message={<>Get your team and your agents on the same page.<br />From the first idea to the code that ships.</>}
+        actions={[
+          { label: "Connect repository…", icon: FolderGit2, onClick: handleConnect, comet: true },
+          { label: "Try the demo", icon: Compass, onClick: () => { goToStart(); startDemo(); } },
+        ]}
       />
     );
   }
@@ -1648,8 +1628,8 @@ export default function App() {
       <ConnectScreen
         icon={FolderGit2}
         title="Reconnect your repository"
-        message="Permission to read and write your repository needs to be re-granted after a browser restart."
-        buttonLabel="Reconnect folder"
+        message="After a browser restart, Monk needs your permission again to read and write it."
+        buttonLabel="Reconnect repository…"
         onClick={handleReconnect}
       />
     );
