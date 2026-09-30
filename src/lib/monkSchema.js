@@ -115,6 +115,8 @@ repo.
  "sources":[{"kind":"document","sectionId":"...","docId":"..."},{"kind":"file","name":"..."}],  // optional
  "openQuestions":[{"text":"...","checked":false,"resolution":"..."}],
  "acceptanceCriteria":[{"text":"...","checked":false}],
+ "changes":[{"at":"<ISO time>","kind":"criterion|question|decision|nonGoals","action":"added|removed|edited",
+             "before":"...","after":"...","reason":"..."}],   // optional
  "createdAt":"...","updatedAt":"..."}
 ---
 ## Problem
@@ -139,8 +141,19 @@ repo.
 - **Acceptance criteria**: one testable statement each. The reasoning behind a criterion belongs in
   \`solution.md\` Decisions, not in the criterion.
 - **Status**: \`draft\` while the spec is being written, \`active\` once it's being built. An agent
-  doesn't set \`shipped\`: when the build is done and every criterion is checked, say so in
-  \`solution.md\` Notes and leave the status for a person to confirm.
+  doesn't set \`shipped\`: when the build is done, write its \`solution.md\` Result and leave the
+  status for a person to confirm.
+- **Changes**: the log of how the spec's commitments moved once it left draft, oldest first. A
+  commitment is an acceptance criterion, an open question, a decision in \`solution.md\`, or the
+  non-goals — prose (Problem, Goals, Solution, Notes) isn't logged. One entry per change: \`kind\`
+  says which of the four, \`action\` whether it was added, removed or edited, \`before\` and
+  \`after\` hold the wording either side (\`before\` only for a removal, \`after\` only for an
+  addition; the non-goals are one field, so an edit holds the whole text), \`at\` is when, and
+  \`reason\` is why. On an active or shipped spec, whoever changes a commitment adds the entry in
+  the same edit — the app does this for edits made in it, so an agent writes its own for edits it
+  makes on disk, always with a reason. Checking a criterion, answering a question and fixing
+  whitespace aren't changes. Nothing is logged on a draft. Leave it out when there are none, and
+  never edit or remove an entry except to add its reason.
 - **Research plans**: \`researchPlanIds\` lists the research plans behind the spec, as pointers into
   \`research-plans/\`. Leave it out when there are none. A plan's own board can also point the other
   way, at a spec its Analysis led to — see "Board cards" above (\`results/\`) — and adding one there
@@ -159,6 +172,7 @@ in this order, each omitted when empty — one item per line (see "Writing text"
 \`\`\`
 ## Solution               freeform markdown — what to build; the sections below qualify it
 ## Sketches               - ![Caption](sketches/file) — the outcome it has to achieve
+## Result                 freeform markdown — what was built and how it was checked, once it's done
 ## Design principles      1. text — intent to optimise for; how to get there is your call
 ## Constraints            - text — binding; if one can't be met, stop and flag it
 ## Decisions              - text — settled; don't reverse one without flagging it
@@ -174,6 +188,12 @@ read as written and only \`sketches/<filename>\` resolves — a sketch is render
 inlined, so script inside an SVG never runs. See \`WRITING.md\` for what makes a sketch worth
 drawing. Distinct from an Artefact (a link to something outside the workspace) and from a Source
 (reference material behind the spec, in \`sources/\`): a sketch is a proposal inside it.
+
+The **Result** is written by whoever did the build, once it's done: what was built, and how it was
+checked — including what the checks didn't reach, since "checked on the preview only" is what a
+person deciding whether it shipped most needs to know. It's about this build only. A finding about
+the product made along the way is a signal (see "Signal" below), not a paragraph here or in Notes; Notes
+keeps the grounding gathered before and during the build.
 
 Text before the first heading, or under any other \`##\` heading, is kept as Notes — which is also
 where sections Monk has since dropped end up, heading and all, rather than being discarded:
@@ -206,7 +226,7 @@ Freeform markdown.
   state never moves one. Unblocking a task returns it to to do.
 - A plan.md without a \`## Tasks\` section is all approach, and is read and written back unchanged.
 - Working through a plan: add the tasks before you build. Set \`[~]\` when you start one and \`[x]\`
-  when it's done; record what was built and how it was checked in \`solution.md\` Notes. When you're
+  when it's done; when the build is done, write \`solution.md\`'s Result. When you're
   stuck, set \`[!]\` and add an open question to \`spec.md\` saying what's in the way — both are
   stop conditions. Finishing every task doesn't make the spec \`shipped\`; a person decides that.
 

@@ -139,6 +139,12 @@ Avoid: quality adjectives ("fast", "intuitive") without a threshold.
 > ✗ The invite flow should be easy to use.
 > ✓ Given an admin with no teammates, when they open Team, they see the invite form without scrolling.
 
+**Change reasons.** *Why did this commitment change?* Once a spec is being built, each change to a criterion, open question, decision or the non-goals is logged, and its reason is the one part a person writes. One sentence naming what was learned, not what was edited — the before and after are already recorded.
+Avoid: restating the change ("Reworded the criterion"); a reason that only makes sense to whoever was in the room.
+
+> ✗ Updated the threshold.
+> ✓ Sync measured at 1.4s on a 3G profile, so the 5s budget hid nothing worth catching.
+
 ### Solution
 
 **Solution.** *What are we building and how does it work?*
@@ -155,6 +161,9 @@ Avoid: a sketch that is the only option; icons; states and transitions; anything
 > ✗ \`![Settings screen](sketches/settings.svg) — Improved settings experience\`
 > ✓ \`![Tabs down the side](sketches/settings-side-tabs.svg) — An admin finds a setting without hunting\`
 
+**Result.** *What was built, and how was it checked?* Written once the build is done, by whoever did it. Say what exists now, then how each part was verified, then what the checks didn't reach — "checked on the preview only" is the line a person deciding whether it shipped most needs. Budget: a short paragraph, then a list of checks.
+Avoid: repeating the Solution; a finding about the product (that's a signal); "all criteria pass" without saying how.
+
 **Design principles.** *Which trade-offs will guide decisions not covered here?*
 2–4 items, each phrased as "X over Y" so it can settle a disagreement.
 Avoid: universal virtues ("simple", "consistent", "accessible"). Those are always true, so they guide nothing.
@@ -168,7 +177,7 @@ Avoid: universal virtues ("simple", "consistent", "accessible"). Those are alway
 
 **Artefacts.** External links with a label of a few words. No descriptions. Reference material that lives in the workspace is a Source, not an artefact.
 
-**Notes.** Implementation grounding and background: what an agent found in the code, what was built, how it was checked. Not a place for leftover content from other fields.
+**Notes.** Implementation grounding and background: what an agent found in the code before and during the build. What was built goes in the Result. Not a place for leftover content from other fields.
 
 ### Plan
 
