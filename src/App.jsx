@@ -12,6 +12,7 @@ import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, t
 import { describeChanges } from "./lib/diskLog";
 import { font, INK, INK_SOFT, SIZE, WEIGHT, SPACE } from "./lib/theme";
 import { readThemeMode, writeThemeMode } from "./lib/themeMode";
+import { readReadingType, writeReadingType } from "./lib/readingType";
 import { insertAt } from "./lib/arrays";
 import { patched } from "./lib/patched";
 import Button from "./ui/Button";
@@ -374,6 +375,7 @@ function InitiativePreviewDemo() {
 function SettingsPreviewDemo() {
   const [open, setOpen] = useState(true);
   const [themeMode, setThemeMode] = useState(readThemeMode);
+  const [readingType, setReadingType] = useState(readReadingType);
   const [fired, setFired] = useState(null);
   return (
     <>
@@ -386,6 +388,8 @@ function SettingsPreviewDemo() {
         <Settings
           themeMode={themeMode}
           onThemeModeChange={(mode) => { setThemeMode(mode); writeThemeMode(mode); }}
+          readingType={readingType}
+          onReadingTypeChange={(type) => { setReadingType(type); writeReadingType(type); }}
           folderLabel="product-research/monk"
           onChangeFolder={() => { setOpen(false); setFired("change folder"); }}
           onDetachFolder={() => { setOpen(false); setFired("detach"); }}
@@ -685,6 +689,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Read once, from this browser profile. main.jsx has already applied it to the document.
   const [themeMode, setThemeMode] = useState(readThemeMode);
+  const [readingType, setReadingType] = useState(readReadingType);
   // The demo (src/demo/demoWorkspace.js): the whole app on a folder that exists only in this tab's
   // memory. Every page runs as it does on a real folder — `dirHandle` is that in-memory folder, so
   // loading, saving and uploads go through the same storage calls — and what depends on a real
@@ -1678,6 +1683,8 @@ export default function App() {
         <Settings
           themeMode={themeMode}
           onThemeModeChange={(mode) => { setThemeMode(mode); writeThemeMode(mode); }}
+          readingType={readingType}
+          onReadingTypeChange={(type) => { setReadingType(type); writeReadingType(type); }}
           folderLabel={demo ? null : folderLabel}
           onChangeFolder={() => { setSettingsOpen(false); handleChangeFolder(); }}
           onDetachFolder={() => { setSettingsOpen(false); handleDetachFolder(); }}

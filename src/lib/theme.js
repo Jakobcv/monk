@@ -17,6 +17,16 @@
 
 export const font = "'Inter', ui-sans-serif, -apple-system, 'Segoe UI', sans-serif";
 
+// The typeface of a person's own words — a spec's title, the prose on a sheet, the names on the
+// start page — as opposed to the app's words around them, which are always `font`. It's a choice
+// (Settings → Text, lib/readingType.js): Inter by default, or Fraunces with its serifs softened.
+// Both halves are references, resolved at paint time like the colours, so switching repaints
+// every use without a render. The axes ride along because SOFT is what makes Fraunces friendly,
+// and a family can't carry an axis setting on its own; under Inter the setting names an axis
+// Inter doesn't have, and is ignored.
+export const serif = "'Fraunces', ui-serif, Georgia, serif";
+export const READING = { fontFamily: "var(--font-reading)", fontVariationSettings: "var(--font-reading-axes)" };
+
 // ---------------------------------------------------------------------------
 // Color — a near-monochrome ink/paper base, with accent used sparingly as
 // *meaning* (which kind of card, which state), never as decoration.
@@ -363,6 +373,7 @@ export const CSS_VARS = `:root{
   color-scheme:light;
 ${varsFor("light")}
   --font:${font};
+  --font-reading:var(--font); --font-reading-axes:normal;
   --size-micro:${SIZE.micro}; --size-xs:${SIZE.xs}; --size-sm:${SIZE.sm};
   --size-ui:${SIZE.ui}; --size-body:${SIZE.body}; --size-md:${SIZE.md}; --size-lg:${SIZE.lg};
   --size-title:${SIZE.title};
@@ -387,4 +398,7 @@ ${themeBlock("light")}
 }
 :root[data-theme="dark"]{
 ${themeBlock("dark")}
+}
+:root[data-reading="serif"]{
+  --font-reading:${serif}; --font-reading-axes:"SOFT" 100, "WONK" 0;
 }`;

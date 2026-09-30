@@ -20,6 +20,47 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* Fraunces, the serif a person can choose for their own words (Settings → Text; see
+   lib/readingType.js). Self-hosted the same way as Inter, and only ever fetched by a browser that
+   has something to set in it — a person who keeps Sans never downloads a byte of it. These are the
+   "full" variable builds, carrying every axis: weight, optical size (so a 26px title and 16px
+   prose each get the cut drawn for their size, automatically) and SOFT, which rounds the serifs
+   and is what makes it friendly rather than bookish. Upstream is Fontsource's build of Fraunces
+   5.3.0; SIL Open Font License, copied beside the files. Italic too, so emphasis in prose is
+   drawn rather than slanted by the browser. */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/fraunces-latin-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/fraunces-latin-ext-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/fraunces-latin-italic.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/fraunces-latin-ext-italic.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 /* Every value below comes from --custom-properties injected at boot from lib/theme.js,
    so this file never holds a hardcoded token of its own. See theme.js CSS_VARS. */
 
@@ -1770,6 +1811,33 @@ a.recent-row:hover {
   margin: 0 -10px;
   padding: 4px 10px;
   width: calc(100% + 20px);
+}
+
+/* ---------------------------------------------------------------------------
+   Your words, and the app's. What a person wrote — the title at the top of a
+   page, and the prose on the sheet under it — is set in --font-reading, which
+   is Inter until they choose the serif in Settings (lib/readingType.js). What
+   the app wrote stays in --font whatever they choose: labels, eyebrows, hints,
+   the "+ Add" rows, buttons, the rail, every card on a board. That line is the
+   whole rule, and it's why this is a list of selectors rather than the sheet
+   setting a font for everything inside it — half of what's inside a sheet is
+   chrome, and it has to stay put.
+
+   Scoped to .paper-sheet where the class is shared: .edit-area and .prose-field
+   also carry a board card's text, and a card stays in the UI's type.
+   --------------------------------------------------------------------------- */
+.page-title,
+.paper-sheet .prose-field,
+.paper-sheet .edit-area,
+.paper-sheet .cl-input,
+.paper-sheet .cl-resolution,
+.paper-link-row {
+  font-family: var(--font-reading);
+  font-variation-settings: var(--font-reading-axes);
+}
+/* A serif at 700 and title size turns heavy and dark; its semibold carries the same rank. */
+:root[data-reading="serif"] .page-title {
+  font-weight: 600;
 }
 
 /* An artefact's link line. Softer than the title above it, the way a citation is. */

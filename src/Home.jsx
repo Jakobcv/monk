@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Plus, FolderOpen } from "lucide-react";
 import {
-  font, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, RESEARCH_PLAN, SIZE, SPACE, RADIUS, PAGE,
+  font, READING, INK, INK_SOFT, INK_FAINT, ACCENT, ACTIVITY, RESEARCH_PLAN, SIZE, SPACE, RADIUS, PAGE,
 } from "./lib/theme";
 import { Dot, Eyebrow, Meta, Wordmark } from "./ui/text";
 import { recentlyTouched, relativeTime } from "./lib/recentActivity";
@@ -39,7 +39,7 @@ function RecentRow({ item, href, now, delay }) {
     <>
       <Dot color={KIND_COLOR[item.kind] || INK_FAINT} />
       <Meta style={{ fontSize: SIZE.xs, width: "62px", flexShrink: 0, textTransform: "capitalize" }}>{KIND_LABEL[item.kind] || item.kind}</Meta>
-      <span style={{ flex: 1, minWidth: 0, color: INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
+      <span style={{ ...READING, flex: 1, minWidth: 0, color: INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
       <Meta style={{ fontSize: SIZE.sm, flexShrink: 0 }}>{relativeTime(item.updatedAt, now)}</Meta>
     </>
   );
@@ -102,7 +102,7 @@ export default function Home({ signals = [], insights = [], specs = [], initiati
           <p
             className="enter-up"
             style={{
-              margin: `${SPACE.lg} 0 0`, fontFamily: font, fontSize: SIZE.md, lineHeight: 1.4,
+              margin: `${SPACE.lg} 0 0`, ...READING, fontSize: SIZE.md, lineHeight: 1.4,
               color: INK_SOFT, textAlign: "center", textWrap: "balance",
               animationDelay: "840ms", animationFillMode: "backwards",
             }}
