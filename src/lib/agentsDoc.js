@@ -48,7 +48,8 @@ Anything else in this folder isn't Monk's, and Monk never touches it.
   it under, use the plan titled "Codebase review" (create it if it isn't there). That board is where
   insights get formed from it.
 - **A fact about how the code is built** — which function to reuse, where a pattern lives — is
-  implementation grounding, and goes in that spec's \`solution.md\` Notes.
+  implementation grounding, and goes in that spec's \`solution.md\` Notes (or \`plan.md\`'s Approach, if
+  it's how you mean to build it).
 - **A decision and its reason** go in \`solution.md\` Decisions, once. Don't repeat them in open
   questions and acceptance criteria.
 - **An answered open question** keeps the question in \`text\`, gets the answer in \`resolution\`, and
@@ -61,9 +62,14 @@ Anything else in this folder isn't Monk's, and Monk never touches it.
   non-goals — on an active or shipped spec gets an entry in that spec's \`changes\` log, in the same
   edit, with a reason. The shape is in \`MONK.md\`. The app logs edits made in it; nothing logs yours
   but you.
-- **What was built** goes in \`solution.md\`'s Result when the build is done: what you built, how you
-  checked it, and what the checks didn't reach. A finding about the product you made on the way is a
-  signal, not part of the Result or Notes.
+- **What changed for users** goes in \`solution.md\`'s Result when the build is done, written for the
+  product trio deciding whether it shipped: what someone can now do or see, how you know (in the
+  words of the acceptance criteria), and what the checks didn't reach. The technical detail behind
+  the checks goes in Notes. A finding about the product you made on the way is a signal, not part of
+  the Result or Notes.
+- **Code names** — file paths, functions, components, tokens, data shapes — go in \`plan.md\`'s
+  Approach and Tasks and \`solution.md\`'s Notes. Everything else is read by a product manager, a
+  designer and a tech lead, and is written in the product's terms (\`WRITING.md\`, rule 5).
 
 ### Building from a spec
 

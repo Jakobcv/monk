@@ -16,7 +16,7 @@ export const WRITING_GUIDE_TEMPLATE = `<!-- Created by Monk, then yours: edit th
 
 # Writing guide for AI collaborators
 
-You are co-writing research plans and specs with a product team. These files are read by busy humans and by other AI agents that will build from them. Every sentence costs both a reader's attention and an agent's context. Write the minimum that lets the reader act correctly.
+You are co-writing research plans and specs with a product trio — a product manager, a designer and a tech lead — and with the AI agents that build from what they decide. Every sentence costs both a reader's attention and an agent's context. Write the minimum that lets the reader act correctly.
 
 This guide covers what to write. \`MONK.md\` covers where it goes: file names, frontmatter, field names, and how text is stored — in particular, never hard-wrap a paragraph or a list item. Read that before writing files directly.
 
@@ -26,10 +26,11 @@ This guide covers what to write. \`MONK.md\` covers where it goes: file names, f
 2. **One field, one job.** Each field answers one question (see below). Don't answer another field's question in it, and don't repeat content across fields.
 3. **Use the link fields.** Reference material goes in Sources, the research behind a spec in its research plans, an insight's evidence in its signals, an answer to a research question in the insight linked to it. A sentence pointing at something a link field already holds ("as the onboarding research showed…") is a missing link, not context.
 4. **Specific over general.** Name the user, the situation, the number, the screen. Delete any sentence that would be true of any product ("users want a seamless experience").
-5. **Mark what you invented.** Anything not grounded in the user's input or linked evidence gets an \`[assumption]\` tag — plain text; nothing parses it. The human decides whether it stays. If the build would actually turn on the answer, make it an open question instead.
-6. **Match the field's shape.** Prose fields (Problem, Goals, Non-goals, Background, Solution, Description…) take plain prose, or a short bullet list where the field is a set of items. No headings inside a field, no bold, no preamble ("This section outlines…"), no closing summary. List fields (open questions, acceptance criteria, design principles, constraints, decisions, artefacts, outcomes, research questions, activities, tasks) take one item per line: the item is its text and nothing else — no sub-bullets, no explanation underneath.
-7. **Respect the budget.** The budgets below are ceilings, not targets. Hitting the ceiling should be rare.
-8. **Draft small, then offer.** When filling a template, draft the fields you have evidence for. List the ones you left empty and why in one line, in chat, not in the file. Offer to expand; don't expand by default.
+5. **Say it in the product's terms.** All three of the trio read almost every field, and only one of them reads code. Write about people and the product: who, what they see, what they can do, what happens next — the words on the screen, not the names in the code. File paths, function and component names, tokens, data shapes and measurement detail go in the technical fields — the Plan's Approach and Tasks, and the Solution's Notes — and nowhere else. A Constraint or a Decision can be technical when that is what was decided; say it plainly and say what it means for the product. Test: *could the designer follow this sentence without opening the repo?* If not, rewrite it, or move it to a technical field.
+6. **Mark what you invented.** Anything not grounded in the user's input or linked evidence gets an \`[assumption]\` tag — plain text; nothing parses it. The human decides whether it stays. If the build would actually turn on the answer, make it an open question instead.
+7. **Match the field's shape.** Prose fields (Problem, Goals, Non-goals, Background, Solution, Description…) take plain prose, or a short bullet list where the field is a set of items. No headings inside a field, no bold, no preamble ("This section outlines…"), no closing summary. List fields (open questions, acceptance criteria, design principles, constraints, decisions, artefacts, outcomes, research questions, activities, tasks) take one item per line: the item is its text and nothing else — no sub-bullets, no explanation underneath.
+8. **Respect the budget.** The budgets below are ceilings, not targets. Hitting the ceiling should be rare.
+9. **Draft small, then offer.** When filling a template, draft the fields you have evidence for. List the ones you left empty and why in one line, in chat, not in the file. Offer to expand; don't expand by default.
 
 Titles are names, not summaries: what the thing is, in a few words, distinguishable from its siblings.
 
@@ -113,7 +114,7 @@ Avoid: outputs ("Launch new dashboard").
 
 ## Spec
 
-A spec is read by a human deciding whether it's right and by an agent deciding what to build. Write for both: short, specific, unambiguous.
+A spec is read by the trio deciding whether it's right, and by an agent deciding what to build. Write the Overview, the Solution and the Result for the trio, in the product's terms. The agent reads those too, and gets its technical grounding from the Plan and the Notes. Short, specific, unambiguous.
 
 ### Overview
 
@@ -149,6 +150,10 @@ Avoid: restating the change ("Reworded the criterion"); a reason that only makes
 
 **Solution.** *What are we building and how does it work?*
 Describe behaviour and flow from the user's side: what they see, what they can do, what happens. Budget: short paragraphs, as long as it needs to be unambiguous and no longer. Leave visual detail to the sketches and linked artefacts below.
+Avoid: how the code is organised — files, components, functions, tokens. That's the Plan's Approach.
+
+> ✗ \`theme.js\` holds a light and a dark value for every colour token and emits the dark set under \`prefers-color-scheme\`.
+> ✓ Monk follows the computer's appearance setting: on a desktop set to dark, every page opens dark, with nothing to switch on.
 
 **Sketches.** *What could this look like, crudely enough to argue about?*
 One line per sketch: a caption naming the option, and the outcome it has to achieve. Write two or three for the same outcome, never one — a single picture invites critique, a set invites a choice. Reuse the outcome text word for word across a set; matching text is what groups them.
@@ -161,8 +166,22 @@ Avoid: a sketch that is the only option; icons; states and transitions; anything
 > ✗ \`![Settings screen](sketches/settings.svg) — Improved settings experience\`
 > ✓ \`![Tabs down the side](sketches/settings-side-tabs.svg) — An admin finds a setting without hunting\`
 
-**Result.** *What was built, and how was it checked?* Written once the build is done, by whoever did it. Say what exists now, then how each part was verified, then what the checks didn't reach — "checked on the preview only" is the line a person deciding whether it shipped most needs. Budget: a short paragraph, then a list of checks.
-Avoid: repeating the Solution; a finding about the product (that's a signal); "all criteria pass" without saying how.
+**Result.** *What changed for the people using it, and how do we know?* Written once the build is done, by whoever did it — for the trio deciding whether it shipped, not as a record of the work. Three parts, in this order:
+- What changed: 2–4 sentences from the user's side — what someone can now do or see, and anything that turned out different from the Solution.
+- \`How we know:\` then one line per check, in the words of the acceptance criteria it covers: what was checked, and how, plainly ("every page checked in both themes").
+- \`Not checked:\` then what the checks didn't reach. "Only the preview was tested" is the line a person deciding whether it shipped most needs, so it's never left out; write "nothing" if that's true.
+
+The measurements, scripts and file-by-file detail behind the checks go in Notes, where the tech lead and the next agent will find them.
+Budget: about 150 words.
+Avoid: code names in the first two parts; repeating the Solution; a finding about the product (that's a signal); "all criteria pass" without saying how.
+
+> ✗ Every colour token now carries two values: \`color(name, light, dark)\` records both and \`CSS_VARS\` emits the dark set. 505 text elements measured per theme at an APCA floor of 75…
+> ✓ Monk now follows the computer's appearance setting: on a desktop set to dark, every page opens dark. Text is as easy to read as in light, and the four card kinds on a board still look different at a glance.
+> How we know:
+> - Every page was checked in both themes; nothing in dark still shows a light colour.
+> - Text contrast was measured on every page and matches light mode level for level.
+>
+> Not checked: hover and focus states, dialogs, and any page that needs a connected folder — only the preview pages were tested.
 
 **Design principles.** *Which trade-offs will guide decisions not covered here?*
 2–4 items, each phrased as "X over Y" so it can settle a disagreement.
@@ -177,7 +196,7 @@ Avoid: universal virtues ("simple", "consistent", "accessible"). Those are alway
 
 **Artefacts.** External links with a label of a few words. No descriptions. Reference material that lives in the workspace is a Source, not an artefact.
 
-**Notes.** Implementation grounding and background: what an agent found in the code before and during the build. What was built goes in the Result. Not a place for leftover content from other fields.
+**Notes.** The technical record, for the tech lead and the next agent: what was found in the code before and during the build, and the detail behind the Result's checks — what was measured, how, and the numbers. Code names are welcome here. What changed for users goes in the Result. Not a place for leftover content from other fields.
 
 ### Plan
 
@@ -190,6 +209,7 @@ Avoid: layer-by-layer tasks ("Build backend", "Build frontend") when a vertical 
 
 Documents hold the context several specs share — Product knowledge (what's true about the product and the people using it), Standards (the contracts a build has to satisfy), and any section the team adds.
 
+- Documents are read by the whole trio, so they follow rule 5 too. A standard can govern something technical (an API, a data format); say what it protects before how it's met.
 - Before writing a new document, check whether it belongs in one that exists. Two documents on the same subject are worse than one long one.
 - A standard is testable: a reader can tell whether a build meets it. Product knowledge is durable context, not news — if it will be wrong next month, it's a signal.
 - Anything true of only one spec belongs on that spec, not here.
