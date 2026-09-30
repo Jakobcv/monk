@@ -373,6 +373,7 @@ The insight, as free text.
 \`\`\`
 ---
 {"id":"<uuid>","title":"...","status":"active|paused|done",
+ "owner":"...",   // optional
  "outcomes":[{"text":"...","metric":"...","baseline":"...","target":"...","current":"..."}],   // optional
  "openQuestions":[{"text":"...","checked":false,"resolution":"..."}],
  "sources":[{"kind":"document","sectionId":"...","docId":"..."},{"kind":"file","name":"..."}],  // optional
@@ -392,6 +393,8 @@ an epic; its specs are the tickets. \`openQuestions\` are the questions that spa
 unchecked one is unresolved for every spec in the initiative. Answers go in \`resolution\`, the same
 as on a spec. When a spec settles something the initiative's description still calls open, update
 the description too. \`sources\` is reference material behind the initiative — see "Sources" below.
+\`owner\` is free text naming who the initiative belongs to, the same as a spec's; leave it out when
+there is none.
 
 ### Research plan — \`research-plans/<uuid>.md\`
 

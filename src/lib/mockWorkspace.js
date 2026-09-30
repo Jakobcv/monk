@@ -232,9 +232,12 @@ export function mockWorkspace(seed = 42) {
   });
 
   // --- initiatives ---
-  const initiatives = INITIATIVES.map((ini) => {
+  // Owners come from the index, not `rand`, so adding them didn't reshuffle everything seeded after.
+  // The last has none, so the Owner column's empty cell shows up too.
+  const initiatives = INITIATIVES.map((ini, i) => {
     const created = at(rand, WINDOW_DAYS, WINDOW_DAYS - 30);
-    return { id: genEntityId(rand), title: ini.title, status: ini.status, description: "", outcomes: ini.outcomes || [], openQuestions: [], createdAt: created, updatedAt: at(rand, 44, 12) };
+    const owner = i < INITIATIVES.length - 1 ? OWNERS[i % OWNERS.length] : "";
+    return { id: genEntityId(rand), title: ini.title, status: ini.status, owner, description: "", outcomes: ini.outcomes || [], openQuestions: [], createdAt: created, updatedAt: at(rand, 44, 12) };
   });
 
   // --- specs: weighted statuses, ~half under an initiative, each with a small board ---

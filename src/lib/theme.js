@@ -222,10 +222,13 @@ export const PAGE = {
   // The gutter of a paper page's chrome (ui/PaperFrame): the breadcrumb bar, the kind/title/tabs
   // block and the side rail all start their content here, so they share one left edge.
   chromeX: "20px",
-  // The two column widths a centred page uses. `wide` is also the paper sheet's width, so a list of
-  // specs and the spec itself sit on the same measure.
+  // The column widths a centred page uses. `wide` is also the paper sheet's width, so a list and
+  // the record it opens can sit on the same measure. `table` is for a page that is one wide table:
+  // it fills a laptop screen, and stops before its columns drift away from the titles on an
+  // ultra-wide one.
   narrow: "560px", // the start page
-  wide: "840px",   // Specs, Research Repository, the paper sheet
+  wide: "840px",   // Research Repository, the paper sheet
+  table: "1600px", // Initiatives
 };
 
 // A drop shadow on a dark ground has less room to be seen in, so every alpha here is deeper in

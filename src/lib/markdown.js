@@ -322,10 +322,13 @@ export function markdownToSpec(content) {
 // frontmatter, the freeform description as the body. See initiativeModel.js.
 export function initiativeToMarkdown(initiative) {
   const outcomes = outcomesFrom(initiative.outcomes);
+  const owner = (initiative.owner || "").trim();
   const frontmatter = {
     id: initiative.id,
     title: initiative.title || "",
     status: initiative.status || "active",
+    // Written only when set, so an initiative saved before owners existed is unchanged.
+    ...(owner ? { owner } : {}),
     // Written only when there are some, so an initiative saved before outcomes existed is unchanged.
     ...(outcomes.length ? { outcomes } : {}),
     openQuestions: initiative.openQuestions || [],
@@ -343,6 +346,7 @@ export function markdownToInitiative(content) {
     id: data.id,
     title: data.title || "",
     status: data.status || "active",
+    owner: typeof data.owner === "string" ? data.owner : "",
     outcomes: outcomesFrom(data.outcomes),
     openQuestions: Array.isArray(data.openQuestions) ? data.openQuestions : [],
     sources: sourcesFrom(data.sources),
