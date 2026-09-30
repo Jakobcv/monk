@@ -1337,6 +1337,27 @@ a.recent-row:hover {
 .paper-section:focus {
   outline: none;
 }
+/* A spec's Result on the Solution tab (DesignTab). Filled in, it's what a person
+   hunts for to decide whether the spec shipped, so it sits on a panel tinted and
+   outlined in the shipped colour. The panel bleeds out past the text by the
+   same amount it pads in, so the text doesn't move when the panel appears; 16px
+   fits inside the narrowest sheet's 20px padding. Tint and edge are drawn with
+   background and box-shadow only, so they fade in without touching layout. */
+.result-section {
+  margin: -14px -16px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease);
+}
+.result-section--filled {
+  background: color-mix(in srgb, var(--accent-action) 7%, var(--bg));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-action) 22%, transparent);
+}
+.result-section--filled > .eyebrow {
+  color: var(--accent-action);
+}
 .paper-rule {
   height: 1px;
   background: var(--border);

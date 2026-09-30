@@ -14,6 +14,7 @@
 //
 //   ## Solution             freeform markdown
 //   ## Sketches             - ![Caption](sketches/file) — outcome
+//   ## Result               freeform markdown — what was built and how it was checked
 //   ## Design principles    1. text
 //   ## Constraints          - text
 //   ## Decisions            - text
@@ -25,8 +26,8 @@
 // `##` heading lands in Notes verbatim, title and all, so a file written before the change loses
 // nothing and the writer decides what to do with it.
 const TITLES = {
-  artefacts: "Artefacts", solution: "Solution", sketches: "Sketches", principles: "Design principles",
-  constraints: "Constraints", decisions: "Decisions", notes: "Notes",
+  artefacts: "Artefacts", solution: "Solution", sketches: "Sketches", result: "Result",
+  principles: "Design principles", constraints: "Constraints", decisions: "Decisions", notes: "Notes",
 };
 // Headings a section has been known by, beyond its current title — a file written before a rename
 // still parses into the same key rather than falling through to Notes as an unknown heading.
@@ -36,12 +37,12 @@ const KEY_BY_TITLE = {
   ...Object.fromEntries(Object.entries(TITLES).map(([k, t]) => [t.toLowerCase(), k])),
 };
 
-// The two sections that are prose rather than a list: their body is kept and written back as
-// typed, and they have no per-line parser below.
-const FREEFORM = new Set(["solution", "notes"]);
+// The sections that are prose rather than a list: their body is kept and written back as typed,
+// and they have no per-line parser below.
+const FREEFORM = new Set(["solution", "result", "notes"]);
 
 export function blankDesign() {
-  return { artefacts: [], solution: "", sketches: [], principles: [], constraints: [], decisions: [], notes: "" };
+  return { artefacts: [], solution: "", sketches: [], result: "", principles: [], constraints: [], decisions: [], notes: "" };
 }
 
 // List items are one line each in the file; a stray newline typed into a field is collapsed.
@@ -91,6 +92,10 @@ export function designSections(d) {
       const body = s.path ? `![${s.caption}](${s.path})` : s.caption;
       return `- ${body}${s.outcome ? ` — ${s.outcome}` : ""}`;
     }));
+
+  // What was built and how it was checked, straight after what was meant to be built, so the two
+  // can be read against each other. Written by whoever did the build; empty until then.
+  add("result", [(d.result || "").trim()]);
 
   add("principles", d.principles.map(oneLine).filter(Boolean).map((p, i) => `${i + 1}. ${p}`));
   add("constraints", d.constraints.map(oneLine).filter(Boolean).map((c) => `- ${c}`));
@@ -176,7 +181,7 @@ export function parseDesign(md) {
   for (const { title, lines } of chunks) {
     const key = title ? KEY_BY_TITLE[title.toLowerCase()] : null;
     if (key && !FREEFORM.has(key)) { PARSERS[key](d, listItems(lines)); continue; }
-    if (key === "solution") { d.solution = lines.join("\n").trim(); continue; }
+    if (key === "solution" || key === "result") { d[key] = lines.join("\n").trim(); continue; }
     // Notes, preamble, or an unknown heading — kept verbatim (unknown headings keep their title).
     const body = lines.join("\n").trim();
     const raw = title && !key ? [`## ${title}`, body].filter(Boolean).join("\n\n") : body;

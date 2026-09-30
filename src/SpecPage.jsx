@@ -283,7 +283,7 @@ export default function SpecPage({
       <Page ground="reading" hidden={activeTab !== "design"}>
         <div className="paper-sheet">
           <DesignTab
-            value={spec.design} onChange={setDesign} onToast={onToast}
+            value={spec.design} status={status} onChange={setDesign} onToast={onToast}
             onUploadSketch={onUploadSketch} onReadSketch={onReadSketch}
           />
         </div>
