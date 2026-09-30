@@ -15,6 +15,8 @@ export function blankSpec(title = "Untitled spec", initiativeId = null) {
     // Sections of spec.md the app doesn't show, kept as raw markdown (see markdown.js).
     extraSections: "",
     openQuestions: [], acceptanceCriteria: [],
+    // How its commitments moved once it left draft — see changeLog.js.
+    changes: [],
     design: "", plan: "",
   };
 }

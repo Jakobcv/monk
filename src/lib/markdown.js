@@ -1,6 +1,7 @@
 
 import { outcomesFrom } from "./initiativeModel.js";
 import { sourcesFrom } from "./sourceModel.js";
+import { changesFrom } from "./changeLog.js";
 
 // Frontmatter here is a single line of JSON between `---` fences, not YAML — the data is
 // always simple (strings/numbers/an array/a small object or null), so JSON's own
@@ -284,6 +285,9 @@ export function specToMarkdown(spec) {
     ...(sourcesFrom(spec.sources).length ? { sources: sourcesFrom(spec.sources) } : {}),
     openQuestions: spec.openQuestions || [],
     acceptanceCriteria: spec.acceptanceCriteria || [],
+    // The change log (changeLog.js). Written only when there is one, so a spec that has never
+    // changed after leaving draft is unchanged on disk.
+    ...(changesFrom(spec.changes).length ? { changes: changesFrom(spec.changes) } : {}),
     createdAt: new Date(spec.createdAt || Date.now()).toISOString(),
     updatedAt: new Date(spec.updatedAt || Date.now()).toISOString(),
   };
@@ -309,6 +313,7 @@ export function markdownToSpec(content) {
     sources: sourcesFrom(data.sources),
     openQuestions: Array.isArray(data.openQuestions) ? data.openQuestions : [],
     acceptanceCriteria: Array.isArray(data.acceptanceCriteria) ? data.acceptanceCriteria : [],
+    changes: changesFrom(data.changes),
     createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
     updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now(),
     problem: extractSection(body, "Problem"),
