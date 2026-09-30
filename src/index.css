@@ -1126,6 +1126,63 @@ a.recent-row:hover {
    (quotes, code blocks) are in the editor's theme, which has to outrank
    CodeMirror's own line rules.
    --------------------------------------------------------------------------- */
+/* The list gutter (see the editor theme in LiveMarkdown.jsx): a marker column and the gap after it.
+   On paper it's the gutter every structured list on the sheet uses, so a markdown list and the
+   checklist under it start their text on one column. */
+.live-md {
+  --md-mark-w: 1.5em;
+  --md-mark-gap: 0.5em;
+}
+.paper-sheet .live-md {
+  --md-mark-w: calc(var(--paper-marker) + 8px);
+  --md-mark-gap: 8px;
+}
+/* The body rule turns `pretty` on for all text, and the editors opt back out — but these are
+   contenteditable, not textareas, so the opt-out above never reached them. Re-breaking a
+   paragraph's tail on every keystroke is exactly the reflow under the caret it was meant to stop. */
+.live-md .cm-content {
+  text-wrap: wrap;
+}
+.live-md ::selection,
+.page-title::selection {
+  background: var(--selection);
+}
+.md-li-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--md-mark-w);
+  height: 1lh;
+  padding-right: var(--md-mark-gap);
+  vertical-align: top;
+  text-indent: 0;
+  color: var(--ink-faint);
+  font-style: normal;
+  user-select: none;
+}
+.md-li-mark--num {
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+.md-li-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.md-hr {
+  color: var(--ink-faint);
+  letter-spacing: 0.4em;
+  margin-right: -0.4em;
+  user-select: none;
+}
+/* Italic only where there's a drawn italic to use: Fraunces ships one; Inter here is the upright
+   alone, and a slanted Inter is a browser's guess at an italic. Under the sans the indent and the
+   softer ink carry it. */
+:root[data-reading="serif"] .live-md .md-quote-line {
+  font-style: italic;
+}
 .live-md .md-strong {
   font-weight: 600;
 }
@@ -1139,14 +1196,15 @@ a.recent-row:hover {
 .live-md .md-h {
   font-weight: 600;
   color: var(--ink);
+  letter-spacing: calc(var(--font-reading-tracking) * 1.6);
 }
 .live-md .md-h1 {
   font-size: 1.5em;
-  line-height: 1.3;
+  line-height: 1.25;
 }
 .live-md .md-h2 {
   font-size: 1.25em;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 .live-md .md-h3 {
   font-size: 1.1em;
@@ -1954,6 +2012,55 @@ a.recent-row:hover {
 .paper-link-row {
   font-family: var(--font-reading);
   font-variation-settings: var(--font-reading-axes);
+  /* Inter is drawn for small UI sizes and set loose; at reading size it wants pulling in a touch
+     (its own dynamic-metrics table puts 17px at about -0.012em). Fraunces is drawn for text and
+     takes none, so the serif block in theme.js sets this back to 0. */
+  letter-spacing: var(--font-reading-tracking);
+}
+.page-title {
+  letter-spacing: calc(var(--font-reading-tracking) * 1.6);
+}
+
+/* A document (DocumentPage): the title is part of the page, set on the sheet above the writing the
+   way a title is on a printed one, a step larger than a record's title up in the chrome. Its
+   actions sit on the desk above the sheet's corner, out of the way of the words. */
+.doc-sheet {
+  display: flex;
+  flex-direction: column;
+}
+.doc-sheet .page-title {
+  font-size: 34px;
+  line-height: 1.2;
+  margin-bottom: 20px;
+}
+.doc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+  width: 100%;
+  max-width: var(--paper-width);
+  margin-bottom: 8px;
+}
+
+/* Writing on paper doesn't look like filling in a form. Off paper, .prose-field washes on hover and
+   draws a box when focused, which is right for a field among other fields — and on a sheet it put
+   an input box around the paragraph the moment you started writing it. On paper the words stay put:
+   no wash, no box, and the label over the section you're in comes up to full ink instead, so there
+   is still a mark of where you are besides the caret. Only the live-markdown fields: a short value
+   field on paper (a number, a link) still takes the box, because it is a field. */
+.paper-sheet .prose-field.live-md,
+.paper-sheet .prose-field.live-md:hover,
+.paper-sheet .prose-field.live-md:focus-within {
+  background: transparent;
+  box-shadow: none;
+}
+.paper-sheet .eyebrow {
+  transition: color var(--motion-fast) var(--ease);
+}
+.paper-section:has(> .prose-field.live-md:focus-within) > .eyebrow,
+.paper-section:has(> * > .prose-field.live-md:focus-within) > .eyebrow {
+  color: var(--ink);
 }
 /* A serif at 700 and title size turns heavy and dark; its semibold carries the same rank. */
 :root[data-reading="serif"] .page-title {
@@ -2411,23 +2518,6 @@ select.token-field {
 .select:focus ~ .select-chevron {
   transform: translateY(-50%) rotate(180deg);
   color: var(--ink-soft);
-}
-
-/* ---------------------------------------------------------------------------
-   Collapsible Markdown-reference card body (DocumentPage). max-height eases
-   the open/close; the cap only needs to exceed the real content height.
-   --------------------------------------------------------------------------- */
-.md-legend-body {
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition:
-    max-height var(--motion-base) var(--ease),
-    opacity var(--motion-fast) var(--ease);
-}
-.md-legend-body.open {
-  max-height: 800px;
-  opacity: 1;
 }
 
 /* ---------------------------------------------------------------------------

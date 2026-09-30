@@ -145,6 +145,12 @@ export const CONNECTOR_DELETE = color("connector-delete", "#D64545", "#FEB1AA");
 // Washes: a colour thinned far enough to be a surface rather than a mark.
 export const FOCUS_RING = thinned("focus-ring", ACCENT.insight, 12);
 export const FOCUS_WASH = thinned("focus-wash", ACCENT.insight, 8);
+// Selected text in a person's own words. The browser's default is a saturated system blue that sits
+// on warm paper like a highlighter; this is the same blue the focus ring uses, thinned until the
+// words under it stay the darkest thing on the line. Deeper in dark, where a thin wash disappears.
+export const SELECTION = color("selection",
+  `color-mix(in srgb, ${ACCENT.insight} 18%, transparent)`,
+  `color-mix(in srgb, ${ACCENT.insight} 30%, transparent)`);
 export const DANGER_WASH = thinned("danger-wash", DANGER, 8);
 export const INVALID_RING = thinned("invalid-ring", INVALID, 12);
 
@@ -302,12 +308,20 @@ export const EDGE = {
 // is what keeps the sheet reading as content and the rest as chrome.
 // ---------------------------------------------------------------------------
 export const PAPER = {
-  body: "16px",    // prose: Problem/Goals, every list row, the Plan
+  // Prose: Problem/Goals, every list row, the Plan, a document. 17px rather than 16: long-form
+  // reading surfaces (Medium, Substack) sit at 18–21px, and 16px Inter at arm's length read as UI
+  // text — right for a form, a size too small for a page you read top to bottom.
+  body: "17px",
   label: "14px",   // a list's number, set a step under the line it marks
   eyebrow: "12px", // section labels — up from the 10px eyebrow used in chrome
-  leading: 1.6,
-  width: PAGE.wide, // sheet width; ~70 characters of measure inside the padding
-  pad: "56px 64px 64px",
+  leading: 1.65,
+  // Sheet width, and its margins. The side margins are what set the measure: 840 less 2 × 88 leaves
+  // 664px, about 72 characters of 17px prose — inside the 60–75 a line can run before the eye
+  // starts losing its way back to the next one. At 64px the line ran to ~88. On a narrower page
+  // the margins give way first (a percentage of the page, floored at 40px), so a split-screen
+  // window loses paper before it loses words; the breakpoints in index.css take over from there.
+  width: PAGE.wide,
+  pad: "64px clamp(40px, 10.5%, 88px) 80px",
   // The rhythm of a sheet: the space between two sections, and between a section's label and what
   // it labels. The first is well over twice the second, so a label always reads as belonging to the
   // field under it and not to the one above.
@@ -376,7 +390,7 @@ export const CSS_VARS = `:root{
   color-scheme:light;
 ${varsFor("light")}
   --font:${font};
-  --font-reading:var(--font); --font-reading-axes:normal;
+  --font-reading:var(--font); --font-reading-axes:normal; --font-reading-tracking:-0.012em;
   --size-micro:${SIZE.micro}; --size-xs:${SIZE.xs}; --size-sm:${SIZE.sm};
   --size-ui:${SIZE.ui}; --size-body:${SIZE.body}; --size-md:${SIZE.md}; --size-lg:${SIZE.lg};
   --size-title:${SIZE.title};
@@ -403,5 +417,5 @@ ${themeBlock("light")}
 ${themeBlock("dark")}
 }
 :root[data-reading="serif"]{
-  --font-reading:${serif}; --font-reading-axes:"SOFT" 100, "WONK" 0;
+  --font-reading:${serif}; --font-reading-axes:"SOFT" 100, "WONK" 0; --font-reading-tracking:0;
 }`;
