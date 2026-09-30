@@ -2408,12 +2408,6 @@ select.token-field {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.settings-hint {
-  margin: 0;
-  font-family: var(--font);
-  font-size: var(--size-xs);
-  color: var(--ink-faint);
-}
 .settings-actions {
   display: flex;
   gap: 8px;
