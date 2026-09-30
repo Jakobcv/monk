@@ -335,6 +335,16 @@ export function mockWorkspace(seed = 42) {
       signals: from.signals, insights: from.insights, actions: from.actions, results: from.results, connections: from.connections,
     };
   });
+  // Two done initiatives, so the Initiatives page's folded Done list has something in it: one holding
+  // the last shipped spec that belonged to no initiative, one with no specs at all. Added without
+  // `rand`, after everything else, for the same reason as the research plans.
+  const shippedLoose = [...specs].reverse().find((s) => s.status === "shipped" && !s.initiativeId);
+  initiatives.push(
+    { id: "m-done-1", title: "Public API launch", status: "done", owner: "Dani", description: "", outcomes: [], openQuestions: [], createdAt: NOW - 70 * DAY, updatedAt: NOW - 2 * DAY },
+    { id: "m-done-2", title: "Billing migration", status: "done", owner: "Lee", description: "", outcomes: [], openQuestions: [], createdAt: NOW - 80 * DAY, updatedAt: NOW - 30 * DAY },
+  );
+  if (shippedLoose) shippedLoose.initiativeId = "m-done-1";
+
   activities.forEach((a, i) => { a.planId = i < 3 ? researchPlans[0].id : i < 5 ? researchPlans[1].id : null; });
   specs.forEach((s, i) => { s.researchPlanIds = i === 0 || i === 4 ? [researchPlans[0].id] : i === 6 ? [researchPlans[1].id] : []; });
 
