@@ -203,7 +203,7 @@ export default function SpecsPage({ specs, initiatives, open, specsHref, specHre
 
   return (
     <Page className="specs-page">
-      <div className="enter-up" style={{ maxWidth: PAGE.wide, margin: "0 auto" }}>
+      <div className="enter-up" style={{ maxWidth: PAGE.table, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACE.lg, gap: SPACE.base, flexWrap: "wrap" }}>
           <PageHeading>Initiatives</PageHeading>
           <Button variant="primary" onClick={onCreateInitiative}>
