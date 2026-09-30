@@ -52,9 +52,6 @@ export default function Settings({ themeMode, onThemeModeChange, readingType, on
           <label className="settings-label" id="settings-theme-label">Theme</label>
           <Choice label="Theme" options={THEME_MODES} labels={THEME_LABELS} value={themeMode} onChange={onThemeModeChange} />
         </div>
-        <p className="settings-hint">
-          {themeMode === "system" ? "Following your desktop." : "Set here, whatever your desktop says."}
-        </p>
       </div>
 
       <div className="settings-group settings-group--divided">
@@ -62,11 +59,6 @@ export default function Settings({ themeMode, onThemeModeChange, readingType, on
           <span className="settings-label">Text</span>
           <Choice label="Text" options={READING_TYPES} labels={READING_LABELS} value={readingType} onChange={onReadingTypeChange} />
         </div>
-        <p className="settings-hint">
-          {readingType === "serif"
-            ? "Titles and the writing on a page are set in a serif. Everything else stays as it is."
-            : "Titles and the writing on a page are set in the same sans as the rest of Monk."}
-        </p>
       </div>
 
       {/* With no folder connected there is nothing to change or detach, so the group isn't there. */}

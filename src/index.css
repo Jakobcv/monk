@@ -1694,8 +1694,8 @@ a.recent-row:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px 16px;
-  margin: -4px 0 6px;
+  gap: 8px 16px;
+  margin: -2px 0 6px;
   font-family: var(--font);
   font-size: 14px; /* PAPER.label */
   line-height: var(--paper-leading);
@@ -1708,6 +1708,26 @@ a.recent-row:hover {
   align-items: center;
   gap: 4px;
   max-width: 100%;
+}
+.outcome-group,
+.outcome-labelled {
+  min-width: 0;
+}
+/* What's measured takes a line to itself; the numbers always start the next. */
+.outcome-group--line {
+  flex-basis: 100%;
+}
+/* Between target and now: the same space as between groups, less the group's own gap. */
+.outcome-gap {
+  width: 8px;
+  flex-shrink: 0;
+}
+.outcome-labelled {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  cursor: text;
 }
 .outcome-quiet {
   color: var(--ink-faint);
@@ -1726,16 +1746,20 @@ a.recent-row:hover {
   margin: 0;
   padding: 1px 0;
   border-radius: var(--radius-xs);
+  /* A faint wash at rest marks each field as somewhere to type, filled or not;
+     hover steps it up. */
+  background: var(--bg-hover-raised);
+  box-shadow: 0 0 0 3px var(--bg-hover-raised);
   transition:
     background-color var(--motion-fast) var(--ease),
     box-shadow var(--motion-fast) var(--ease);
 }
-.outcome-field::placeholder {
-  color: var(--ink-placeholder);
+.outcome-labelled:hover .outcome-field:not(:focus) {
+  background: var(--bg-active);
+  box-shadow: 0 0 0 3px var(--bg-active);
 }
-.outcome-field:hover:not(:focus) {
-  background: var(--bg-hover);
-  box-shadow: 0 0 0 3px var(--bg-hover);
+.outcome-field--measure {
+  min-width: 12ch;
 }
 .outcome-field:focus {
   background: var(--bg);
@@ -2383,12 +2407,6 @@ select.token-field {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.settings-hint {
-  margin: 0;
-  font-family: var(--font);
-  font-size: var(--size-xs);
-  color: var(--ink-faint);
 }
 .settings-actions {
   display: flex;

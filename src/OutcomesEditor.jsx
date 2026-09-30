@@ -13,19 +13,22 @@ const EXIT_MS = 140;
 
 const oneLine = (s) => s.replace(/\r?\n/g, " ");
 
-// One of the small number fields under an outcome. `size` is what sizes it where CSS
-// field-sizing isn't supported.
-function MetaField({ value, onChange, placeholder, label, className = "" }) {
+// One of the small fields under an outcome, with its label kept in view beside it so a
+// filled-in value still says what it is. The label wraps the input, so clicking the word
+// focuses the field. No placeholder: a faint wash marks where to type. `size` is what sizes
+// it where CSS field-sizing isn't supported.
+function MetaField({ value, onChange, label, className = "" }) {
   return (
-    <input
-      className={`outcome-field ${className}`}
-      value={value}
-      onChange={(e) => onChange(oneLine(e.target.value))}
-      placeholder={placeholder}
-      aria-label={label}
-      size={Math.max((value || placeholder).length, 3)}
-      spellCheck={false}
-    />
+    <label className="outcome-labelled">
+      <span className="outcome-quiet">{label}</span>
+      <input
+        className={`outcome-field ${className}`}
+        value={value}
+        onChange={(e) => onChange(oneLine(e.target.value))}
+        size={Math.max((value || "").length, 3)}
+        spellCheck={false}
+      />
+    </label>
   );
 }
 
@@ -101,17 +104,15 @@ export default function OutcomesEditor({ items, onChange }) {
                   className="cl-input"
                 />
                 <div className="outcome-meta">
-                  <span className="outcome-group">
-                    <MetaField value={o.metric} onChange={set(idx, "metric")} placeholder="What's measured" label="Metric" />
+                  <span className="outcome-group outcome-group--line">
+                    <MetaField value={o.metric} onChange={set(idx, "metric")} label="Measure" className="outcome-field--measure" />
                   </span>
                   <span className="outcome-group">
-                    <MetaField value={o.baseline} onChange={set(idx, "baseline")} placeholder="baseline" label="Baseline" />
+                    <MetaField value={o.baseline} onChange={set(idx, "baseline")} label="Baseline" />
                     <span className="outcome-quiet" aria-hidden="true">→</span>
-                    <MetaField value={o.target} onChange={set(idx, "target")} placeholder="target" label="Target" className="outcome-field--target" />
-                  </span>
-                  <span className="outcome-group">
-                    <span className="outcome-quiet">now</span>
-                    <MetaField value={o.current} onChange={set(idx, "current")} placeholder="—" label="Current value" />
+                    <MetaField value={o.target} onChange={set(idx, "target")} label="Target" className="outcome-field--target" />
+                    <span className="outcome-gap" aria-hidden="true" />
+                    <MetaField value={o.current} onChange={set(idx, "current")} label="Now" />
                   </span>
                 </div>
               </div>
