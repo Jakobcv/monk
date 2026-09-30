@@ -257,6 +257,19 @@ export const SHADOW = {
   chip: color("shadow-chip", `0 0 0 1px ${cast(0.06)}, 0 1px 2px ${cast(0.06)}`, `0 0 0 1px ${ring(0.08)}, 0 1px 2px ${cast(0.4)}`),
 };
 
+// The primary button wears the mark's ramp, in the same direction. Only the first half of it,
+// though: the ramp ends on a mid-grey that on-ink text can't stand on, so the fill stops halfway
+// down — about 6:1 against white at its light end in light, about 9:1 in dark. One value serves
+// both themes because the stops are references and resolve per theme.
+export const BUTTON_FILL = color("button-fill",
+  `linear-gradient(135deg, ${BRAND.from} 0%, color-mix(in srgb, ${BRAND.from} 50%, ${BRAND.to}) 100%)`);
+// A faint light catching the button's top edge, and the hairline of shadow under it — enough to
+// read as a raised thing you press, not a sticker. The dark button is already pale, so its
+// highlight needs a much stronger white to show at all.
+export const BUTTON_SHEEN = color("button-sheen",
+  `inset 0 1px 0 ${ring(0.16)}, 0 1px 2px ${cast(0.14)}`,
+  `inset 0 1px 0 ${ring(0.6)}, 0 1px 2px ${cast(0.45)}`);
+
 // An enclosing surface's edge, drawn as a shadow ring rather than a border. Three reasons it
 // beats `border: 1px solid BORDER` for anything box-shaped:
 //
