@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, X, ExternalLink, ImageOff } from "lucide-react";
+import { Plus, X, ExternalLink, ImageOff, ClipboardCheck } from "lucide-react";
 import { font, INK_SOFT, BORDER, PAPER, SIZE, SPACE } from "./lib/theme";
 import { Eyebrow } from "./ui/text";
 import { parseDesign, serializeDesign } from "./lib/designModel";
@@ -116,10 +116,10 @@ function SketchFrame({ sketch, onRead, onOpen }) {
 }
 
 // Same rhythm as Overview: eyebrow, PAPER.labelGap, content (.paper-section).
-function Section({ title, children }) {
+function Section({ title, className, children }) {
   return (
-    <section className="paper-section">
-      <Eyebrow style={{ minHeight: "18px", display: "flex", alignItems: "center" }}>{title}</Eyebrow>
+    <section className={className ? `paper-section ${className}` : "paper-section"}>
+      <Eyebrow style={{ minHeight: "18px", display: "flex", alignItems: "center", gap: "6px" }}>{title}</Eyebrow>
       {children}
     </section>
   );
@@ -173,8 +173,14 @@ function RowText({ value, onChange, placeholder, label, autoFocus, className, st
   );
 }
 
-export default function DesignTab({ value, onChange, onToast, onUploadSketch, onReadSketch }) {
+export default function DesignTab({ value, status, onChange, onToast, onUploadSketch, onReadSketch }) {
   const [d, setD] = useState(() => parseDesign(value));
+  // Result is shown once a spec is being built, or earlier if it already has one. Once shown it
+  // stays for as long as the tab is open, so clearing a draft's Result doesn't pull the field out
+  // from under the cursor.
+  const [resultSeen, setResultSeen] = useState(false);
+  const showResult = resultSeen || status !== "draft" || !!d.result.trim();
+  if (showResult && !resultSeen) setResultSeen(true);
   // The sketch open full size, by index, or null.
   const [zoom, setZoom] = useState(null);
   // "section:index" of the row just added — it mounts with autoFocus, so you can type straight away.
@@ -304,6 +310,25 @@ export default function DesignTab({ value, onChange, onToast, onUploadSketch, on
         ))}
         <AddRow onClick={addSketch} />
       </Section>
+
+      {/* What was actually built and how it was checked, read against the Solution and Sketches
+          above it — the thing a person decides "shipped?" from. There's nothing to say while a
+          spec is a draft, so it only appears then if something is already written in it. */}
+      {/* Once there's something in it, Result is set on a tinted panel with an accent edge and an
+          icon by its heading, so a person scanning the tab for "what was built?" finds it at a
+          glance. The panel bleeds out past the text rather than insetting it, so nothing moves when
+          the first character is typed. */}
+      {showResult && (
+        <Section
+          title={<><ClipboardCheck size={12} aria-hidden="true" /> Result</>}
+          className={d.result.trim() ? "result-section result-section--filled" : "result-section"}
+        >
+          <LiveMarkdown
+            className="prose-field" minLines={2} placeholder="What was built, and how it was checked…"
+            ariaLabel="Result" value={d.result} onChange={(v) => set("result", v)}
+          />
+        </Section>
+      )}
 
       <div style={{ height: "1px", backgroundColor: BORDER }} />
 
