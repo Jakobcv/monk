@@ -1,7 +1,7 @@
 import { useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import { Annotation, EditorSelection, EditorState, Prec } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, keymap, placeholder as placeholderText } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, isolateHistory } from "@codemirror/commands";
 import { HighlightStyle, Language, LanguageSupport, defineLanguageFacet, syntaxHighlighting, syntaxTree } from "@codemirror/language";
 import { GFM, parser as markdownParser } from "@lezer/markdown";
 import { tags as t } from "@lezer/highlight";
@@ -353,6 +353,61 @@ const toggleWrap = (mark) => (view) => {
   return true;
 };
 
+// Typographer's punctuation as you type: " and ' curl open or closed by what's before them (after a
+// space, a bracket or the start of a line they open; after anything else they close, which makes '
+// in "don't" an apostrophe), and a second - straight after a first becomes an em dash.
+//
+// Unlike everything else in this file this does change the text — the file gets “ ” ‘ ’ —, which is
+// the point: it's what the page shows and what a reader of the file sees. So it keeps out of
+// anywhere a straight character means something:
+// - code — a span, a block, or a span still being typed (an odd number of ` before the caret);
+// - a link's URL or an autolink, including one still being typed (an unclosed `](`);
+// - a table row, where --- is the header separator;
+// - the start of a line, where -- is on its way to a --- rule or a setext underline;
+// - <!--, an HTML comment opening.
+// Each substitution is its own undo step, after the character as typed: Ctrl/⌘Z straight after one
+// gives back the straight quote or the two hyphens, for the times the guess is wrong ('90s).
+const OPENS_AFTER = /[\s([{—–“‘-]/;
+const LITERAL_NODES = new Set(["InlineCode", "FencedCode", "CodeBlock", "CodeText", "URL", "Autolink", "HTMLTag", "HTMLBlock", "Comment"]);
+
+function literalAt(state, pos) {
+  for (let n = syntaxTree(state).resolveInner(pos, -1); n; n = n.parent) if (LITERAL_NODES.has(n.name)) return true;
+  const line = state.doc.lineAt(pos);
+  const before = line.text.slice(0, pos - line.from);
+  return (before.match(/`/g) || []).length % 2 === 1 || /\]\([^)\s]*$/.test(before) || /^\s*\|/.test(line.text);
+}
+
+const smartPunctuation = EditorView.inputHandler.of((view, from, to, text) => {
+  if (view.composing || view.state.readOnly || view.state.selection.ranges.length !== 1) return false;
+  if (text !== '"' && text !== "'" && text !== "-") return false;
+  const { state } = view;
+  const line = state.doc.lineAt(from);
+  const prev = from > line.from ? state.sliceDoc(from - 1, from) : "";
+
+  let start = from;
+  let replacement = null;
+  if (text === "-") {
+    const lead = state.sliceDoc(line.from, from - 1);
+    if (prev === "-" && lead.trim() && !lead.endsWith("-") && !lead.endsWith("<!")) {
+      start = from - 1;
+      replacement = "—";
+    }
+  } else {
+    const opens = !prev || OPENS_AFTER.test(prev);
+    replacement = text === '"' ? (opens ? "“" : "”") : (opens ? "‘" : "’");
+  }
+  if (replacement === null || literalAt(state, from)) return false;
+
+  view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length }, userEvent: "input.type" });
+  view.dispatch({
+    changes: { from: start, to: from + text.length, insert: replacement },
+    selection: { anchor: start + replacement.length },
+    userEvent: "input.type",
+    annotations: isolateHistory.of("full"),
+  });
+  return true;
+});
+
 const writingKeymap = [
   { key: "Enter", run: continueMarkup },
   { key: "Mod-b", run: toggleWrap("**") },
@@ -388,6 +443,7 @@ export default function LiveMarkdown({
           keymap.of([...writingKeymap, ...defaultKeymap, ...historyKeymap]),
           scrollRoom,
           caretOutOfGutter,
+          smartPunctuation,
           markdownSupport,
           syntaxHighlighting(markdownStyle),
           livePreview,
