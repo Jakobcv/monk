@@ -55,9 +55,15 @@ Anything else in this folder isn't Monk's, and Monk never touches it.
   is checked.
 - **An acceptance criterion** is one testable statement, with no reasoning attached.
 - **The work on a spec** is the task list in its \`plan.md\`. Add tasks before you build; mark one
-  \`[~]\` when you start it and \`[x]\` when it's done, and record what was built and tested in
-  \`solution.md\` Notes. If a task is blocked, mark it \`[!]\` and add an open question saying what's in
-  the way.
+  \`[~]\` when you start it and \`[x]\` when it's done. If a task is blocked, mark it \`[!]\` and add an
+  open question saying what's in the way.
+- **A change to a commitment** — an acceptance criterion, an open question, a decision or the
+  non-goals — on an active or shipped spec gets an entry in that spec's \`changes\` log, in the same
+  edit, with a reason. The shape is in \`MONK.md\`. The app logs edits made in it; nothing logs yours
+  but you.
+- **What was built** goes in \`solution.md\`'s Result when the build is done: what you built, how you
+  checked it, and what the checks didn't reach. A finding about the product you made on the way is a
+  signal, not part of the Result or Notes.
 
 ### Building from a spec
 
@@ -99,7 +105,7 @@ The app may be open while you work.
 - Keep records consistent: when you settle something, update every file that still calls it open,
   such as the initiative's description.
 - Set a spec's \`status\` to \`active\` when building starts, but don't mark it \`shipped\`. When the
-  build is done, say so in \`solution.md\` Notes and leave that call to a person.
+  build is done, write its Result and leave that call to a person.
 `;
 
 // The standalone file, for a folder that has no agent guidance of its own yet. It carries the
