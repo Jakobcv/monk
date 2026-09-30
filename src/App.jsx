@@ -56,15 +56,22 @@ const WORKSPACE_DOC_PREFIX = "#/workspace/";
 // to window.location.hash for the after-an-action programmatic case.
 const hrefStart = () => "#";
 const hrefDocument = (sectionId, docId) => DOC_PREFIX + encodeURIComponent(sectionId) + "/" + encodeURIComponent(docId);
-// Specs keeps which initiatives are expanded in the URL, so a view is linkable and survives a
-// refresh. `open` is a list of initiative ids. An empty list is "?open=" — nothing expanded — which
-// is not the same as no list at all: the bare route restores what this browser remembers.
-const withOpen = (route, open) => route + (open ? "?open=" + open.map(encodeURIComponent).join(",") : "");
-const hrefSpecs = (open) => withOpen(SPECS_ROUTE, open);
-// null when the hash carries no list, so the page can tell a link that says "these" from a bare visit.
-const parseOpen = (query) => {
+// Specs keeps its view in the URL, so it is linkable and survives a refresh: `open`, the initiatives
+// that are expanded, and `done`, whether done initiatives are shown. An empty list is "?open=" —
+// nothing expanded — which is not the same as no list at all: the bare route restores what this
+// browser remembers.
+const withView = (route, view) => route + (view
+  ? "?open=" + view.open.map(encodeURIComponent).join(",") + "&done=" + (view.done ? "1" : "0")
+  : "");
+const hrefSpecs = (view) => withView(SPECS_ROUTE, view);
+// Each part is null when the hash doesn't carry it, so the page can tell a link that says "these"
+// from a bare visit. A link from before `done` existed still opens, and shows what's remembered.
+const parseView = (query) => {
   const params = new URLSearchParams(query.replace(/^\?/, ""));
-  return params.has("open") ? params.get("open").split(",").filter(Boolean) : null;
+  return {
+    open: params.has("open") ? params.get("open").split(",").filter(Boolean) : null,
+    done: params.has("done") ? params.get("done") === "1" : null,
+  };
 };
 const hrefSpec = (id) => SPEC_PREFIX + encodeURIComponent(id);
 const hrefSpecDesign = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/design";
@@ -134,7 +141,7 @@ function useRoute() {
     return { name: "research", q: params.get("q") || "", kind: params.get("kind") || "all" };
   }
   if (hash === SPECS_ROUTE || hash.startsWith(SPECS_ROUTE + "?")) {
-    return { name: "specs", open: parseOpen(hash.slice(SPECS_ROUTE.length)) };
+    return { name: "specs", ...parseView(hash.slice(SPECS_ROUTE.length)) };
   }
   if (hash.startsWith(SPEC_PREFIX)) {
     // An old #/spec/<id>/discovery link — the board moved to research plans — lands on Overview.
@@ -172,7 +179,7 @@ function useRoute() {
     return { name: "homePreview" };
   }
   if (hash === SPECS_PREVIEW_ROUTE || hash.startsWith(SPECS_PREVIEW_ROUTE + "?")) {
-    return { name: "specsPreview", open: parseOpen(hash.slice(SPECS_PREVIEW_ROUTE.length)) };
+    return { name: "specsPreview", ...parseView(hash.slice(SPECS_PREVIEW_ROUTE.length)) };
   }
   if (hash === "#/initiative-preview") {
     return { name: "initiativePreview" };
@@ -1506,7 +1513,7 @@ export default function App() {
       <div style={{ fontFamily: font, height: "100dvh" }}>
         <SpecsPage
           specs={mock.specs} initiatives={mock.initiatives}
-          open={route.open} specsHref={(open) => withOpen(SPECS_PREVIEW_ROUTE, open)}
+          open={route.open} showDone={route.done} specsHref={(view) => withView(SPECS_PREVIEW_ROUTE, view)}
           specHref={() => "#/spec-preview"} initiativeHref={() => "#/initiative-preview"}
           onCreateInitiative={() => {}} onDelete={() => {}}
         />
@@ -1798,6 +1805,7 @@ export default function App() {
                 specs={specs}
                 initiatives={initiatives}
                 open={route.open}
+                showDone={route.done}
                 specsHref={hrefSpecs}
                 specHref={hrefSpec}
                 initiativeHref={hrefInitiative}

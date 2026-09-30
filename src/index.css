@@ -2634,6 +2634,51 @@ select.token-field {
     display: none;
   }
 }
+/* Done initiatives, folded at the foot of the Initiatives page. The heading is
+   the toggle: an eyebrow like Not in an initiative, with a chevron that turns
+   when it's open and the count beside it. The -6px pulls the chevron's hover
+   wash out past the page edge so the word lines up with the heading above. */
+.specs-done__heading {
+  margin: 0 0 8px; /* SPACE.lg, less the toggle's own padding */
+}
+.specs-done__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  margin-left: -6px;
+  padding: 2px 8px 2px 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+}
+.specs-done__toggle:hover {
+  background: var(--bg-hover);
+  color: var(--ink);
+}
+.specs-done__chevron {
+  transition: transform var(--motion-fast) var(--ease);
+}
+.specs-done__toggle[aria-expanded="true"] .specs-done__chevron {
+  transform: rotate(90deg);
+}
+.specs-done__count {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+/* A finger needs more than the eyebrow's height to hit. */
+@media (pointer: coarse) {
+  .specs-done__toggle {
+    min-height: 44px;
+  }
+}
 
 /* ---------------------------------------------------------------------------
    Demo bar (src/DemoBar.jsx) — the demo's standing reminder, along the bottom of the window.

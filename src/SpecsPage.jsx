@@ -1,5 +1,6 @@
 import { useEffect, useId } from "react";
 import { Plus, Trash2, ChevronRight, FolderGit2 } from "lucide-react";
+import { INITIATIVE_STATUS_OPTIONS } from "./lib/initiativeModel";
 import { INK_FAINT, SPACE, PAGE, ACCENT, SPEC_STATUS_COLOR } from "./lib/theme";
 import { Dot, Eyebrow, Meta, PageHeading } from "./ui/text";
 import Button from "./ui/Button";
@@ -13,6 +14,13 @@ import { parsePlan, taskCounts } from "./lib/planModel";
 const INITIATIVE_STATUS_COLOR = { active: ACCENT.insight, paused: INK_FAINT, done: ACCENT.action };
 
 const byRecency = (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0);
+// Active, then paused, then done — the work in progress first, whatever was touched last — and most
+// recently updated first within each. A status Monk doesn't know sorts after the ones it does.
+const statusRank = (s) => {
+  const i = INITIATIVE_STATUS_OPTIONS.indexOf(s);
+  return i === -1 ? INITIATIVE_STATUS_OPTIONS.length : i;
+};
+const byStatusThenRecency = (a, b) => statusRank(a.status) - statusRank(b.status) || byRecency(a, b);
 
 // Which initiatives are expanded lives in two places. The URL holds the set the page shows, so a
 // view can be linked. This browser remembers each initiative the person has toggled — true or
@@ -40,6 +48,21 @@ function rememberToggle(id, open) {
     next[id] = open;
     localStorage.setItem(EXPANDED_KEY, JSON.stringify(next));
   } catch { /* private mode — sessionToggles still has it */ }
+}
+
+// Whether done initiatives are shown is kept the same way, for the same reason: remembered here once
+// the person has chosen, mirrored in the URL. Until they choose, done initiatives are out of the way.
+const SHOW_DONE_KEY = "monk:specs-show-done";
+let sessionShowDone = null;
+
+function readShowDone() {
+  if (sessionShowDone != null) return sessionShowDone;
+  try { return localStorage.getItem(SHOW_DONE_KEY) === "1"; } catch { return false; }
+}
+
+function rememberShowDone(shown) {
+  sessionShowDone = shown;
+  try { localStorage.setItem(SHOW_DONE_KEY, shown ? "1" : "0"); } catch { /* private mode — the session has it */ }
 }
 
 function Status({ color, children }) {
@@ -163,43 +186,62 @@ function Head({ first }) {
   );
 }
 
-// Initiatives is one table of initiatives — an initiative is to its specs what an epic is to its tickets
-// (see initiativeModel.js) — each expanding in place to show its specs in the same columns, then
-// the specs that belong to none. Renaming happens on the entity's own page, not here; a spec's
-// initiative is set from its own sidebar.
-export default function SpecsPage({ specs, initiatives, open, specsHref, specHref, initiativeHref, onCreateInitiative, onDelete }) {
-  const sortedInitiatives = [...(initiatives || [])].sort(byRecency);
+// Initiatives is one table of the initiatives in progress — an initiative is to its specs what an
+// epic is to its tickets (see initiativeModel.js) — each expanding in place to show its specs in the
+// same columns, then the specs that belong to none, then the done initiatives, folded away at the
+// foot until asked for. Renaming happens on the entity's own page, not here; a spec's initiative is
+// set from its own sidebar.
+export default function SpecsPage({ specs, initiatives, open, showDone, specsHref, specHref, initiativeHref, onCreateInitiative, onDelete }) {
+  const doneListId = useId();
+  const sortedInitiatives = [...(initiatives || [])].sort(byStatusThenRecency);
   const knownIds = new Set(sortedInitiatives.map((ini) => ini.id));
   const groups = sortedInitiatives
     .map((ini) => ({ initiative: ini, members: specs.filter((s) => s.initiativeId === ini.id).sort(byRecency) }));
+  const current = groups.filter((g) => g.initiative.status !== "done");
+  const done = groups.filter((g) => g.initiative.status === "done");
   // A spec pointing at an initiative that no longer exists is loose, not lost.
   const loose = specs.filter((s) => !s.initiativeId || !knownIds.has(s.initiativeId)).sort(byRecency);
 
-  // Only an initiative with specs can be expanded; one with none has nothing to show.
-  const expandable = groups.filter((g) => g.members.length > 0).map((g) => g.initiative);
+  // Only an initiative with specs can be expanded; one with none has nothing to show. In page order,
+  // done ones last, so the same view is always the same URL.
+  const expandable = [...current, ...done].filter((g) => g.members.length > 0).map((g) => g.initiative);
   const remembered = () => {
     const toggles = readToggles();
     return expandable.filter((ini) => toggles[ini.id] ?? ini.status === "active").map((ini) => ini.id);
   };
-  // A URL that lists initiatives wins for this visit; a bare one shows what this browser remembers.
+  // A URL that says what to show wins for this visit; a bare one shows what this browser remembers.
   const openIds = open ?? remembered();
   const openSet = new Set(openIds);
+  const doneShown = showDone ?? readShowDone();
 
   // A bare #/specs — the sidebar's link, a fresh tab — catches the address bar up to what's shown.
   // replace(), so it doesn't leave a history entry behind for Back to land on.
   useEffect(() => {
-    if (open == null) window.location.replace(specsHref(remembered()));
+    if (open == null || showDone == null) window.location.replace(specsHref({ open: openIds, done: doneShown }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, showDone]);
 
+  // replace(), not a new entry: ten toggles shouldn't take ten Backs to leave the page.
   const toggle = (id) => {
     const next = !openSet.has(id);
     rememberToggle(id, next);
-    // In table order, so the same view is always the same URL. replace(), not a new entry: ten
-    // toggles shouldn't take ten Backs to leave the page.
     const ids = expandable.map((ini) => ini.id).filter((x) => (x === id ? next : openSet.has(x)));
-    window.location.replace(specsHref(ids));
+    window.location.replace(specsHref({ open: ids, done: doneShown }));
   };
+  const toggleDone = () => {
+    rememberShowDone(!doneShown);
+    window.location.replace(specsHref({ open: openIds, done: !doneShown }));
+  };
+
+  const groupProps = (initiative, members) => ({
+    initiative,
+    members,
+    expanded: openSet.has(initiative.id),
+    onToggle: () => toggle(initiative.id),
+    href: initiativeHref(initiative.id),
+    specHref,
+    onDelete,
+  });
 
   return (
     <Page className="specs-page">
@@ -215,21 +257,16 @@ export default function SpecsPage({ specs, initiatives, open, specsHref, specHre
           <EmptyState compact icon={FolderGit2} style={{ paddingBottom: SPACE["4xl"] }}>
             No initiatives yet — start one to group the specs that serve the same outcome.
           </EmptyState>
+        ) : current.length === 0 ? (
+          <EmptyState compact icon={FolderGit2} style={{ paddingBottom: SPACE["4xl"] }}>
+            Nothing in progress — every initiative is done. Start a new one, or find the finished ones at the foot of the page.
+          </EmptyState>
         ) : (
           <div className="card spec-table-wrap" style={{ marginBottom: SPACE["4xl"] }}>
-            <table className="spec-table" aria-label="Initiatives and their specs">
+            <table className="spec-table" aria-label="Initiatives in progress and their specs">
               <Head first="Initiative" />
-              {groups.map(({ initiative, members }) => (
-                <InitiativeGroup
-                  key={initiative.id}
-                  initiative={initiative}
-                  members={members}
-                  expanded={openSet.has(initiative.id)}
-                  onToggle={() => toggle(initiative.id)}
-                  href={initiativeHref(initiative.id)}
-                  specHref={specHref}
-                  onDelete={onDelete}
-                />
+              {current.map(({ initiative, members }) => (
+                <InitiativeGroup key={initiative.id} {...groupProps(initiative, members)} />
               ))}
             </table>
           </div>
@@ -250,6 +287,35 @@ export default function SpecsPage({ specs, initiatives, open, specsHref, specHre
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Done initiatives, set apart rather than gone: folded under a heading that says how many
+            there are, one click from any of their specs. No heading at all when there are none. */}
+        {done.length > 0 && (
+          <section>
+            <Eyebrow as="h2" section className="specs-done__heading">
+              <button
+                type="button"
+                className="specs-done__toggle"
+                onClick={toggleDone}
+                aria-expanded={doneShown}
+                aria-controls={doneListId}
+              >
+                <ChevronRight size={14} aria-hidden="true" className="specs-done__chevron" />
+                Done
+                <span className="specs-done__count">{done.length}</span>
+                <span className="visually-hidden">{done.length === 1 ? " initiative" : " initiatives"}</span>
+              </button>
+            </Eyebrow>
+            <div id={doneListId} hidden={!doneShown} className="card spec-table-wrap" style={{ marginBottom: SPACE["4xl"] }}>
+              <table className="spec-table" aria-label="Done initiatives and their specs">
+                <Head first="Initiative" />
+                {done.map(({ initiative, members }) => (
+                  <InitiativeGroup key={initiative.id} {...groupProps(initiative, members)} />
+                ))}
+              </table>
+            </div>
+          </section>
         )}
       </div>
     </Page>
