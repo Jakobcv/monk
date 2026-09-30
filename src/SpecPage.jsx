@@ -14,6 +14,10 @@ import PaperButton from "./ui/PaperButton";
 import LinkPicker from "./ui/LinkPicker";
 import SideRail, { SideRailSection, SideRailDivider } from "./ui/SideRail";
 import SourcesList from "./ui/SourcesList";
+import ChangeLog from "./ChangeLog";
+import { commitmentsOf } from "./lib/changeLog";
+import { parseDesign } from "./lib/designModel";
+import { useChangeRecorder } from "./lib/useChangeRecorder";
 
 // Solution / Plan mirror the shape of the work itself — what you're going to build, then execution —
 // with Overview as the always-there summary tying them together. The research behind the spec lives
@@ -171,13 +175,29 @@ export default function SpecPage({
   const [sources, setSources] = useState(spec.sources || []);
   const [design, setDesign] = useState(spec.design);
   const [plan, setPlan] = useState(spec.plan);
+  const [changes, setChanges] = useState(spec.changes || []);
 
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
-    onChange({ title, status, owner, initiativeId, researchPlanIds, problem, goals, nonGoals, openQuestions, acceptanceCriteria, sources, design, plan });
+    onChange({ title, status, owner, initiativeId, researchPlanIds, problem, goals, nonGoals, openQuestions, acceptanceCriteria, sources, design, plan, changes });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, status, owner, initiativeId, researchPlanIds, problem, goals, nonGoals, openQuestions, acceptanceCriteria, sources, design, plan]);
+  }, [title, status, owner, initiativeId, researchPlanIds, problem, goals, nonGoals, openQuestions, acceptanceCriteria, sources, design, plan, changes]);
+
+  // Every edit to a commitment on an active or shipped spec is logged (lib/changeLog.js). A burst
+  // closed while the page is open lands in state like any other edit; one closed by leaving the
+  // page goes straight to the parent, since this page's state is on its way out.
+  const changesRef = useRef(changes);
+  useEffect(() => { changesRef.current = changes; });
+  useChangeRecorder({
+    status,
+    commitments: commitmentsOf({ acceptanceCriteria, openQuestions, decisions: parseDesign(design).decisions, nonGoals }),
+    onEntries: (entries, { unmounting }) => {
+      if (unmounting) onChange({ changes: [...changesRef.current, ...entries] });
+      else setChanges((prev) => [...prev, ...entries]);
+    },
+  });
+  const setReason = (i, reason) => setChanges((prev) => prev.map((c, j) => (j === i ? { ...c, reason } : c)));
 
   // An open question handed to a research plan. The picker hangs off the row's button; the plans
   // already linked to this spec come first, since that's almost always where the question goes.
@@ -264,6 +284,9 @@ export default function SpecPage({
             onRemoveFile={onRemoveSourceFile}
             onOpenFile={onOpenSourceFile}
           />
+
+          {changes.length > 0 && <div className="paper-rule" />}
+          <ChangeLog changes={changes} onReasonChange={setReason} />
         </div>
       </Page>
 
