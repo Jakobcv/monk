@@ -116,9 +116,9 @@ function SketchFrame({ sketch, onRead, onOpen }) {
 }
 
 // Same rhythm as Overview: eyebrow, PAPER.labelGap, content (.paper-section).
-function Section({ title, className, children }) {
+function Section({ title, className, sectionRef, children }) {
   return (
-    <section className={className ? `paper-section ${className}` : "paper-section"}>
+    <section ref={sectionRef} className={className ? `paper-section ${className}` : "paper-section"}>
       <Eyebrow style={{ minHeight: "18px", display: "flex", alignItems: "center", gap: "6px" }}>{title}</Eyebrow>
       {children}
     </section>
@@ -173,7 +173,9 @@ function RowText({ value, onChange, placeholder, label, autoFocus, className, st
   );
 }
 
-export default function DesignTab({ value, status, onChange, onToast, onUploadSketch, onReadSketch }) {
+// `resultRef` is the Result section's element, for the spec page to scroll to (see ResultBanner in
+// SpecPage.jsx). Null while the section isn't shown.
+export default function DesignTab({ value, status, onChange, onToast, onUploadSketch, onReadSketch, resultRef }) {
   const [d, setD] = useState(() => parseDesign(value));
   // Result is shown once a spec is being built, or earlier if it already has one. Once shown it
   // stays for as long as the tab is open, so clearing a draft's Result doesn't pull the field out
@@ -320,6 +322,7 @@ export default function DesignTab({ value, status, onChange, onToast, onUploadSk
           the first character is typed. */}
       {showResult && (
         <Section
+          sectionRef={resultRef}
           title={<><ClipboardCheck size={12} aria-hidden="true" /> Result</>}
           className={d.result.trim() ? "result-section result-section--filled" : "result-section"}
         >

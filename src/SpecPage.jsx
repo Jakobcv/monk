@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, FileText, Plus, X } from "lucide-react";
+import { ArrowDown, ChevronDown, ClipboardCheck, FileText, Plus, X } from "lucide-react";
 import { INK, INK_FAINT, SIZE, SPACE, SPEC_STATUS_OPTIONS, SPEC_STATUS_COLOR } from "./lib/theme";
 import { RESEARCH_PLAN_STATUS_COLOR } from "./lib/researchPlanModel";
 import { Dot, Eyebrow, Meta } from "./ui/text";
@@ -33,6 +33,51 @@ const TABS = [
 ];
 
 const planTitle = (p) => p.title || "Untitled research plan";
+
+// The first sentence of a Result, as plain text: its opening paragraph, markdown taken out, cut at
+// the first full stop. WRITING.md has a Result open on what changed for the people using the
+// product, so this is usually the one line worth reading before deciding to read the rest. A Result
+// that opens straight into its "How we know:" list has no such line, and gets none.
+function resultLead(md) {
+  const first = md.trim().split(/\n\s*\n/)[0].replace(/\s+/g, " ");
+  const plain = first.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/(\*\*|__|`|~~)/g, "").replace(/(^|\s)_(\S.*?\S|\S)_(?=\s|[.,;:!?]|$)/g, "$1$2");
+  const sentence = /^.*?[.!?](?=\s|$)/.exec(plain)?.[0] ?? plain;
+  return /:\s*$/.test(sentence) || /^\s*[-*+]\s/.test(first) ? "" : sentence;
+}
+
+// A spec with a Result says so above every one of its pages, and links to it. The Result is the
+// part a person deciding "did this ship?" reads first, and it sits halfway down the Solution tab,
+// under the Solution and the Sketches — a banner is what makes it findable from Overview or Plan
+// without knowing where it lives. It's on the desk above the sheet, not on the sheet: it's a way
+// to the writing, not part of it.
+//
+// The link is a real one (#/spec/<id>/design/result), so it can be opened in a new tab or shared,
+// and landing on it scrolls to the Result (SpecPage's effect below). Clicking it again when the URL
+// already says /result changes nothing the router can see, so that click scrolls directly.
+function ResultBanner({ result, href, onJump }) {
+  const lead = resultLead(result);
+  const onClick = (e) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (window.location.hash === href) {
+      e.preventDefault();
+      onJump();
+    }
+  };
+  return (
+    <div className="result-banner">
+      <span className="result-banner__icon" aria-hidden="true">
+        <ClipboardCheck size={20} />
+      </span>
+      <div className="result-banner__text">
+        <p className="result-banner__label">This spec has a Result</p>
+        {lead && <p className="result-banner__lead">{lead}</p>}
+      </div>
+      <a className="result-banner__link" href={href} onClick={onClick}>
+        Read the Result <ArrowDown size={15} aria-hidden="true" />
+      </a>
+    </div>
+  );
+}
 
 // A persistent per-spec sidebar for metadata that applies across every tab, not just Overview —
 // Status, Owner, and which Initiative this spec belongs to. The panel itself is ui/SideRail, shared
@@ -157,7 +202,7 @@ function ResearchPlansList({ researchPlans, ids, onChange, researchPlanHref, onC
 // `researchPlanIds`, and handing an open question to a plan goes through `onAddResearchQuestion`
 // (or `onCreateResearchPlan`, which returns the new plan's id).
 export default function SpecPage({
-  spec, initiatives, onChange, activeTab, tabHref, onToast, breadcrumbs,
+  spec, initiatives, onChange, activeTab, section = null, resultHref, tabHref, onToast, breadcrumbs,
   researchPlans = [], researchPlanHref, onCreateResearchPlan, onAddResearchQuestion,
   sections, docHref, onUploadSourceFile, onRemoveSourceFile, onOpenSourceFile,
   onUploadSketch, onReadSketch,
@@ -199,6 +244,32 @@ export default function SpecPage({
   });
   const setReason = (i, reason) => setChanges((prev) => prev.map((c, j) => (j === i ? { ...c, reason } : c)));
 
+  // Landing on #/spec/<id>/design/result — from the banner, a shared link, or a reload — scrolls the
+  // Solution tab to the Result. `jump` is the banner clicked again while the URL already says so.
+  // Focus goes to the section before the scroll, as the section map does it (ui/SectionMap.jsx):
+  // moving focus would cancel a smooth scroll already under way, and tabbing on should carry on
+  // from the Result rather than from the banner.
+  const result = parseDesign(design).result.trim();
+  const resultRef = useRef(null);
+  const [jump, setJump] = useState(0);
+  useEffect(() => {
+    if (activeTab !== "design" || section !== "result") return;
+    // A frame's wait: the tab has only just stopped being `hidden`, and nothing can scroll into
+    // view before it has a layout.
+    const frame = requestAnimationFrame(() => {
+      const el = resultRef.current;
+      if (!el) return;
+      const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      el.tabIndex = -1;
+      el.focus({ preventScroll: true });
+      el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeTab, section, jump]);
+  const banner = result && resultHref
+    ? <ResultBanner result={result} href={resultHref} onJump={() => setJump((n) => n + 1)} />
+    : null;
+
   // An open question handed to a research plan. The picker hangs off the row's button; the plans
   // already linked to this spec come first, since that's almost always where the question goes.
   // Handing it on links the plan to the spec too, if it wasn't already. The open question stays:
@@ -239,6 +310,7 @@ export default function SpecPage({
           `[hidden]{display:none!important}` — the UA's own rule loses to .page--reading's
           `display:flex`, and would lose to an inline `display` too. */}
       <Page ground="reading" hidden={activeTab !== "overview"}>
+        {banner}
         <div className="paper-sheet paper-sheet--sections">
           <div className="paper-section">
             <Eyebrow>Problem</Eyebrow>
@@ -304,9 +376,10 @@ export default function SpecPage({
       )}
 
       <Page ground="reading" hidden={activeTab !== "design"}>
+        {banner}
         <div className="paper-sheet">
           <DesignTab
-            value={spec.design} status={status} onChange={setDesign} onToast={onToast}
+            value={spec.design} status={status} onChange={setDesign} onToast={onToast} resultRef={resultRef}
             onUploadSketch={onUploadSketch} onReadSketch={onReadSketch}
           />
         </div>
@@ -316,6 +389,7 @@ export default function SpecPage({
           the rest of the sheet (see PlanTab). Stored as one plan.md, like the Solution tab's
           solution.md. */}
       <Page ground="reading" hidden={activeTab !== "plan"}>
+        {banner}
         <div className="paper-sheet" style={{ display: "flex", flexDirection: "column" }}>
           <PlanTab value={spec.plan} onChange={setPlan} />
         </div>
