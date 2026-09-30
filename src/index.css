@@ -1417,6 +1417,93 @@ a.recent-row:hover {
   color: var(--accent-action);
 }
 
+/* The banner above a spec's pages once it has a Result (ResultBanner in SpecPage.jsx). On the desk
+   above the sheet, at the sheet's width, in the Result panel's own tint and ring, so the banner and
+   the section it leads to read as the same thing. Two lines, the label over the Result's first
+   sentence on one line of its own, so it's tall enough to notice without being read. The link carries its own padding so
+   it's a comfortable target, pulled back by a negative margin so its text still sits on the
+   banner's edge. */
+.result-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 8px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--paper-width);
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--accent-action) 7%, var(--bg));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-action) 22%, transparent);
+  font-family: var(--font);
+}
+/* The icon on a badge of its own, a step deeper than the banner, so it holds the left of a
+   two-line banner rather than floating beside it. */
+.result-banner__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-action) 14%, var(--bg));
+  color: var(--accent-action);
+}
+.result-banner__text {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.result-banner__text > p {
+  margin: 0;
+}
+.result-banner__label {
+  font-size: var(--size-md);
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--ink);
+}
+/* The Result's opening sentence, in the reading face since it's the writer's words, and always
+   one line, cut with an ellipsis: enough to say what changed, not a copy of the Result. */
+.result-banner__lead {
+  margin-top: 2px;
+  font-family: var(--font-reading);
+  font-variation-settings: var(--font-reading-axes);
+  font-size: var(--size-md);
+  line-height: 21px;
+  color: var(--ink-soft);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.result-banner__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 32px;
+  margin: -6px -10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  font-size: var(--size-md);
+  font-weight: 600;
+  color: var(--accent-action);
+  text-decoration: none;
+  touch-action: manipulation;
+  transition: background-color var(--motion-fast) var(--ease);
+}
+.result-banner__link:hover {
+  background: color-mix(in srgb, var(--accent-action) 12%, transparent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.result-banner__link:focus-visible {
+  outline: 2px solid var(--accent-action);
+  outline-offset: 1px;
+}
+
 /* A spec's change log (ChangeLog.jsx), at the foot of Overview. Each entry is a
    quiet line saying what changed and when, the wording either side of it, and a
    reason field. Before and after carry a label each, so the two aren't told apart

@@ -75,6 +75,8 @@ const parseView = (query) => {
 };
 const hrefSpec = (id) => SPEC_PREFIX + encodeURIComponent(id);
 const hrefSpecDesign = (id) => SPEC_PREFIX + encodeURIComponent(id) + "/design";
+// The Solution tab, scrolled to the spec's Result — where the banner above a spec's pages links to.
+const hrefSpecResult = (id) => hrefSpecDesign(id) + "/result";
 
 // A card id from a deep link. Signal and insight ids are text (UUIDs); action and result ids are
 // numbers — and the board compares ids with ===, so an all-digit id has to come back as a number
@@ -145,10 +147,12 @@ function useRoute() {
   }
   if (hash.startsWith(SPEC_PREFIX)) {
     // An old #/spec/<id>/discovery link — the board moved to research plans — lands on Overview.
-    const [idRaw, sub] = hash.slice(SPEC_PREFIX.length).split("/");
+    const [idRaw, sub, section] = hash.slice(SPEC_PREFIX.length).split("/");
     return {
       name: sub === "design" ? "specDesign" : sub === "plan" ? "specPlan" : "spec",
       id: decodeURIComponent(idRaw),
+      // #/spec/<id>/design/result: the Solution tab, scrolled to the Result.
+      section: sub === "design" && section === "result" ? "result" : null,
     };
   }
   if (hash.startsWith(INITIATIVE_PREFIX)) {
@@ -1767,6 +1771,8 @@ export default function App() {
                   onReadSketch={readSketch(activeSpec.id)}
                   onChange={(patch) => updateSpec(activeSpec.id, patch)}
                   activeTab={activeSpecTab}
+                  section={route.section}
+                  resultHref={hrefSpecResult(activeSpec.id)}
                   tabHref={(tab) => (
                     tab === "design" ? hrefSpecDesign(activeSpec.id) :
                     tab === "plan" ? hrefSpecPlan(activeSpec.id) :
