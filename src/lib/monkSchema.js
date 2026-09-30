@@ -172,12 +172,12 @@ in this order, each omitted when empty — one item per line (see "Writing text"
 \`\`\`
 ## Solution               freeform markdown — what to build; the sections below qualify it
 ## Sketches               - ![Caption](sketches/file) — the outcome it has to achieve
-## Result                 freeform markdown — what was built and how it was checked, once it's done
+## Result                 freeform markdown — what changed for users and how we know, once it's done
 ## Design principles      1. text — intent to optimise for; how to get there is your call
 ## Constraints            - text — binding; if one can't be met, stop and flag it
 ## Decisions              - text — settled; don't reverse one without flagging it
 ## Artefacts              - [Title](url) — reference material to consult
-## Notes                  freeform markdown — background
+## Notes                  freeform markdown — the technical record: code grounding, check detail
 \`\`\`
 
 A **sketch** is a crude picture of one option, in \`<spec-uuid>/sketches/\`, with the outcome it has
@@ -189,11 +189,14 @@ inlined, so script inside an SVG never runs. See \`WRITING.md\` for what makes a
 drawing. Distinct from an Artefact (a link to something outside the workspace) and from a Source
 (reference material behind the spec, in \`sources/\`): a sketch is a proposal inside it.
 
-The **Result** is written by whoever did the build, once it's done: what was built, and how it was
-checked — including what the checks didn't reach, since "checked on the preview only" is what a
-person deciding whether it shipped most needs to know. It's about this build only. A finding about
-the product made along the way is a signal (see "Signal" below), not a paragraph here or in Notes; Notes
-keeps the grounding gathered before and during the build.
+The **Result** is written by whoever did the build, once it's done, for the product trio deciding
+whether it shipped: what changed for the people using the product, then a \`How we know:\` list of
+the checks, then a \`Not checked:\` line — what the checks didn't reach, since "only the preview was
+tested" is what that person most needs to know. It's in the product's terms, without code names; the
+technical detail behind the checks (what was measured, how, the numbers) goes in Notes. It's about
+this build only. A finding about the product made along the way is a signal (see "Signal" below),
+not a paragraph here or in Notes; Notes keeps the grounding gathered before and during the build.
+\`WRITING.md\` has the shape and an example.
 
 Text before the first heading, or under any other \`##\` heading, is kept as Notes — which is also
 where sections Monk has since dropped end up, heading and all, rather than being discarded:
