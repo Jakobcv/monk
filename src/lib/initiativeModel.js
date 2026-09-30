@@ -19,7 +19,8 @@ import { genEntityId } from "./boardModel.js";
 export function blankInitiative(title = "Untitled initiative") {
   const now = Date.now();
   return {
-    id: genEntityId(), title, status: "active", description: "", outcomes: [], openQuestions: [],
+    // `owner` is free text, as on a spec — Monk has no accounts to pick a person from.
+    id: genEntityId(), title, status: "active", owner: "", description: "", outcomes: [], openQuestions: [],
     // Reference material behind the initiative — document pointers and uploaded files (sourceModel.js).
     sources: [],
     createdAt: now, updatedAt: now,

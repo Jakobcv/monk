@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, FolderGit2, Plus, Trash2, X } from "lucide-react";
-import { INK, INK_FAINT, BORDER, SIZE, SPACE, SPEC_STATUS_OPTIONS, SPEC_STATUS_COLOR } from "./lib/theme";
+import { INK, INK_FAINT, SIZE, SPACE, SPEC_STATUS_COLOR } from "./lib/theme";
 import { INITIATIVE_STATUS_OPTIONS } from "./lib/initiativeModel";
 import { RESEARCH_PLAN_STATUS_COLOR } from "./lib/researchPlanModel";
 import { Dot, Eyebrow, Meta } from "./ui/text";
@@ -12,6 +12,8 @@ import LiveMarkdown from "./ui/LiveMarkdown";
 import Page from "./ui/Page";
 import PaperButton from "./ui/PaperButton";
 import PaperFrame from "./ui/PaperFrame";
+import RollupBar from "./ui/RollupBar";
+import { shippedCount, specStatusCounts } from "./lib/specRollup";
 import SideRail, { SideRailSection, SideRailDivider, SideRailFoot } from "./ui/SideRail";
 import SourcesList from "./ui/SourcesList";
 
@@ -21,8 +23,8 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 // How far the initiative's specs have got: a bar with one segment per spec in status order, and
 // the same counts in words so the bar is never the only way to read it.
 function Progress({ specs, openQuestions }) {
-  const counts = SPEC_STATUS_OPTIONS.map((s) => [s, specs.filter((x) => x.status === s).length]);
-  const shipped = specs.filter((s) => s.status === "shipped").length;
+  const counts = specStatusCounts(specs);
+  const shipped = shippedCount(specs);
   const unresolved = openQuestions.filter((q) => !q.checked && (q.text || "").trim()).length;
   return (
     <>
@@ -33,11 +35,7 @@ function Progress({ specs, openQuestions }) {
           <div style={{ fontSize: SIZE.ui, color: INK, fontVariantNumeric: "tabular-nums" }}>
             {shipped} of {plural(specs.length, "spec")} shipped
           </div>
-          <div className="rollup-bar" aria-hidden="true">
-            {counts.flatMap(([s, n]) => Array.from({ length: n }, (_, i) => (
-              <span key={`${s}${i}`} style={{ backgroundColor: s === "draft" ? BORDER : SPEC_STATUS_COLOR[s] }} />
-            )))}
-          </div>
+          <RollupBar specs={specs} />
           <Meta as="div" style={{ fontSize: SIZE.sm, fontVariantNumeric: "tabular-nums" }}>
             {counts.filter(([, n]) => n).map(([s, n]) => `${n} ${s}`).join(" · ")}
           </Meta>
@@ -68,6 +66,7 @@ export default function InitiativePage({
 }) {
   const [title, setTitle] = useState(initiative.title);
   const [status, setStatus] = useState(initiative.status);
+  const [owner, setOwner] = useState(initiative.owner || "");
   const [description, setDescription] = useState(initiative.description || "");
   const [outcomes, setOutcomes] = useState(initiative.outcomes || []);
   const [openQuestions, setOpenQuestions] = useState(initiative.openQuestions || []);
@@ -76,9 +75,9 @@ export default function InitiativePage({
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
-    onChange({ title, status, description, outcomes, openQuestions, sources });
+    onChange({ title, status, owner, description, outcomes, openQuestions, sources });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, status, description, outcomes, openQuestions, sources]);
+  }, [title, status, owner, description, outcomes, openQuestions, sources]);
 
   const sorted = [...specs].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
@@ -91,6 +90,13 @@ export default function InitiativePage({
           </select>
           <ChevronDown size={12} className="select-chevron" />
         </div>
+      </SideRailSection>
+
+      <SideRailDivider />
+
+      {/* Free text, the same field a spec has in its sidebar; trimmed when it's saved. */}
+      <SideRailSection label="Owner">
+        <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="Unassigned" aria-label="Owner" name="owner" autoComplete="off" className="edit-area" />
       </SideRailSection>
 
       <SideRailDivider />

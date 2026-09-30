@@ -6,6 +6,8 @@ import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
 import EmptyState from "./ui/EmptyState";
 import Page from "./ui/Page";
+import RollupBar from "./ui/RollupBar";
+import { shippedCount } from "./lib/specRollup";
 import { parsePlan, taskCounts } from "./lib/planModel";
 
 const INITIATIVE_STATUS_COLOR = { active: ACCENT.insight, paused: INK_FAINT, done: ACCENT.action };
@@ -48,6 +50,24 @@ function Status({ color, children }) {
   );
 }
 
+// Who a row belongs to, or nothing. Free text, so it truncates like a title and says it in full on hover.
+function Owner({ name }) {
+  const owner = (name || "").trim();
+  return <td className="spec-table__owner" title={owner || undefined}><Meta>{owner}</Meta></td>;
+}
+
+// How far an initiative's specs have got: the initiative page's bar, with the shipped count beside
+// it in words. Nothing for an initiative with no specs — its count already says 0.
+function InitiativeProgress({ specs }) {
+  if (specs.length === 0) return null;
+  return (
+    <div className="spec-table__rollup">
+      <RollupBar specs={specs} />
+      <Meta>{shippedCount(specs)}/{specs.length} shipped</Meta>
+    </div>
+  );
+}
+
 // A spec's progress through its plan's tasks, or nothing when the plan has none.
 function progressOf(spec) {
   const counts = taskCounts(parsePlan(spec.plan).tasks);
@@ -62,6 +82,7 @@ function SpecRow({ spec, href, onDelete, id, hidden, nested }) {
       <th scope="row" className="spec-table__name">
         <a href={href} className="spec-table__link" title={title}>{title}</a>
       </th>
+      <Owner name={spec.owner} />
       <td className="spec-table__count" />
       <td className="spec-table__progress"><Meta>{progressOf(spec)}</Meta></td>
       <td><Status color={SPEC_STATUS_COLOR[spec.status] || INK_FAINT}>{spec.status}</Status></td>
@@ -110,8 +131,9 @@ function InitiativeGroup({ initiative, members, expanded, onToggle, href, specHr
             <a href={href} className="spec-table__link" title={title}>{title}</a>
           </span>
         </th>
+        <Owner name={initiative.owner} />
         <td className="spec-table__count"><Meta>{members.length}</Meta></td>
-        <td className="spec-table__progress" />
+        <td className="spec-table__progress"><InitiativeProgress specs={members} /></td>
         <td><Status color={INITIATIVE_STATUS_COLOR[initiative.status] || INK_FAINT}>{initiative.status}</Status></td>
         <td className="spec-table__actions" />
       </tr>
@@ -131,9 +153,10 @@ function Head({ first }) {
     <thead>
       <tr>
         <th scope="col">{first}</th>
+        <th scope="col" className="spec-table__owner">Owner</th>
         <th scope="col" className="spec-table__count">Specs</th>
         <th scope="col" className="spec-table__progress">Progress</th>
-        <th scope="col">Status</th>
+        <th scope="col" className="spec-table__status-col">Status</th>
         <th scope="col"><span className="visually-hidden">Actions</span></th>
       </tr>
     </thead>
