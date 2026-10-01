@@ -206,8 +206,14 @@ export const SPACE = {
 };
 
 // `paper` is the sheet's corner — paper has square corners, and the radius only exists to keep
-// the shadow from ending in a hard point. Every other surface is xs–lg.
-export const RADIUS = { paper: "3px", xs: "4px", sm: "6px", md: "8px", lg: "10px", pill: "999px" };
+// the shadow from ending in a hard point. Every other surface is xs–lg, and generously so: a
+// control (sm) is rounded about as far as its padding allows, a card (md) and a dialog (lg) more.
+// Two rules keep that from going wrong. A control's horizontal padding is at least its radius, so
+// a label never sits inside the curve. And something nested in a rounded box takes the box's
+// radius less the inset between them, so the two corners stay concentric (.seg, .way-in__chip).
+// Edit-in-place fields and hover rows that bleed into the margin keep xs: their padding is tied to
+// the text's alignment and can't grow to suit a bigger corner.
+export const RADIUS = { paper: "3px", xs: "8px", sm: "12px", md: "16px", lg: "20px", pill: "999px" };
 
 // ---------------------------------------------------------------------------
 // Page — the frame every full page sits in (ui/Page.jsx). These were seven
@@ -409,6 +415,7 @@ ${varsFor("light")}
   --size-title:${SIZE.title};
   --radius-paper:${RADIUS.paper}; --radius-xs:${RADIUS.xs}; --radius-sm:${RADIUS.sm}; --radius-md:${RADIUS.md};
   --radius-lg:${RADIUS.lg}; --radius-pill:${RADIUS.pill};
+  ${Object.entries(SPACE).map(([k, v]) => `--space-${k}:${v};`).join(" ")}
   --page-pad-x:${PAGE.padX}; --page-pad-top:${PAGE.padTop};
   --page-pad-top-header:${PAGE.padTopUnderHeader}; --page-pad-bottom:${PAGE.padBottom};
   --page-landing-top:${PAGE.landingTop}; --page-bleed:${PAGE.bleed}; --page-chrome-x:${PAGE.chromeX};

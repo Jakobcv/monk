@@ -1,5 +1,5 @@
 import { X, Check } from "lucide-react";
-import { BORDER_STRONG, ACCENT, BG, ON_ACCENT } from "./lib/theme";
+import { BORDER_STRONG, ACCENT, BG, ON_ACCENT, RADIUS } from "./lib/theme";
 import { cardSurface, cornerBadge } from "./ui/cardStyles";
 import IconButton from "./ui/IconButton";
 import SignalCardBody from "./SignalCardBody";
@@ -56,7 +56,7 @@ export default function SignalCard({
           title={selected ? "Remove from selection" : "Select this signal"}
           className={selected ? "icon-btn" : "icon-btn reveal"}
           style={{
-            ...cornerBadge, left: "-7px", borderRadius: "4px",
+            ...cornerBadge, left: "-7px", borderRadius: `calc(${RADIUS.xs} / 2)`, // a checkbox, like .cl-check__box — a full xs would make it round
             border: `1px solid ${selected ? ACCENT.signal : BORDER_STRONG}`,
             background: selected ? ACCENT.signal : BG, color: ON_ACCENT,
           }}
