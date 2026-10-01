@@ -278,12 +278,36 @@ body {
   padding: 8px 14px;
 }
 
+/* The mark's gradient (theme.js BUTTON_FILL), with a faint highlight along the top edge. A gradient
+   can't transition, so hover lifts it with a wash of on-ink laid over the fill: lighter in light,
+   darker in dark, as --ink-hover did. The wash sits under the label (z-index -1 inside an isolated
+   button) and fades on opacity alone. origin: border-box, or the gradient sizes to the padding box
+   and tiles a seam into the transparent border. */
 .btn--primary {
-  background: var(--ink);
+  position: relative;
+  isolation: isolate;
+  background: var(--button-fill) border-box;
   color: var(--on-ink);
+  box-shadow: var(--button-sheen);
 }
-.btn--primary:hover:not(:disabled) {
-  background: var(--ink-hover);
+.btn--primary::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--on-ink);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+.btn--primary:hover:not(:disabled)::before {
+  opacity: 0.1;
+}
+@media (forced-colors: active) {
+  .btn--primary {
+    border-color: ButtonText;
+  }
 }
 
 .btn--secondary {
