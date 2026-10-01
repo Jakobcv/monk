@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import ShortId from "./ui/ShortId";
 import { Search as SearchIcon, X, ArrowLeft, Star, Plus, Lightbulb } from "lucide-react";
 import { font, INK, INK_SOFT, INK_FAINT, BORDER, ACCENT, RESEARCH_PLAN, DANGER, CITED, ON_INK, SIZE, WEIGHT, SPACE, RADIUS, PAGE } from "./lib/theme";
 import { blankSignal, isSignalUnlinked } from "./lib/signalModel";
@@ -71,7 +72,7 @@ function highlight(text, query) {
 // `boards` are board-shaped objects, each carrying its plan's `title` (a board has no name of its
 // own — see App.jsx); `boardCardHref(boardId, cardId)` opens a card on its plan's Analysis tab.
 export default function ResearchRepositoryPage({
-  boards, signals, insights, researchPlans = [],
+  boards, signals, insights, researchPlans = [], sharedIds = new Set(),
   initialQuery = "", initialKind = "all", onNavigate,
   boardCardHref, researchPlanHref,
   onCreateSignal, onCreateInsight, onCreateResearchPlan,
@@ -191,6 +192,7 @@ export default function ResearchRepositoryPage({
       <Card key={key} as="a" href={researchPlanHref(plan.id)} interactive style={{ padding: `14px ${SPACE.xl}` }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: SPACE.xl, marginBottom: SPACE.sm }}>
           <div style={{ fontFamily: font, fontSize: SIZE.lg, fontWeight: WEIGHT.semibold, color: INK, lineHeight: 1.4, minWidth: 0, overflowWrap: "anywhere" }}>
+            {plan.shortId && <><ShortId value={plan.shortId} shared={sharedIds.has(plan.id)} className="short-id--lead" />{" "}</>}
             {highlight(plan.title || "Untitled research plan", q)}
           </div>
           <Meta style={{ display: "flex", alignItems: "center", gap: SPACE.md, flexShrink: 0, fontWeight: WEIGHT.semibold, color: statusColor }}>

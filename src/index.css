@@ -1953,6 +1953,56 @@ a.recent-row:hover {
 
 /* What kind of record a paper page is (ui/text PageKind), above its title. The
    spec, research plan and initiative share a frame; this names which one it is. */
+/* A short ID (ui/ShortId) — SID-4 before a title in a list, or in a page's eyebrow as a
+   button that copies it. Tabular figures so a column of them lines up; the warning colour plus
+   an icon when a merge left the ID on two records. */
+.short-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-family: var(--font);
+  font-size: var(--size-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.short-id--shared {
+  color: var(--accent-signal);
+}
+/* 5px above and below takes the target to 24px; the negative margin keeps the eyebrow's height. */
+.short-id--copy {
+  margin: -5px 0;
+  padding: 5px 6px;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: none;
+  font-size: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+}
+.short-id--copy:hover {
+  background: var(--bg-hover);
+  color: var(--ink);
+}
+.short-id--copy.short-id--shared:hover {
+  color: var(--accent-signal);
+}
+/* The duplicate's fix, inside an uppercase eyebrow: a sentence, not a label. */
+.id-fix {
+  margin: -5px 0;
+  text-transform: none;
+  letter-spacing: normal;
+}
+/* In a list row the ID leads the title on its own line height. */
+.paper-link-row .short-id {
+  min-width: 0;
+}
+
 .page-kind {
   display: flex;
   align-items: center;
@@ -2904,19 +2954,19 @@ select.token-field {
 .spec-table__name {
   overflow: hidden;
 }
-.spec-table__lead {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
+/* The expand chevron and the ID are columns of their own, at the same fixed widths in every table
+   on the page, so every ID and every name — an initiative's, a spec's under it, a loose spec's —
+   starts on the same line down the page. Under an initiative, its specs are told apart by weight
+   and by sitting under it, not by an indent that would knock them off that line. */
+.spec-table thead th.spec-table__toggle { width: 38px; }
+.spec-table thead th.spec-table__id { width: 64px; }
+.spec-table .spec-table__toggle {
+  padding: 0 0 0 10px;
 }
-/* A spec under an initiative starts where its initiative's title does: past the
-   chevron's 22px and the 6px gap. */
-.spec-table__spec--nested .spec-table__name {
-  padding-left: 40px;
+.spec-table .spec-table__id {
+  padding: 0 8px 0 4px;
 }
-.spec-table__chevron,
-.spec-table__chevron-space {
+.spec-table__chevron {
   flex-shrink: 0;
   width: 22px;
   height: 22px;
@@ -3000,8 +3050,10 @@ select.token-field {
   }
   .spec-table thead th.spec-table__count { width: 60px; }
   .spec-table thead th.spec-table__status-col { width: 80px; }
-  .spec-table__spec--nested .spec-table__name {
-    padding-left: 36px;
+  .spec-table thead th.spec-table__toggle { width: 32px; }
+  .spec-table thead th.spec-table__id { width: 56px; }
+  .spec-table .spec-table__toggle {
+    padding-left: 6px;
   }
   .specs-page {
     padding-left: 16px;
@@ -3338,4 +3390,10 @@ select.token-field {
 .desk-mark--still .desk-mark__post,
 .desk-mark--still .desk-mark__board {
   animation: none;
+}
+/* Before a research plan's title on the Research Repository: inline, sitting on the title's line. */
+.short-id--lead {
+  display: inline-flex;
+  margin-right: 2px;
+  vertical-align: 0.15em;
 }

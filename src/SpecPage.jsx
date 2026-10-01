@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { IdSlot } from "./ui/ShortId";
 import { ArrowDown, ChevronDown, ClipboardCheck, FileText, Plus, X } from "lucide-react";
 import { INK, INK_FAINT, SIZE, SPACE, SPEC_STATUS_OPTIONS, SPEC_STATUS_COLOR } from "./lib/theme";
 import { RESEARCH_PLAN_STATUS_COLOR } from "./lib/researchPlanModel";
@@ -206,6 +207,7 @@ export default function SpecPage({
   researchPlans = [], researchPlanHref, onCreateResearchPlan, onAddResearchQuestion,
   sections, docHref, onUploadSourceFile, onRemoveSourceFile, onOpenSourceFile,
   onUploadSketch, onReadSketch,
+  idShared = false, onNewShortId,
 }) {
   const [title, setTitle] = useState(spec.title);
   const [status, setStatus] = useState(spec.status);
@@ -295,7 +297,7 @@ export default function SpecPage({
   return (
     <PaperFrame
       breadcrumbs={breadcrumbs}
-      kindIcon={FileText} kind="Spec"
+      kindIcon={FileText} kind="Spec" idSlot={<IdSlot value={spec.shortId} shared={idShared} onNewId={onNewShortId} />}
       title={title} onTitleChange={(e) => setTitle(e.target.value)} titlePlaceholder="Untitled spec"
       tabs={TABS} activeTab={activeTab} tabHref={tabHref}
       rail={(
