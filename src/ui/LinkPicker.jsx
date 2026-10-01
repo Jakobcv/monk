@@ -67,7 +67,7 @@ export default function LinkPicker({
               className="pick-row"
               onClick={() => pick(it.id)}
               title={it.label}
-              style={{ textAlign: "left", fontFamily: font, fontSize: SIZE.sm, color: INK, background: "none", border: "none", borderRadius: RADIUS.sm, padding: "5px 6px", cursor: "pointer" }}
+              style={{ textAlign: "left", fontFamily: font, fontSize: SIZE.sm, color: INK, background: "none", border: "none", borderRadius: RADIUS.sm, padding: `5px ${SPACE.base}`, cursor: "pointer" }}
             >
               <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                 {it.label || "Untitled"}
@@ -82,7 +82,7 @@ export default function LinkPicker({
           type="button"
           className="pick-row"
           onClick={() => { action.onClick(); onClose(); }}
-          style={{ display: "flex", alignItems: "center", gap: SPACE.sm, width: "100%", marginTop: SPACE.sm, textAlign: "left", fontFamily: font, fontSize: SIZE.sm, color: INK_SOFT, background: "none", border: "none", borderRadius: RADIUS.sm, padding: "5px 6px", cursor: "pointer" }}
+          style={{ display: "flex", alignItems: "center", gap: SPACE.sm, width: "100%", marginTop: SPACE.sm, textAlign: "left", fontFamily: font, fontSize: SIZE.sm, color: INK_SOFT, background: "none", border: "none", borderRadius: RADIUS.sm, padding: `5px ${SPACE.base}`, cursor: "pointer" }}
         >
           <Plus size={14} /> {action.label}
         </button>

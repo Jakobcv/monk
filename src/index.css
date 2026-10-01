@@ -191,6 +191,11 @@ body {
 :focus-visible {
   outline: 2px solid var(--accent-insight);
   outline-offset: 1px;
+}
+/* Only for things with no corner of their own. In :where() so it weighs nothing: a button or a
+   card keeps its radius when focused, and the outline follows that corner instead of cutting
+   across it. */
+:where(:focus-visible) {
   border-radius: var(--radius-xs);
 }
 
@@ -271,11 +276,11 @@ body {
 
 .btn--sm {
   font-size: var(--size-sm);
-  padding: 5px 10px;
+  padding: var(--space-md) var(--space-lg);
 }
 .btn--md {
   font-size: var(--size-ui);
-  padding: 8px 14px;
+  padding: var(--space-base) var(--space-xl);
 }
 
 /* The mark's gradient (theme.js BUTTON_FILL), with a faint highlight along the top edge. A gradient
@@ -345,8 +350,16 @@ body {
   width: max-content;
   margin: 16px 0 0 auto;
 }
+/* The key chip nests in the button's corner: its right inset matches its top and bottom ones (border
+   + --space-md), and its radius is the button's less that inset, so the two corners are
+   concentric. The auto margin pins it to the right edge — the buttons share a width, and the
+   narrower label would otherwise be centred with the chip floating in the slack. */
 .dialog-actions .btn {
-  padding: 6px 10px 6px 14px;
+  padding: var(--space-md) var(--space-md) var(--space-md) var(--space-xl);
+}
+.dialog-actions .kbd {
+  margin-left: auto;
+  border-radius: calc(var(--radius-sm) - var(--space-md) - 1px);
 }
 
 /* A key chip inside a button. Tinted from currentColor so the same class works on a light
@@ -460,7 +473,7 @@ body {
   background: var(--bg);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  padding: 5px 8px;
+  padding: var(--space-md) var(--space-lg);
   outline: none;
   transition:
     border-color var(--motion-fast) var(--ease),
@@ -475,7 +488,7 @@ body {
 }
 .field--ui {
   font-size: var(--size-ui);
-  padding: 6px 9px;
+  padding: var(--space-base) var(--space-lg);
 }
 /* a field that only reveals its edges on hover/focus — for inline editing that
    shouldn't look like a form until you reach for it */
@@ -643,7 +656,7 @@ body {
   color: var(--on-ink);
   font-family: var(--font);
   font-size: var(--size-ui);
-  padding: 10px 14px;
+  padding: var(--space-lg) var(--space-xl);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-pop);
   animation: toast-in var(--motion-base) var(--ease-entrance);
@@ -881,7 +894,8 @@ a.recent-row:hover {
   width: 18px;
   height: 18px;
   border: 1.5px solid var(--border-strong);
-  border-radius: var(--radius-xs);
+  /* Half of xs: at 18px a full xs corner turns the box into a pebble. */
+  border-radius: calc(var(--radius-xs) / 2);
   background: var(--bg);
   color: var(--on-accent);
   transition:
@@ -1458,7 +1472,7 @@ a.recent-row:hover {
   width: 100%;
   max-width: var(--paper-width);
   margin-bottom: 16px;
-  padding: 16px 20px;
+  padding: var(--space-xl) var(--space-2xl);
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--accent-action) 7%, var(--bg));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-action) 22%, transparent);
@@ -1908,7 +1922,7 @@ a.recent-row:hover {
   min-width: 0;
   margin-left: -6px;
   padding: 4px 6px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   font-family: var(--font);
   font-size: var(--size-ui);
   line-height: 18px;
@@ -2077,7 +2091,7 @@ a.recent-row:hover {
   outline: none;
   resize: none;
   background: transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   margin: 0 -8px;
   padding: 3px 8px;
   width: calc(100% + 16px);
@@ -2203,7 +2217,7 @@ a.recent-row:hover {
   border: none;
   outline: none;
   background: transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   margin: 0 -6px;
   padding: 3px 6px;
   width: calc(100% + 12px);
@@ -2346,8 +2360,8 @@ select.token-field {
 .view-switch {
   display: inline-flex;
   flex-shrink: 0;
-  gap: 2px;
-  padding: 2px;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
   border-radius: var(--radius-sm);
   background: var(--bg-hover);
   box-shadow: inset 0 0 0 1px var(--border);
@@ -2357,9 +2371,9 @@ select.token-field {
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
-  padding: 6px 10px;
+  padding: var(--space-md) var(--space-lg);
   border: none;
-  border-radius: var(--radius-xs);
+  border-radius: calc(var(--radius-sm) - var(--space-xs));
   background: transparent;
   color: var(--ink-soft);
   cursor: pointer;
@@ -2594,7 +2608,7 @@ select.token-field {
   -moz-appearance: none;
   width: 100%;
   box-sizing: border-box;
-  padding: 6px 26px 6px 9px;
+  padding: var(--space-md) 28px var(--space-md) var(--space-lg);
   font-family: var(--font);
   font-weight: 500;
   font-size: var(--size-ui);
@@ -2660,7 +2674,7 @@ select.token-field {
   background: var(--bg);
   border-radius: var(--radius-lg);
   box-shadow: var(--edge-float);
-  padding: 20px 24px 24px;
+  padding: var(--space-2xl) var(--space-3xl) var(--space-3xl);
   max-width: 100%;
   box-sizing: border-box;
 }
@@ -2726,8 +2740,8 @@ select.token-field {
    the same relationship the sidebar uses between its ground and a selected row, inverted. */
 .seg {
   display: inline-flex;
-  padding: 2px;
-  gap: 2px;
+  padding: var(--space-xs);
+  gap: var(--space-xs);
   background: var(--bg-active);
   border-radius: var(--radius-sm);
 }
@@ -2735,8 +2749,8 @@ select.token-field {
   appearance: none;
   border: none;
   background: transparent;
-  border-radius: var(--radius-xs);
-  padding: 5px 12px;
+  border-radius: calc(var(--radius-sm) - var(--space-xs));
+  padding: var(--space-md) var(--space-lg);
   min-height: 24px;
   font-family: var(--font);
   font-size: var(--size-ui);
@@ -2946,7 +2960,7 @@ select.token-field {
   margin-left: -6px;
   padding: 2px 8px 2px 6px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   background: transparent;
   font: inherit;
   letter-spacing: inherit;
@@ -3149,8 +3163,8 @@ select.token-field {
 .way-in--primary {
   color: var(--ink);
 }
-/* Concentric with the button: its 8px radius is the button's 10px less the 9px inset, rounded up so
-   a chip this small still reads as rounded. */
+/* Concentric with the button: its radius is the button's less the 10px between them — the 9px
+   padding and the 1px border. */
 .way-in__chip {
   position: relative;
   display: flex;
@@ -3161,7 +3175,7 @@ select.token-field {
   height: 32px;
   box-sizing: border-box;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: calc(var(--radius-lg) - 10px);
   background: var(--bg);
   color: var(--ink-faint);
   transition: color var(--motion-fast) var(--ease);
