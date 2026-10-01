@@ -57,6 +57,26 @@ every record; set \`updatedAt\` to now when you change something.
   the ids it hands out itself never collide with yours.
 - The two fixed sections use literal ids, not UUIDs: \`product-knowledge\` and \`standards\`.
 
+### Short IDs
+
+Initiatives, specs and research plans also carry a **short ID** in \`shortId\`: what a person
+says and types to point at one — in a PR, a commit, a prompt. It's a label, not identity: folder
+names, \`id\` and every pointer stay UUIDs.
+
+- The format is a letter for the kind, a hyphen and a number: \`I-3\` an initiative, \`S-14\` a
+  spec, \`R-2\` a research plan. Each kind is numbered on its own across the workspace. Nothing in
+  it comes from the title.
+- **Giving one to a record you create:** take one more than the highest number of that kind in
+  use, counting every \`shortId\` of that kind in the workspace and every ID in
+  \`retired-ids.md\`. Never reuse a number, even one whose record is gone.
+- **Never change one.** Not when the title changes, not when a spec moves to another initiative,
+  not when its initiative is deleted. Leave the field out and Monk gives the record one the next
+  time it loads the folder.
+- **Finding one:** search for it in quotes — \`"shortId":"S-14"\` — which matches only that
+  record, not \`S-140\`.
+- If two records have the same one (two branches each made the next spec), Monk marks both and a
+  person gives one of them a new ID. Don't renumber either yourself.
+
 ## Folder layout
 
 \`\`\`
@@ -81,6 +101,8 @@ every record; set \`updatedAt\` to now when you change something.
     sources/<filename>          uploaded source files, see "Sources" below (only once one exists)
 
   DESIGN.md                   ← optional: this product's design system (see below)
+  retired-ids.md              ← short IDs of deleted records, never handed out again (see "Short IDs");
+                                frontmatter only, {"ids":["S-3"]}, written once something is deleted
   signals/<uuid>.md           ← global signal (see "Signal")
   insights/<uuid>.md          ← global insight (see "Insight")
   initiatives/<uuid>.md       ← global initiative (see "Initiative")
@@ -109,7 +131,7 @@ repo.
 
 \`\`\`
 ---
-{"id":"<uuid>","title":"...","status":"draft|active|shipped","owner":"...",
+{"id":"<uuid>","shortId":"S-14","title":"...","status":"draft|active|shipped","owner":"...",
  "initiativeId":"<initiative-uuid> | null",
  "researchPlanIds":["<research-plan-uuid>"],   // optional
  "sources":[{"kind":"document","sectionId":"...","docId":"..."},{"kind":"file","name":"..."}],  // optional
@@ -395,7 +417,7 @@ The insight, as free text.
 
 \`\`\`
 ---
-{"id":"<uuid>","title":"...","status":"active|paused|done",
+{"id":"<uuid>","shortId":"I-3","title":"...","status":"active|paused|done",
  "owner":"...",   // optional
  "outcomes":[{"text":"...","metric":"...","baseline":"...","target":"...","current":"..."}],   // optional
  "openQuestions":[{"text":"...","checked":false,"resolution":"..."}],
@@ -423,7 +445,7 @@ there is none.
 
 \`\`\`
 ---
-{"id":"<uuid>","title":"...","status":"planned|fieldwork|synthesis|done",
+{"id":"<uuid>","shortId":"R-2","title":"...","status":"planned|fieldwork|synthesis|done",
  "initiativeId":"<initiative-uuid> | null",
  "researchQuestions":[{"text":"...","insightIds":["<insight-uuid>"]}],
  "activities":["Interview with P3","Survey wave 1"],   // optional

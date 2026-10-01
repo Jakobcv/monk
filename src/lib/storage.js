@@ -6,7 +6,7 @@ import {
   signalToMarkdown, markdownToSignal, markdownToActivity,
   insightToMarkdown, markdownToInsight,
   initiativeToMarkdown, markdownToInitiative,
-  researchPlanToMarkdown, markdownToResearchPlan, } from "./markdown.js";
+  researchPlanToMarkdown, markdownToResearchPlan, retiredIdsToMarkdown, markdownToRetiredIds } from "./markdown.js";
 import { MONK_SCHEMA_DOC } from "./monkSchema.js";
 import { migrateActivities } from "./migrateActivities.js";
 import { AGENTS_DOC, AGENTS_DOC_SECTION, AGENT_MARKER_BEGIN, AGENT_MARKER_END } from "./agentsDoc.js";
@@ -465,6 +465,10 @@ export async function loadWorkspace(dirHandle) {
     docs[doc.id] = text;
   }
 
+  const retiredText = await readFileOrNull(dirHandle, RETIRED_IDS_FILE);
+  if (retiredText !== null) recordRead(RETIRED_IDS_FILE, retiredText);
+  const retiredShortIds = retiredText === null ? [] : markdownToRetiredIds(retiredText);
+
   const signals = await loadFlatCollection(dirHandle, "signals", markdownToSignal);
   const insights = await loadFlatCollection(dirHandle, "insights", markdownToInsight);
   // Legacy: activities are read only to be folded into research plans (migrateActivities.js).
@@ -491,7 +495,7 @@ export async function loadWorkspace(dirHandle) {
   // which old files to move once the migrated plans and signals are on disk.
   const migrated = migrateActivities({ activities, signals, researchPlans });
   return {
-    sections, specs, insights, initiatives, docs,
+    sections, specs, insights, initiatives, docs, retiredShortIds,
     signals: migrated.signals,
     researchPlans: migrated.researchPlans,
     retiredActivityIds: migrated.retiredActivityIds,
@@ -591,6 +595,10 @@ export async function readSourceFile(dirHandle, base, name, folder = SOURCES_DIR
 // collection can't be recognised in one place and swept up as a stray folder in another.
 // `activities` is legacy — never written — but stays reserved so an old-format file that turns up
 // (an agent, a checkout of an older branch) is noticed and migrated rather than ignored.
+// The short IDs of deleted specs and research plans (shortIds.js). Written only once something has
+// been deleted, and read on every load.
+export const RETIRED_IDS_FILE = "retired-ids.md";
+
 export const FLAT_COLLECTIONS = ["signals", "insights", "activities", "initiatives", "research-plans"];
 export function entityIdsFor(paths) {
   const ids = new Set();
@@ -886,6 +894,13 @@ export async function saveWorkspace(dirHandle, workspace, { hold = [] } = {}) {
   // held back, some replacement may not be on disk yet, so the move waits for a clean save.
   if ((workspace.retiredActivityIds || []).length && !conflicts.length && !held.size) {
     await retireActivities(dirHandle, workspace.retiredActivityIds);
+  }
+
+  // Only once there is something in it, or a file to keep up to date: a workspace where nothing has
+  // been deleted gets no file.
+  const retired = workspace.retiredShortIds;
+  if (Array.isArray(retired) && (retired.length || written.has(RETIRED_IDS_FILE))) {
+    await put(dirHandle, RETIRED_IDS_FILE, retiredIdsToMarkdown(retired), RETIRED_IDS_FILE);
   }
 
   // Workspace documents are only ever updated here, never created or removed — those are

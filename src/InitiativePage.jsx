@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import ShortId, { IdSlot } from "./ui/ShortId";
 import { ChevronDown, FolderGit2, Plus, Trash2, X } from "lucide-react";
 import { INK, INK_FAINT, SIZE, SPACE, SPEC_STATUS_COLOR } from "./lib/theme";
 import { INITIATIVE_STATUS_OPTIONS } from "./lib/initiativeModel";
@@ -63,6 +64,7 @@ export default function InitiativePage({
   initiative, specs, specHref, researchPlans = [], researchPlanHref,
   onChange, onDelete, onCreateSpec, onDetachSpec, breadcrumbs,
   sections, docHref, onUploadSourceFile, onRemoveSourceFile, onOpenSourceFile,
+  idShared = false, onNewShortId, sharedIds = new Set(),
 }) {
   const [title, setTitle] = useState(initiative.title);
   const [status, setStatus] = useState(initiative.status);
@@ -117,6 +119,7 @@ export default function InitiativePage({
             {researchPlans.map((p) => (
               <a key={p.id} className="rail-link" href={researchPlanHref(p.id)} title={p.title || "Untitled research plan"}>
                 <Dot color={RESEARCH_PLAN_STATUS_COLOR[p.status] || INK_FAINT} />
+                <ShortId value={p.shortId} shared={sharedIds.has(p.id)} />
                 <span>{p.title || "Untitled research plan"}</span>
               </a>
             ))}
@@ -135,7 +138,7 @@ export default function InitiativePage({
   return (
     <PaperFrame
       breadcrumbs={breadcrumbs}
-      kindIcon={FolderGit2} kind="Initiative"
+      kindIcon={FolderGit2} kind="Initiative" idSlot={<IdSlot value={initiative.shortId} shared={idShared} onNewId={onNewShortId} />}
       title={title} onTitleChange={(e) => setTitle(e.target.value)} titlePlaceholder="Untitled initiative"
       rail={rail}
     >
@@ -170,6 +173,7 @@ export default function InitiativePage({
                 <div key={s.id} className="reveal-group" style={{ display: "flex", alignItems: "center", gap: SPACE.sm, minWidth: 0 }}>
                   <a className="paper-link-row" href={specHref(s.id)} style={{ flex: 1 }}>
                     <Dot color={SPEC_STATUS_COLOR[s.status] || INK_FAINT} />
+                    <ShortId value={s.shortId} shared={sharedIds.has(s.id)} />
                     <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{specTitle(s)}</span>
                     <Meta style={{ fontSize: SIZE.ui, flexShrink: 0 }}>{s.status}</Meta>
                   </a>

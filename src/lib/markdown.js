@@ -271,9 +271,15 @@ function splitExtra(extraText) {
   };
 }
 
+// `shortId` (shortIds.js) sits right after `id`, so it's the first thing read on the line. Written only when set, so a file saved
+// before short IDs existed is unchanged until it's given one.
+const shortIdField = (record) => (typeof record.shortId === "string" && record.shortId ? { shortId: record.shortId } : {});
+const shortIdFrom = (data) => (typeof data.shortId === "string" ? data.shortId.trim() : "");
+
 export function specToMarkdown(spec) {
   const frontmatter = {
     id: spec.id,
+    ...shortIdField(spec),
     title: spec.title || "",
     status: spec.status || "draft",
     owner: spec.owner || "",
@@ -305,6 +311,7 @@ export function markdownToSpec(content) {
   const { data, body } = parseFrontmatter(content);
   return {
     id: data.id,
+    shortId: shortIdFrom(data),
     title: data.title || "",
     status: data.status || "draft",
     owner: data.owner || "",
@@ -323,6 +330,17 @@ export function markdownToSpec(content) {
   };
 }
 
+// retired-ids.md at the workspace root: the short IDs of deleted specs and research plans, so a
+// number is never handed out twice (shortIds.js). Frontmatter only, `{"ids":[…]}`.
+export function retiredIdsToMarkdown(ids) {
+  return stringifyFrontmatter({ ids: [...new Set(ids)] }, "");
+}
+
+export function markdownToRetiredIds(content) {
+  const { data } = parseFrontmatter(content);
+  return Array.isArray(data.ids) ? data.ids.filter((id) => typeof id === "string" && id) : [];
+}
+
 // An initiative is a flat top-level record like a signal/insight/activity — title/status in
 // frontmatter, the freeform description as the body. See initiativeModel.js.
 export function initiativeToMarkdown(initiative) {
@@ -330,6 +348,7 @@ export function initiativeToMarkdown(initiative) {
   const owner = (initiative.owner || "").trim();
   const frontmatter = {
     id: initiative.id,
+    ...shortIdField(initiative),
     title: initiative.title || "",
     status: initiative.status || "active",
     // Written only when set, so an initiative saved before owners existed is unchanged.
@@ -349,6 +368,7 @@ export function markdownToInitiative(content) {
   const { data, body } = parseFrontmatter(content);
   return {
     id: data.id,
+    shortId: shortIdFrom(data),
     title: data.title || "",
     status: data.status || "active",
     owner: typeof data.owner === "string" ? data.owner : "",
@@ -393,6 +413,7 @@ export function researchPlanToMarkdown(plan) {
   const activities = activitiesFrom(plan.activities);
   const frontmatter = {
     id: plan.id,
+    ...shortIdField(plan),
     title: plan.title || "",
     status: plan.status || "planned",
     initiativeId: plan.initiativeId || null,
@@ -416,6 +437,7 @@ export function markdownToResearchPlan(content) {
   const { data, body } = parseFrontmatter(content);
   const plan = {
     id: data.id,
+    shortId: shortIdFrom(data),
     title: data.title || "",
     status: data.status || "planned",
     initiativeId: data.initiativeId || null,

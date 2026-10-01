@@ -67,6 +67,9 @@ Anything else in this folder isn't Monk's, and Monk never touches it.
   words of the acceptance criteria), and what the checks didn't reach. The technical detail behind
   the checks goes in Notes. A finding about the product you made on the way is a signal, not part of
   the Result or Notes.
+- **Pointing at a spec, initiative or research plan** — in a commit, a PR, a reply — use its short
+  ID (\`S-14\`, \`I-3\`, \`R-2\`) rather than its title. A record you create gets the next number of
+  its kind, never one that's in \`retired-ids.md\`, and an ID is never changed (\`MONK.md\`, "Short IDs").
 - **Code names** — file paths, functions, components, tokens, data shapes — go in \`plan.md\`'s
   Approach and Tasks and \`solution.md\`'s Notes. Everything else is read by a product manager, a
   designer and a tech lead, and is written in the product's terms (\`WRITING.md\`, rule 5).

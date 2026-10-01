@@ -10,6 +10,7 @@ import Page from "./ui/Page";
 import RollupBar from "./ui/RollupBar";
 import { shippedCount } from "./lib/specRollup";
 import { parsePlan, taskCounts } from "./lib/planModel";
+import ShortId from "./ui/ShortId";
 
 const INITIATIVE_STATUS_COLOR = { active: ACCENT.insight, paused: INK_FAINT, done: ACCENT.action };
 
@@ -98,10 +99,12 @@ function progressOf(spec) {
   return [`${counts.done}/${counts.total} tasks`, counts.blocked && `${counts.blocked} blocked`].filter(Boolean).join(" · ");
 }
 
-function SpecRow({ spec, href, onDelete, id, hidden, nested }) {
+function SpecRow({ spec, href, onDelete, id, hidden, nested, shared = false }) {
   const title = spec.title || "Untitled spec";
   return (
     <tr id={id} hidden={hidden} className={`spec-table__spec reveal-group${nested ? " spec-table__spec--nested" : ""}`}>
+      <td className="spec-table__toggle" />
+      <td className="spec-table__id"><ShortId value={spec.shortId} shared={shared} /></td>
       <th scope="row" className="spec-table__name">
         <a href={href} className="spec-table__link" title={title}>{title}</a>
       </th>
@@ -128,16 +131,15 @@ function SpecRow({ spec, href, onDelete, id, hidden, nested }) {
 // One initiative and, when it's expanded, its specs — a <tbody> each, so the group is one unit in
 // the table. The chevron and the title are sibling controls: a link can't hold a button, and a
 // keyboard or screen reader user needs to reach "open it" and "show what's in it" separately.
-function InitiativeGroup({ initiative, members, expanded, onToggle, href, specHref, onDelete }) {
+function InitiativeGroup({ initiative, members, expanded, onToggle, href, specHref, onDelete, sharedIds }) {
   const baseId = useId();
   const title = initiative.title || "Untitled initiative";
   const rowIds = members.map((s, i) => `${baseId}-${i}`);
   return (
     <tbody className="spec-table__group">
       <tr className="spec-table__initiative">
-        <th scope="row" className="spec-table__name">
-          <span className="spec-table__lead">
-            {members.length > 0 ? (
+        <td className="spec-table__toggle">
+          {members.length > 0 && (
               <IconButton
                 className="spec-table__chevron"
                 onClick={onToggle}
@@ -148,11 +150,11 @@ function InitiativeGroup({ initiative, members, expanded, onToggle, href, specHr
               >
                 <ChevronRight size={14} aria-hidden="true" />
               </IconButton>
-            ) : (
-              <span className="spec-table__chevron-space" aria-hidden="true" />
-            )}
-            <a href={href} className="spec-table__link" title={title}>{title}</a>
-          </span>
+          )}
+        </td>
+        <td className="spec-table__id"><ShortId value={initiative.shortId} shared={sharedIds.has(initiative.id)} /></td>
+        <th scope="row" className="spec-table__name">
+          <a href={href} className="spec-table__link" title={title}>{title}</a>
         </th>
         <Owner name={initiative.owner} />
         <td className="spec-table__count"><Meta>{members.length}</Meta></td>
@@ -161,7 +163,7 @@ function InitiativeGroup({ initiative, members, expanded, onToggle, href, specHr
         <td className="spec-table__actions" />
       </tr>
       {members.map((s, i) => (
-        <SpecRow key={s.id} id={rowIds[i]} hidden={!expanded} nested spec={s} href={specHref(s.id)} onDelete={onDelete} />
+        <SpecRow key={s.id} id={rowIds[i]} hidden={!expanded} nested spec={s} href={specHref(s.id)} onDelete={onDelete} shared={sharedIds.has(s.id)} />
       ))}
     </tbody>
   );
@@ -175,6 +177,8 @@ function Head({ first }) {
   return (
     <thead>
       <tr>
+        <th scope="col" className="spec-table__toggle"><span className="visually-hidden">Show specs</span></th>
+        <th scope="col" className="spec-table__id">ID</th>
         <th scope="col">{first}</th>
         <th scope="col" className="spec-table__owner">Owner</th>
         <th scope="col" className="spec-table__count">Specs</th>
@@ -191,7 +195,7 @@ function Head({ first }) {
 // same columns, then the specs that belong to none, then the done initiatives, folded away at the
 // foot until asked for. Renaming happens on the entity's own page, not here; a spec's initiative is
 // set from its own sidebar.
-export default function SpecsPage({ specs, initiatives, open, showDone, specsHref, specHref, initiativeHref, onCreateInitiative, onDelete }) {
+export default function SpecsPage({ specs, initiatives, open, showDone, specsHref, specHref, initiativeHref, onCreateInitiative, onDelete, sharedIds = new Set() }) {
   const doneListId = useId();
   const sortedInitiatives = [...(initiatives || [])].sort(byStatusThenRecency);
   const knownIds = new Set(sortedInitiatives.map((ini) => ini.id));
@@ -240,6 +244,7 @@ export default function SpecsPage({ specs, initiatives, open, showDone, specsHre
     onToggle: () => toggle(initiative.id),
     href: initiativeHref(initiative.id),
     specHref,
+    sharedIds,
     onDelete,
   });
 
@@ -283,7 +288,7 @@ export default function SpecsPage({ specs, initiatives, open, showDone, specsHre
             <table className="spec-table" aria-label="Specs not in an initiative">
               <Head first="Spec" />
               <tbody>
-                {loose.map((s) => <SpecRow key={s.id} spec={s} href={specHref(s.id)} onDelete={onDelete} />)}
+                {loose.map((s) => <SpecRow key={s.id} spec={s} href={specHref(s.id)} onDelete={onDelete} shared={sharedIds.has(s.id)} />)}
               </tbody>
             </table>
           </div>

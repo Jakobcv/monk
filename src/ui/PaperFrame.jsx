@@ -15,8 +15,10 @@ import { PageKind, PageTitle } from "./text";
 //   body and becomes a wrapping strip under the tabs. That's a container query on the frame in
 //   index.css, not a viewport media query: what matters is the room left once the app's sidebar has
 //   taken its share, not how wide the window is.
+// `idSlot` follows the kind in the eyebrow: the record's short ID, and — when a merge left that ID
+// on two records — the action that gives this one a new one.
 export default function PaperFrame({
-  breadcrumbs, kindIcon, kind, title, onTitleChange, titlePlaceholder,
+  breadcrumbs, kindIcon, kind, idSlot = null, title, onTitleChange, titlePlaceholder,
   tabs = null, activeTab, tabHref, rail, children,
 }) {
   return (
@@ -26,7 +28,7 @@ export default function PaperFrame({
           <Breadcrumbs items={breadcrumbs} />
         </div>
         <div className={tabs ? "paper-frame__head" : "paper-frame__head paper-frame__head--untabbed"}>
-          <PageKind icon={kindIcon}>{kind}</PageKind>
+          <PageKind icon={kindIcon}>{kind}{idSlot}</PageKind>
           <PageTitle value={title} onChange={onTitleChange} placeholder={titlePlaceholder} />
           {tabs && <PageTabs tabs={tabs} activeTab={activeTab} tabHref={tabHref} />}
         </div>

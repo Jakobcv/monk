@@ -7,6 +7,7 @@ import { blankSection, blankDocument, ensureFixedSections, isFixedSection } from
 import { blankSpec } from "./lib/specModel";
 import { blankInitiative, specsForInitiative, researchPlansForInitiative } from "./lib/initiativeModel";
 import { blankResearchPlan } from "./lib/researchPlanModel";
+import { assignShortIds, duplicateIds, freshShortId } from "./lib/shortIds";
 import { mockWorkspace } from "./lib/mockWorkspace";
 import { fsAccessSupported, getStoredConnection, permissionHandle, pickFolder, tryReuseHandle, reconnectHandle, clearStoredConnection } from "./lib/fsPersistence";
 import { describeChanges } from "./lib/diskLog";
@@ -690,6 +691,9 @@ export default function App() {
   const [retiredActivityIds, setRetiredActivityIds] = useState([]);
   const [initiatives, setInitiatives] = useState([]);
   const [researchPlans, setResearchPlans] = useState([]);
+  // Short IDs of deleted specs and research plans, so a number is never handed out twice
+  // (shortIds.js). Saved to retired-ids.md.
+  const [retiredShortIds, setRetiredShortIds] = useState([]);
   // Deletes happen immediately and report themselves here, with one chance to reverse — rather
   // than interrupting with a confirm dialog before every one. See ui/Toast.jsx.
   const [toast, setToast] = useState(null);
@@ -785,11 +789,15 @@ export default function App() {
         if (cancelled) return;
         bumpNextId(record.researchPlans.map((p) => p.board));
         setSections(ensureFixedSections(record.sections));
-        setSpecs(record.specs);
+        // IDs for anything that has none, in the same render as the load, so the skipped
+        // post-load save skips them too: they're written with the next real save.
+        const withIds = assignShortIds({ ...record, retired: record.retiredShortIds });
+        setSpecs(withIds.specs);
         setSignals(record.signals);
         setInsights(record.insights);
-        setInitiatives(record.initiatives);
-        setResearchPlans(record.researchPlans);
+        setInitiatives(withIds.initiatives);
+        setResearchPlans(withIds.researchPlans);
+        setRetiredShortIds(record.retiredShortIds || []);
         setRetiredActivityIds(record.retiredActivityIds);
         setWorkspaceDocs(record.docs || {});
         // A workspace that still had activities was migrated in memory. Write that now instead of
@@ -814,7 +822,27 @@ export default function App() {
     return () => { cancelled = true; };
   }, [phase, dirHandle]);
 
-  const workspace = useMemo(() => ({ sections, specs, signals, insights, initiatives, researchPlans, retiredActivityIds, docs: workspaceDocs }), [sections, specs, signals, insights, initiatives, researchPlans, retiredActivityIds, workspaceDocs]);
+  const workspace = useMemo(() => ({ sections, specs, signals, insights, initiatives, researchPlans, retiredActivityIds, retiredShortIds, docs: workspaceDocs }), [sections, specs, signals, insights, initiatives, researchPlans, retiredActivityIds, retiredShortIds, workspaceDocs]);
+
+  // A record made in the app — or written by an agent and picked up by the watcher — arrives
+  // without a short ID and gets one here, on the render after. The pass only ever adds, so it
+  // settles at once (shortIds.js).
+  useEffect(() => {
+    const next = assignShortIds({ specs, researchPlans, initiatives, retired: retiredShortIds });
+    if (!next.changed) return;
+    setSpecs(next.specs);
+    setResearchPlans(next.researchPlans);
+    setInitiatives(next.initiatives);
+  }, [specs, researchPlans, initiatives, retiredShortIds]);
+  const sharedIds = useMemo(() => duplicateIds({ specs, researchPlans, initiatives }), [specs, researchPlans, initiatives]);
+  // The fix for a duplicate: this record takes the next free ID for its kind.
+  const giveNewShortId = (kind, id) => {
+    const shortId = freshShortId(kind, { initiatives, specs, researchPlans, retired: retiredShortIds });
+    const set = { initiative: setInitiatives, spec: setSpecs, plan: setResearchPlans }[kind];
+    set((prev) => prev.map((r) => (r.id === id ? { ...r, shortId, updatedAt: Date.now() } : r)));
+  };
+  const retireShortId = (shortId) => { if (shortId) setRetiredShortIds((prev) => (prev.includes(shortId) ? prev : [...prev, shortId])); };
+  const unretireShortId = (shortId) => setRetiredShortIds((prev) => prev.filter((x) => x !== shortId));
 
   // The one case where yanking the page out from under someone would be wrong: they are typing
   // into the very thing that just changed. Then we don't remount — we say so and let them choose.
@@ -905,6 +933,7 @@ export default function App() {
     setRetiredActivityIds([]);
     setInitiatives([]);
     setResearchPlans([]);
+    setRetiredShortIds([]);
     setWorkspaceDocs({});
     setDiskLog([]);
     setDiskLogOpen(false);
@@ -1062,11 +1091,13 @@ export default function App() {
           skipNextSaveRef.current = true;
           bumpNextId(record.researchPlans.map((p) => p.board));
           setSections(ensureFixedSections(record.sections));
-          setSpecs(record.specs);
+          const withIds = assignShortIds({ ...record, retired: record.retiredShortIds });
+          setSpecs(withIds.specs);
           setSignals(record.signals);
           setInsights(record.insights);
-          setInitiatives(record.initiatives);
-          setResearchPlans(record.researchPlans);
+          setInitiatives(withIds.initiatives);
+          setResearchPlans(withIds.researchPlans);
+          setRetiredShortIds(record.retiredShortIds || []);
           setRetiredActivityIds(record.retiredActivityIds);
           setWorkspaceDocs(record.docs || {});
           setSaveStatus("saved");
@@ -1238,10 +1269,11 @@ export default function App() {
     const spec = specs[index];
     if (!spec) return;
     setSpecs((prev) => prev.filter((s) => s.id !== id));
+    retireShortId(spec.shortId);
     if (isSpecRoute && route.id === id) goToSpecs();
     showToast(
       `Deleted "${spec.title || "Untitled spec"}"`,
-      () => setSpecs((prev) => insertAt(prev, index, spec))
+      () => { setSpecs((prev) => insertAt(prev, index, spec)); unretireShortId(spec.shortId); }
     );
   };
 
@@ -1267,6 +1299,7 @@ export default function App() {
     const detachedPlanIds = researchPlans.filter((p) => p.initiativeId === id).map((p) => p.id);
 
     setInitiatives((prev) => prev.filter((i) => i.id !== id));
+    retireShortId(initiative.shortId);
     setSpecs((prev) => prev.map((s) => (s.initiativeId === id ? { ...s, initiativeId: null, updatedAt: Date.now() } : s)));
     setResearchPlans((prev) => prev.map((p) => (p.initiativeId === id ? { ...p, initiativeId: null, updatedAt: Date.now() } : p)));
     if (route.name === "initiative" && route.id === id) goToSpecs();
@@ -1274,6 +1307,7 @@ export default function App() {
     const kept = detachedIds.length ? ` — ${detachedIds.length} spec${detachedIds.length === 1 ? "" : "s"} kept` : "";
     showToast(`Deleted "${initiative.title || "Untitled initiative"}"${kept}`, () => {
       setInitiatives((prev) => insertAt(prev, index, initiative));
+      unretireShortId(initiative.shortId);
       setSpecs((prev) => prev.map((s) => (detachedIds.includes(s.id) ? { ...s, initiativeId: id } : s)));
       setResearchPlans((prev) => prev.map((p) => (detachedPlanIds.includes(p.id) ? { ...p, initiativeId: id } : p)));
     });
@@ -1312,6 +1346,7 @@ export default function App() {
     const onBoard = (plan.board?.signals || []).length;
 
     setResearchPlans((prev) => prev.filter((p) => p.id !== id));
+    retireShortId(plan.shortId);
     setSpecs((prev) => prev.map((s) => (
       (s.researchPlanIds || []).includes(id) ? { ...s, researchPlanIds: s.researchPlanIds.filter((x) => x !== id), updatedAt: Date.now() } : s
     )));
@@ -1320,6 +1355,7 @@ export default function App() {
     const kept = onBoard ? ` — its ${onBoard} signal${onBoard === 1 ? "" : "s"} stay in the repository` : "";
     showToast(`Deleted "${plan.title || "Untitled research plan"}"${kept}`, () => {
       setResearchPlans((prev) => insertAt(prev, index, plan));
+      unretireShortId(plan.shortId);
       setSpecs((prev) => prev.map((s) => (
         citingSpecIds.includes(s.id) && !(s.researchPlanIds || []).includes(id) ? { ...s, researchPlanIds: [...(s.researchPlanIds || []), id] } : s
       )));
@@ -1778,6 +1814,8 @@ export default function App() {
                 <SpecPage
                   key={revKey(activeSpec.id)}
                   spec={activeSpec}
+                  idShared={sharedIds.has(activeSpec.id)}
+                  onNewShortId={() => giveNewShortId("spec", activeSpec.id)}
                   initiatives={initiatives}
                   researchPlans={researchPlans}
                   researchPlanHref={hrefResearchPlan}
@@ -1838,6 +1876,7 @@ export default function App() {
                 initiativeHref={hrefInitiative}
                 onCreateInitiative={createInitiative}
                 onDelete={deleteSpec}
+                sharedIds={sharedIds}
               />
             ) : route.name === "initiative" ? (
               !activeInitiative ? (
@@ -1860,6 +1899,9 @@ export default function App() {
                   onCreateSpec={() => createSpec(activeInitiative.id)}
                   onDetachSpec={(specId) => updateSpec(specId, { initiativeId: null })}
                   breadcrumbs={breadcrumbs}
+                  idShared={sharedIds.has(activeInitiative.id)}
+                  onNewShortId={() => giveNewShortId("initiative", activeInitiative.id)}
+                  sharedIds={sharedIds}
                 />
               )
             ) : route.name === "research" ? (
@@ -1872,6 +1914,7 @@ export default function App() {
                 onNavigate={(q, kind) => window.history.replaceState(null, "", hrefResearch(q, kind))}
                 boardCardHref={hrefResearchPlanAnalysis}
                 researchPlans={researchPlans}
+                sharedIds={sharedIds}
                 researchPlanHref={hrefResearchPlan}
                 onCreateResearchPlan={() => createResearchPlan()}
                 onCreateSignal={createSignal}
@@ -1888,6 +1931,8 @@ export default function App() {
                 <ResearchPlanPage
                   key={revKey(activeResearchPlan.id)}
                   plan={activeResearchPlan}
+                  idShared={sharedIds.has(activeResearchPlan.id)}
+                  onNewShortId={() => giveNewShortId("plan", activeResearchPlan.id)}
                   signals={signals}
                   insights={insights}
                   specs={specs}

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { IdSlot } from "./ui/ShortId";
 import { ChevronDown, FlaskConical, Trash2 } from "lucide-react";
 import { INK, INK_FAINT, SIZE, SPACE, SPEC_STATUS_COLOR } from "./lib/theme";
 import { RESEARCH_PLAN_STATUS_OPTIONS, RESEARCH_PLAN_STATUS_COLOR, specsForPlan } from "./lib/researchPlanModel";
@@ -47,6 +48,7 @@ export default function ResearchPlanPage({
   onCreateSpec, onUpdateSpec,
   specHref, insightHref, breadcrumbs,
   sections, docHref, onUploadSourceFile, onRemoveSourceFile, onOpenSourceFile,
+  idShared = false, onNewShortId,
 }) {
   const [title, setTitle] = useState(plan.title);
   const [status, setStatus] = useState(plan.status);
@@ -139,7 +141,7 @@ export default function ResearchPlanPage({
   return (
     <PaperFrame
       breadcrumbs={breadcrumbs}
-      kindIcon={FlaskConical} kind="Research plan"
+      kindIcon={FlaskConical} kind="Research plan" idSlot={<IdSlot value={plan.shortId} shared={idShared} onNewId={onNewShortId} />}
       title={title} onTitleChange={(e) => setTitle(e.target.value)} titlePlaceholder="Untitled research plan"
       tabs={TABS} activeTab={activeTab} tabHref={tabHref}
       rail={rail}
