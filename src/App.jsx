@@ -698,6 +698,23 @@ export default function App() {
   const [diskLog, setDiskLog] = useState([]);
   const [diskLogOpen, setDiskLogOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // The narrow-screen sidebar drawer (see Sidebar.jsx). Only the header's menu control opens it,
+  // and that control only shows below 768px.
+  const [navOpen, setNavOpen] = useState(false);
+  // Put away by going somewhere (any hash change — making a document opens it too), and by the
+  // window growing past the width where the sidebar sits beside the page again, so a widened
+  // window is never left dimmed behind a drawer that is no longer one.
+  useEffect(() => {
+    if (!navOpen) return undefined;
+    const close = () => setNavOpen(false);
+    const wide = window.matchMedia("(min-width: 768px)");
+    window.addEventListener("hashchange", close);
+    wide.addEventListener("change", close);
+    return () => {
+      window.removeEventListener("hashchange", close);
+      wide.removeEventListener("change", close);
+    };
+  }, [navOpen]);
   // Read once, from this browser profile. main.jsx has already applied it to the document.
   const [themeMode, setThemeMode] = useState(readThemeMode);
   const [readingType, setReadingType] = useState(readReadingType);
@@ -1682,6 +1699,8 @@ export default function App() {
       {/* In the demo nothing is saved and nothing outside the tab writes, so there is no save
           status and no disk log to show — the demo bar says what is true instead. */}
       <Header
+        onOpenNav={() => setNavOpen(true)}
+        navOpen={navOpen}
         saveStatus={demo ? null : saveStatus}
         onRetrySave={retrySave}
         onOpenSettings={() => setSettingsOpen(true)}
@@ -1716,6 +1735,8 @@ export default function App() {
           onDeleteSection={deleteSection}
           onCreateDocument={createDocument}
           onDeleteDocument={deleteDocument}
+          open={navOpen}
+          onClose={() => setNavOpen(false)}
         />
         <div style={{ flex: 1, minWidth: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           {/* SpecPage builds its own header (breadcrumbs + left-aligned title + full-width tab
