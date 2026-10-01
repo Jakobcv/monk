@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { BookOpen, Layers, FileText, Plus, Trash2, Library, ShieldCheck, Palette, PenLine } from "lucide-react";
-import { font, INK_FAINT, BORDER, BG_APP, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
+import { font, INK_FAINT, BORDER, SIZE, WEIGHT, SPACE, RADIUS } from "./lib/theme";
 import { FIXED_SECTIONS, isFixedSection } from "./lib/documentModel";
 import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
+import useModalFocus from "./ui/useModalFocus";
 
 // Icon + one-line tooltip for each fixed section — purely presentational, keyed by id.
 const FIXED_SECTION_META = {
@@ -39,7 +40,14 @@ const sectionLabelStyle = {
 // stays free of React so storage and the tests can import it.
 const WORKSPACE_DOC_ICONS = { "design-system": Palette, "writing-guide": PenLine };
 
-export default function Sidebar({ sections, workspaceDocs = [], activeView, researchHref, specsHref, docHref, onCreateSection, onRenameSection, onDeleteSection, onCreateDocument, onDeleteDocument }) {
+// Below 768px the same sidebar is a drawer: off-screen until the header's menu control opens it
+// (`open`), over the dimmed page, and modal while it's out — see .sidebar in index.css. It's one
+// element in both places rather than a second copy in a drawer, so the two can't drift apart.
+// Opening it only ever happens on a narrow screen, so `open` alone says whether it's a drawer now.
+export default function Sidebar({ sections, workspaceDocs = [], activeView, researchHref, specsHref, docHref, onCreateSection, onRenameSection, onDeleteSection, onCreateDocument, onDeleteDocument, open = false, onClose }) {
+  const panelRef = useRef(null);
+  // Escape in the rename field cancels the rename, not the drawer.
+  useModalFocus(panelRef, onClose, { active: open, escapeInFields: false });
   const [editingSectionId, setEditingSectionId] = useState(null);
   const [draftName, setDraftName] = useState("");
 
@@ -57,11 +65,24 @@ export default function Sidebar({ sections, workspaceDocs = [], activeView, rese
   // (see App.jsx's deleteSection/deleteDocument).
 
   return (
-    <div style={{
-      width: "230px", flexShrink: 0, height: "100%", overflowY: "auto", overflowX: "hidden", boxSizing: "border-box",
-      backgroundColor: BG_APP, borderRight: `1px solid ${BORDER}`, padding: `${SPACE.lg} ${SPACE.base}`,
-      display: "flex", flexDirection: "column", gap: SPACE.lg,
-    }}>
+    <>
+    {/* Closes on click, not pointerdown: gone at pointerdown, the rest of the tap would land on the
+        page beneath — taking focus from the menu control it was just handed back to, or following
+        whatever link was under the finger. */}
+    {open && <div className="sidebar-backdrop" aria-hidden="true" onClick={onClose} />}
+    <div
+      ref={panelRef}
+      id="sidebar"
+      className="sidebar"
+      data-open={open || undefined}
+      role={open ? "dialog" : undefined}
+      aria-modal={open || undefined}
+      aria-label={open ? "Menu" : undefined}
+      tabIndex={open ? -1 : undefined}
+      // Choosing a place puts the drawer away — including the page already open, which changes
+      // no hash and so wouldn't close it on its own.
+      onClick={open ? (e) => { if (e.target.closest("a[href]")) onClose(); } : undefined}
+    >
       <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
         <a
           className="nav-item"
@@ -104,7 +125,7 @@ export default function Sidebar({ sections, workspaceDocs = [], activeView, rese
 
       {/* overflowX hidden: the invisible hit-area pseudos on the flush-right trash buttons (see
           .icon-btn::after) otherwise count as scrollable overflow and summon a horizontal bar. */}
-      <div style={{ display: "flex", flexDirection: "column", gap: SPACE.lg, flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: SPACE.lg, flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain" }}>
         {orderedSections.map((s) => {
           const fixed = isFixedSection(s.id);
           const FixedIcon = FIXED_SECTION_META[s.id]?.icon;
@@ -183,5 +204,6 @@ export default function Sidebar({ sections, workspaceDocs = [], activeView, rese
         <Plus size={16} /> New section
       </Button>
     </div>
+    </>
   );
 }

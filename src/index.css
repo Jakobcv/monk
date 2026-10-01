@@ -2395,6 +2395,76 @@ select.token-field {
 }
 
 /* ---------------------------------------------------------------------------
+   Sidebar (Sidebar.jsx). Beside the page from 768px up. Below that there's no
+   width at which it fits beside a phone-sized page and still shows a name, so
+   it becomes a drawer from the left over the dimmed page, opened by the
+   header's menu control (.nav-toggle). Closed, it's visibility: hidden, which
+   takes it out of the tab order and away from screen readers. It slides in
+   as a keyframe animation that runs only when it opens, and puts itself away
+   at once: a transition would also play whenever a window was resized across
+   768px, sliding away a drawer nobody had opened.
+   --------------------------------------------------------------------------- */
+.sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-base);
+  background-color: var(--bg-app);
+  border-right: 1px solid var(--border);
+}
+.sidebar-backdrop,
+.nav-toggle {
+  display: none;
+}
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 120;
+    width: min(280px, 85vw);
+    height: auto;
+    padding:
+      calc(var(--space-lg) + env(safe-area-inset-top))
+      var(--space-base)
+      calc(var(--space-lg) + env(safe-area-inset-bottom))
+      calc(var(--space-base) + env(safe-area-inset-left));
+    overscroll-behavior: contain;
+    box-shadow: var(--shadow-pop);
+    visibility: hidden;
+  }
+  .sidebar[data-open] {
+    visibility: visible;
+    animation: sidebar-in var(--motion-base) var(--ease-entrance);
+  }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 110;
+    background: var(--backdrop);
+    touch-action: none;
+    animation: modal-fade var(--motion-base) var(--ease);
+  }
+  .nav-toggle {
+    display: inline-flex;
+    --hit: 44px;
+  }
+}
+@keyframes sidebar-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Sidebar nav item (Research Repository / Specs / each document). Soft grey at
    rest, a grey wash + full ink on hover, and the current page a raised white
    pill. Layout comes from navItemStyle in Sidebar.jsx.

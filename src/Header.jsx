@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon } from "lucide-react";
+import { Menu, Settings as SettingsIcon } from "lucide-react";
 import { font, INK, INK_SOFT, BORDER, SIZE, WEIGHT, SPACE, SAVE_STATUS_COLOR, SAVE_STATUS_LABEL } from "./lib/theme";
 import { Wordmark } from "./ui/text";
 import IconButton from "./ui/IconButton";
@@ -9,7 +9,9 @@ import DiskChanges from "./DiskChanges";
 //
 // The folder controls used to live here as a button and an icon, which is what made a header of
 // three things read as a toolbar. They are in Settings now, one home each.
-export default function Header({ saveStatus, onRetrySave, onOpenSettings, diskLog = [], diskLogOpen = false, onDiskLogOpenChange, diskLogHref }) {
+// Below 768px the sidebar is a drawer, and `onOpenNav` puts its menu control at the left of the row.
+// The control is in the markup at every width and only shown on a narrow screen (.nav-toggle).
+export default function Header({ onOpenNav, navOpen = false, saveStatus, onRetrySave, onOpenSettings, diskLog = [], diskLogOpen = false, onDiskLogOpenChange, diskLogHref }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -17,9 +19,16 @@ export default function Header({ saveStatus, onRetrySave, onOpenSettings, diskLo
     }}>
       {/* Same wordmark as the start page, just smaller — the shared definition in ui/text.js
           overrides .btn's own weight so the two can't drift apart again. */}
-      <Wordmark as="a" size={SIZE.md} href="#" className="btn btn--sm btn--subtle" style={{ marginLeft: "-6px", textDecoration: "none" }}>
-        monk
-      </Wordmark>
+      <div style={{ display: "flex", alignItems: "center", gap: SPACE.base, minWidth: 0 }}>
+        {onOpenNav && (
+          <IconButton className="nav-toggle" onClick={onOpenNav} aria-label="Menu" aria-expanded={navOpen} aria-controls="sidebar" style={{ color: INK_SOFT, marginLeft: "-4px" }}>
+            <Menu size={16} />
+          </IconButton>
+        )}
+        <Wordmark as="a" size={SIZE.md} href="#" className="btn btn--sm btn--subtle" style={{ marginLeft: "-6px", textDecoration: "none" }}>
+          monk
+        </Wordmark>
+      </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: SPACE.xl }}>
         <DiskChanges log={diskLog} open={diskLogOpen} onOpenChange={onDiskLogOpenChange} hrefFor={diskLogHref} />
