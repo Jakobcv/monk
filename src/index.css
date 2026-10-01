@@ -350,8 +350,16 @@ body {
   width: max-content;
   margin: 16px 0 0 auto;
 }
+/* The key chip nests in the button's corner: its right inset matches its top and bottom ones (border
+   + --space-md), and its radius is the button's less that inset, so the two corners are
+   concentric. The auto margin pins it to the right edge — the buttons share a width, and the
+   narrower label would otherwise be centred with the chip floating in the slack. */
 .dialog-actions .btn {
-  padding: var(--space-md) var(--space-lg) var(--space-md) var(--space-xl);
+  padding: var(--space-md) var(--space-md) var(--space-md) var(--space-xl);
+}
+.dialog-actions .kbd {
+  margin-left: auto;
+  border-radius: calc(var(--radius-sm) - var(--space-md) - 1px);
 }
 
 /* A key chip inside a button. Tinted from currentColor so the same class works on a light
@@ -3155,7 +3163,8 @@ select.token-field {
 .way-in--primary {
   color: var(--ink);
 }
-/* Concentric with the button: its radius is the button's less the 9px inset between them. */
+/* Concentric with the button: its radius is the button's less the 10px between them — the 9px
+   padding and the 1px border. */
 .way-in__chip {
   position: relative;
   display: flex;
@@ -3166,7 +3175,7 @@ select.token-field {
   height: 32px;
   box-sizing: border-box;
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius-lg) - 9px);
+  border-radius: calc(var(--radius-lg) - 10px);
   background: var(--bg);
   color: var(--ink-faint);
   transition: color var(--motion-fast) var(--ease);
