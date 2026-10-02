@@ -2313,11 +2313,13 @@ select.token-field {
 }
 
 /* ---------------------------------------------------------------------------
-   The design system's page, open (WorkspaceDocPage `open`). No sheet: the
-   specimens sit straight on a plain page — white in light, the surface tone in
-   dark — at a wider measure than the sheet's, so a row of colour chips has room.
-   It keeps the .paper-sheet class for what's inside (reading type on prose, the
-   paper-sized "+ Add" rows) and drops only the sheet itself.
+   An open page (WorkspaceDocPage `open`): the design system and the writing
+   guide. No sheet: the content sits straight on a plain page — white in light,
+   the surface tone in dark — at a wider measure than the sheet's, so a row of
+   colour chips or a pair of examples has room. It keeps the .paper-sheet class
+   for what's inside (reading type on prose, the paper-sized "+ Add" rows) and
+   drops only the sheet itself. The .open-* classes are the page's shared
+   rhythm — title, lede, sections — and .ds-* below are the design system's own.
    --------------------------------------------------------------------------- */
 .page--open {
   background: var(--bg);
@@ -2335,41 +2337,41 @@ select.token-field {
   }
 }
 
-.ds {
+.open-page {
   display: flex;
   flex-direction: column;
   gap: 56px;
 }
 
-/* The name, set large as the page's own title, with its one-line description as a lede. After
-   .paper-sheet .prose-field so it wins at equal specificity. */
-.ds-hero {
+/* The page's own title, set large, with a lede under it (the design system's name and description,
+   the guide's title and intro). After .paper-sheet .prose-field so it wins at equal specificity. */
+.open-hero {
   gap: 8px;
 }
-.paper-sheet .ds-name {
-  font-size: 44px;
+.paper-sheet .open-title {
+  font-size: clamp(30px, 6vw, 44px);
   font-weight: 650;
   line-height: 1.15;
   letter-spacing: -0.025em;
 }
-.paper-sheet .ds-lede {
-  font-size: 19px;
+.paper-sheet .open-lede {
+  font-size: clamp(17px, 3.5vw, 19px);
   line-height: 1.5;
   color: var(--ink-soft);
 }
 
-/* Each section opens on a hairline and a real heading, with its token count beside it. */
-.ds-section {
+/* Each section opens on a hairline and a real heading, with a count beside it where it has one. */
+.open-section {
   gap: 20px;
   padding-top: 28px;
   border-top: 1px solid var(--border);
 }
-.ds-section__head {
+.open-section__head {
   display: flex;
   align-items: baseline;
   gap: 10px;
 }
-.ds-h2 {
+.open-h2 {
   margin: 0;
   font-family: var(--font);
   font-size: 22px;
@@ -2379,11 +2381,113 @@ select.token-field {
   color: var(--ink);
   transition: color var(--motion-fast) var(--ease);
 }
-.ds-count {
+/* A heading you can edit (the writing guide's sections): the field's hover and focus box, at the
+   heading's size, keeping the field's bleed so the text doesn't move when the box appears. */
+.token-field.open-h2 {
+  margin: 0 -6px;
+  width: auto;
+}
+.open-count {
   font-family: var(--font);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--ink-faint);
+}
+
+/* ✗/✓ examples (ui/examplePairs.js): panels side by side, the bad one first, each on the tint of
+   the Do's and Don'ts panels and named by its mark and a word as well as its colour. A set wraps
+   to a stack when its column is too narrow for two. */
+.md-examples {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: 12px;
+  margin: 6px 0 10px;
+  cursor: text;
+}
+.md-example {
+  --tone: var(--accent-action);
+  padding: 12px 14px 14px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--tone) 7%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 22%, transparent);
+  font-size: 0.94em;
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: normal;
+}
+.md-example--bad {
+  --tone: var(--danger);
+}
+.md-example__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink-soft);
+}
+.md-example__mark {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--tone);
+  color: var(--bg);
+  font-size: 11px;
+  line-height: 1;
+}
+.md-example__gap {
+  height: 0.6em;
+}
+.md-example__line--li {
+  padding-left: 0.9em;
+  text-indent: -0.9em;
+}
+.md-example .md-code {
+  overflow-wrap: anywhere;
+}
+
+/* Hanging lists. On a sheet a list's markers sit inside the text column, because the paper's edge
+   leaves no room outside it. An open page has a margin, so from 900px up a list's numbers and
+   bullets hang in it and the items' text lines up with the paragraphs around them — and the
+   "+ Add" rows that end a section hang their icon the same way. Below 900px the margin is gone
+   (.paper-sheet--open drops to 4px) and lists keep their markers inside.
+
+   CodeMirror clips anything drawn left of its own box, so the markers can't simply be pulled out
+   with a negative indent. Instead the editor reaches one gutter into the margin, and every line
+   that isn't a list item is padded back by the same gutter: a list item's own padding (one gutter
+   per level, LiveMarkdown's theme) then puts a top-level marker in the margin and its text on the
+   column. Selectors are a step more specific than the theme's, which is injected after this file. */
+@media (min-width: 900px) {
+  .open-page .live-md .cm-editor {
+    margin-left: calc(-1 * var(--md-mark-w));
+  }
+  .open-page .live-md .cm-line:not(.md-li):not(.md-li-cont) {
+    padding-left: var(--md-mark-w);
+  }
+  .open-page .live-md .cm-line.md-quote-line {
+    padding-left: calc(2 * var(--md-mark-w));
+  }
+  .open-page .live-md .cm-line.md-codeblock {
+    padding-left: calc(var(--md-mark-w) + 8px);
+  }
+  .open-page .live-md .md-examples {
+    margin-left: var(--md-mark-w);
+  }
+  .open-page .open-section > div > .paper-btn {
+    margin-left: calc(-10px - var(--paper-marker) - 8px);
+  }
+}
+
+/* A field's name opening a paragraph of the guide — what a person scans a section for. */
+.open-page .md-field {
+  font-family: var(--font);
+  font-weight: 600;
+  color: var(--ink);
 }
 
 /* A token's name on a tile or row: the label it goes by, so a step heavier than its value. */
@@ -2608,7 +2712,7 @@ select.token-field {
 }
 
 /* Prose keeps a reading measure, even though the page is wider than a sheet. */
-.ds .prose-field.live-md {
+.open-page .prose-field.live-md {
   max-width: 720px;
 }
 
