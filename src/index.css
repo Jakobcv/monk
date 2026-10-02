@@ -2312,30 +2312,144 @@ select.token-field {
   color: var(--ink);
 }
 
-/* The design system's name, set as the sheet's title. After .paper-sheet
-   .prose-field so it wins at equal specificity. */
-.paper-sheet .ds-name {
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
+/* ---------------------------------------------------------------------------
+   The design system's page, open (WorkspaceDocPage `open`). No sheet: the
+   specimens sit straight on a plain page — white in light, the surface tone in
+   dark — at a wider measure than the sheet's, so a row of colour chips has room.
+   It keeps the .paper-sheet class for what's inside (reading type on prose, the
+   paper-sized "+ Add" rows) and drops only the sheet itself.
+   --------------------------------------------------------------------------- */
+.page--open {
+  background: var(--bg);
+}
+.paper-sheet--open {
+  max-width: 1040px;
+  padding: 16px 56px 96px;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+@media (max-width: 900px) {
+  .paper-sheet--open {
+    padding: 8px 4px 64px;
+  }
 }
 
-/* Token previews, each in the row's marker gutter and set on the first line of
-   the row's 14px/1.5 field (whose text centre sits 13.5px down). */
-.ds-swatch {
+.ds {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+/* The name, set large as the page's own title, with its one-line description as a lede. After
+   .paper-sheet .prose-field so it wins at equal specificity. */
+.ds-hero {
+  gap: 8px;
+}
+.paper-sheet .ds-name {
+  font-size: 44px;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+.paper-sheet .ds-lede {
+  font-size: 19px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* Each section opens on a hairline and a real heading, with its token count beside it. */
+.ds-section {
+  gap: 20px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+.ds-section__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.ds-h2 {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  transition: color var(--motion-fast) var(--ease);
+}
+.ds-count {
+  font-family: var(--font);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+/* A token's name on a tile or row: the label it goes by, so a step heavier than its value. */
+.token-field.ds-token-name {
+  font-weight: 600;
+}
+.ds-tile__line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.ds-tile__line > .token-field {
+  flex: 1 1 auto;
+  width: auto;
+  margin-right: 0;
+}
+
+/* ----- Tiles: colours, radii, components ----------------------------------- */
+.ds-grid {
+  display: grid;
+  gap: 24px 20px;
+}
+.ds-grid--colors {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.ds-grid--shapes {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.ds-grid--components {
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+}
+.ds-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.ds-tile__meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ds-tile__meta > .token-field--mono {
+  color: var(--ink-soft);
+}
+
+/* The colour itself, large enough to judge. The picker is laid over it, so the
+   chip is what you click; a hairline keeps a colour close to the page's own
+   from dissolving into it. */
+.ds-chip {
   position: relative;
   display: block;
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  margin-top: 5px;
-  border-radius: var(--radius-xs);
+  height: 112px;
+  border-radius: var(--radius-sm);
   box-shadow: var(--shadow-inset);
   overflow: hidden;
+  transition: transform var(--motion-fast) var(--ease);
+}
+@media (hover: hover) {
+  .ds-chip:hover {
+    transform: translateY(-2px);
+  }
 }
 /* No valid colour yet: an empty chip with a hairline slash. */
-.ds-swatch[data-empty] {
+.ds-chip[data-empty] {
   background: linear-gradient(
     to top right,
     transparent calc(50% - 0.75px),
@@ -2343,7 +2457,7 @@ select.token-field {
     transparent calc(50% + 0.75px)
   );
 }
-.ds-swatch input[type="color"] {
+.ds-chip input[type="color"] {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2353,51 +2467,291 @@ select.token-field {
   opacity: 0;
   cursor: pointer;
 }
-.ds-swatch:focus-within {
+.ds-chip:focus-within {
   outline: 2px solid var(--accent-insight);
   outline-offset: 2px;
 }
-.ds-aa {
-  display: block;
-  padding-top: 6px;
-  font-size: 15px;
-  line-height: 1;
-  color: var(--ink-soft);
-  white-space: nowrap;
+
+/* A radius, drawn on a tile the same height as a colour chip so the two grids
+   share a rhythm. */
+.ds-shape {
+  display: grid;
+  place-items: center;
+  height: 112px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  box-shadow: var(--shadow-inset);
 }
-.ds-length {
+.ds-shape__box {
   display: block;
-  height: 6px;
-  margin-top: 10px;
-  border-radius: 1px;
-  background: var(--ink-soft);
-}
-/* One corner of a box, drawn at the token's radius. */
-.ds-radius {
-  display: block;
-  width: 14px;
-  height: 14px;
-  margin-top: 6px;
+  width: 64px;
+  height: 64px;
   box-sizing: border-box;
-  border-top: 1.5px solid var(--ink-soft);
-  border-right: 1.5px solid var(--ink-soft);
+  border: 1.5px solid var(--ink-soft);
+  background: color-mix(in srgb, var(--ink-soft) 10%, transparent);
 }
-/* A list bullet for 16px paper prose; the component rows move it up to 14px. */
-.ds-bullet {
-  display: block;
-  width: 4px;
-  height: 4px;
-  margin-top: 15px;
-  border-radius: 50%;
-  background: var(--ink-soft);
+
+/* The tile that ends a grid: the next token, not yet made. */
+.ds-add-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 112px;
+  align-self: start;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    color var(--motion-fast) var(--ease),
+    background-color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease);
 }
-.ds-specimen {
-  margin-top: 8px;
+.ds-add-tile:hover {
+  color: var(--ink);
+  border-color: var(--ink-faint);
+  background: var(--bg-hover);
+}
+.ds-add-tile:focus-visible {
+  outline: 2px solid var(--accent-insight);
+  outline-offset: 2px;
+}
+.ds-grid--components > .ds-add-tile {
+  min-height: 180px;
+}
+
+/* ----- Typography --------------------------------------------------------- */
+.ds-type-list {
+  display: flex;
+  flex-direction: column;
+}
+.ds-type {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  column-gap: 24px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ds-type:first-child {
+  padding-top: 0;
+}
+.ds-type__aa {
+  font-size: 48px;
+  line-height: 1;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
+.ds-type__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.ds-specimen {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ds-type__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+.ds-labeled {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ds-labeled__label {
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--ink-soft);
+  padding-bottom: 1px;
+}
+@media (max-width: 600px) {
+  .ds-type {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ds-type__aa {
+    display: none;
+  }
+}
+
+/* ----- Spacing: each step as the gap between two blocks, at its true size ---- */
+.ds-gap {
+  display: flex;
+  justify-content: center;
+}
+.ds-gap__block {
+  width: 36px;
+  height: 56px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ink-soft) 22%, transparent);
+}
+.ds-gap__space {
+  height: 56px;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--accent-insight) 22%, transparent);
+  box-shadow:
+    inset 1px 0 0 var(--accent-insight),
+    inset -1px 0 0 var(--accent-insight);
+}
+
+/* Prose keeps a reading measure, even though the page is wider than a sheet. */
+.ds .prose-field.live-md {
+  max-width: 720px;
+}
+
+/* ----- Components: a live preview over its properties ----------------------- */
+.ds-component {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 1px var(--border-strong);
+  overflow: hidden;
+}
+/* A dotted stage, so a component whose fill matches the page still shows its edge. */
+.ds-component__stage {
+  display: grid;
+  place-items: center;
+  min-height: 140px;
+  padding: 24px;
+  background-color: var(--bg-hover);
+  background-image: radial-gradient(var(--border-strong) 1px, transparent 1.2px);
+  background-size: 14px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.ds-component__preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.06),
+    0 1px 3px rgb(0 0 0 / 0.08);
+}
+.ds-component__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px 12px;
+  min-width: 0;
+}
+.ds-props {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ds-prop {
+  display: grid;
+  grid-template-columns: minmax(0, 156px) minmax(0, 1fr) auto;
+  column-gap: 10px;
+  align-items: center;
+}
+.ds-prop__value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ds-prop__value > .token-field {
+  flex: 1 1 auto;
+  width: auto;
+}
+.ds-dot {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: var(--shadow-inset);
+}
+
+/* ----- Do's and Don'ts: side by side, each on its own tint ----------------- */
+.ds-dos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 20px;
+}
+.ds-dos__panel {
+  --tone: var(--accent-action);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 20px 14px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--tone) 7%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 22%, transparent);
+}
+.ds-dos__panel[data-kind="dont"] {
+  --tone: var(--danger);
+}
+.ds-dos__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.ds-dos__badge {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--tone);
+  color: var(--bg);
+}
+.ds-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ds-rule {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  column-gap: 10px;
+  align-items: start;
+}
+.ds-rule__icon {
+  margin-top: 8px;
+  color: var(--tone);
+}
+.ds-rule .icon-btn {
+  margin-top: 2px;
+}
+.ds-dos .paper-btn {
+  grid-template-columns: 16px auto;
+  column-gap: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-chip {
+    transition: none;
+  }
+  .ds-chip:hover {
+    transform: none;
+  }
+}
+
 .ds-note {
   margin: 0;
   font-family: var(--font);
