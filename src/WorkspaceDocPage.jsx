@@ -22,16 +22,14 @@ import SectionMap from "./ui/SectionMap";
 // A format with a structured editor (`doc.editor`) opens in it, with a switch to the raw markdown
 // beside it — the escape hatch for anything the editor doesn't do, and the view a file lands in
 // when it uses something the editor can't represent without rewriting it.
-// `sections: true` puts the editor on the sheet's own rhythm (.paper-sheet--sections, the 32px
-// between two sections every other sheet uses) rather than leaving it to space itself. The design
-// system's editor spaces its own groups with rules, so it opts out.
-// `open: true` takes the sheet away: the editor sits straight on a plain page (white in light),
-// at a wider measure. The design system is a set of specimens to look at — colour chips, type at
-// size, component previews — and a sheet of paper around them made it read as a form. Only the
-// editor view; its Markdown view is still writing, so it keeps the sheet.
+// `open: true` takes the sheet away: the editor sits straight on a plain page (white in light), at
+// a wider measure, and spaces its own sections (.open-page). Both documents are reference pages a
+// team reads more than it writes — specimens to look at, examples to compare — and a sheet of
+// paper around them made them read as forms. Only the editor view; the Markdown view is still
+// writing, so it keeps the sheet.
 const STRUCTURED = {
   "design-system": { parse: parseDesignSystem, Editor: DesignSystemEditor, open: true },
-  "writing-guide": { parse: parseWritingGuide, Editor: WritingGuideEditor, sections: true },
+  "writing-guide": { parse: parseWritingGuide, Editor: WritingGuideEditor, open: true },
 };
 
 export default function WorkspaceDocPage({ doc, text, onCreate, onChange, onRemove, onToast }) {
@@ -179,7 +177,7 @@ function Editor({ doc, text, onChange, onRemove, onToast }) {
         >
           <div
             ref={setSheetEl}
-            className={`paper-sheet${showStructured && structured.sections ? " paper-sheet--sections" : ""}${showStructured && structured.open ? " paper-sheet--open" : ""}`}
+            className={`paper-sheet${showStructured && structured.open ? " paper-sheet--open" : ""}`}
             style={showStructured ? undefined : { display: "flex", flexDirection: "column", gap: SPACE.xl }}
           >
             {problem && (
