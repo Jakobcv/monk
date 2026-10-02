@@ -25,8 +25,12 @@ import SectionMap from "./ui/SectionMap";
 // `sections: true` puts the editor on the sheet's own rhythm (.paper-sheet--sections, the 32px
 // between two sections every other sheet uses) rather than leaving it to space itself. The design
 // system's editor spaces its own groups with rules, so it opts out.
+// `open: true` takes the sheet away: the editor sits straight on a plain page (white in light),
+// at a wider measure. The design system is a set of specimens to look at — colour chips, type at
+// size, component previews — and a sheet of paper around them made it read as a form. Only the
+// editor view; its Markdown view is still writing, so it keeps the sheet.
 const STRUCTURED = {
-  "design-system": { parse: parseDesignSystem, Editor: DesignSystemEditor },
+  "design-system": { parse: parseDesignSystem, Editor: DesignSystemEditor, open: true },
   "writing-guide": { parse: parseWritingGuide, Editor: WritingGuideEditor, sections: true },
 };
 
@@ -169,10 +173,13 @@ function Editor({ doc, text, onChange, onRemove, onToast }) {
       </div>
 
       <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-        <Page ref={setScrollEl} ground="reading" style={{ overflowAnchor: "none" }}>
+        <Page
+          ref={setScrollEl} ground="reading" className={showStructured && structured.open ? "page--open" : undefined}
+          style={{ overflowAnchor: "none" }}
+        >
           <div
             ref={setSheetEl}
-            className={`paper-sheet${showStructured && structured.sections ? " paper-sheet--sections" : ""}`}
+            className={`paper-sheet${showStructured && structured.sections ? " paper-sheet--sections" : ""}${showStructured && structured.open ? " paper-sheet--open" : ""}`}
             style={showStructured ? undefined : { display: "flex", flexDirection: "column", gap: SPACE.xl }}
           >
             {problem && (
