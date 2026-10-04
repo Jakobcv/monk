@@ -422,9 +422,11 @@ const scrollRoom = EditorView.scrollMargins.of(() => ({ top: 48, bottom: 120 }))
 // `minLines` is the empty field's height in lines. `singleLine` makes it a list row (see above).
 // `autoFocus` puts the caret at the end on mount. `ref` exposes focus() / focusEnd() — the same
 // thing, caret at the end — for a row that was just added, or a click on blank paper below the text
-// (MarkdownEditor's `fill`).
+// (MarkdownEditor's `fill`). `extensions` adds CodeMirror extensions for one page's fields, read
+// once at mount — the writing guide's ✗/✓ panels (ui/examplePairs.js).
 export default function LiveMarkdown({
   value, onChange, placeholder = "", ariaLabel, className = "", minLines = 1, singleLine = false, autoFocus = false, style, ref,
+  extensions = [],
 }) {
   const hostRef = useRef(null);
   const viewRef = useRef(null);
@@ -451,6 +453,7 @@ export default function LiveMarkdown({
           placeholderText(placeholder),
           editorTheme,
           singleLine ? singleLineExtensions : [],
+          extensions,
           ariaLabel ? EditorView.contentAttributes.of({ "aria-label": ariaLabel }) : [],
           EditorView.updateListener.of((u) => {
             if (u.docChanged && !u.transactions.some((tr) => tr.annotation(External))) {

@@ -55,10 +55,10 @@ const toPx = (v) => {
 // the tokens are the thing being shown, so they get the page's full measure and sit on its ground.
 function Section({ title, count, children }) {
   return (
-    <section className="paper-section ds-section" data-section-label={title}>
-      <header className="ds-section__head">
-        <h2 className="ds-h2">{title}</h2>
-        {count > 0 && <span className="ds-count">{count}</span>}
+    <section className="paper-section open-section" data-section-label={title}>
+      <header className="open-section__head">
+        <h2 className="open-h2">{title}</h2>
+        {count > 0 && <span className="open-count">{count}</span>}
       </header>
       {children}
     </section>
@@ -273,7 +273,7 @@ export default function DesignSystemEditor({ value, onChange, onToast }) {
   const radiusCheck = { valuePlaceholder: "4px or 50%", check: (v) => isDimension(v) || isPercentage(v), why: "Use px, em, rem or a percentage" };
 
   return (
-    <div className="ds">
+    <div className="open-page">
       {ds.droppedComments && (
         <p className="ds-note">
           This file has YAML comments in its front matter. They aren't kept once you edit here — use
@@ -281,14 +281,14 @@ export default function DesignSystemEditor({ value, onChange, onToast }) {
         </p>
       )}
 
-      <section className="paper-section ds-hero" data-section-label="Name">
+      <section className="paper-section open-hero" data-section-label="Name">
         <input
-          className="prose-field ds-name" value={ds.name} onChange={(e) => set({ name: e.target.value })}
+          className="prose-field open-title" value={ds.name} onChange={(e) => set({ name: e.target.value })}
           placeholder="Name this design system…" aria-label="Name" spellCheck={false}
         />
         {/* One line in the front matter (`singleLine`). */}
         <LiveMarkdown
-          singleLine className="prose-field ds-lede" value={ds.description}
+          singleLine className="prose-field open-lede" value={ds.description}
           onChange={(v) => set({ description: v })}
           placeholder="One line on what this visual language is…" ariaLabel="Description"
         />
