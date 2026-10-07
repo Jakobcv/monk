@@ -1,6 +1,6 @@
 # Security review
 
-*As of 2026-09-21.*
+*As of 2026-10-07.*
 
 Monk runs entirely on the machine it is opened on. It makes no network requests of its own,
 stores no credentials, and its file access is confined by the browser's OS-level sandbox to one
@@ -64,6 +64,20 @@ has granted that page write access to the whole tree. The restriction to `monk/`
 Monk's application code, not by the sandbox. "Monk only touches `monk/`" is a code guarantee, not
 an OS guarantee.
 
+**Opening attached source files.** Files attached as sources often come from outside (customer
+exports, saved web pages), and opening one goes through a `blob:` URL, which shares Monk's origin.
+An HTML or SVG file opened that way would run its script as Monk, could read the stored folder
+handle from IndexedDB, and, with permission already granted that session, read and write the whole
+folder. So only an allowlist opens in a tab: raster images (PNG, JPEG, GIF, WebP, AVIF), PDF, and
+plain text, markdown, CSV and JSON (`src/lib/openFile.js`). The type is decided from the file
+extension, never from what the browser reports, and the bytes are re-wrapped with that exact type
+(text-like files as `text/plain`) so nothing is left to content sniffing. Everything else,
+including HTML and SVG, is downloaded instead of opened. Sketches are drawn through `<img>`, which
+never runs script.
+
+**Demo mode** runs the whole app on a folder held in the tab's memory. It never asks for file
+system access, so nothing on disk is reachable from it at all. It is the safest way to try Monk.
+
 ## Supply chain
 
 | Measure | Count |
@@ -71,13 +85,15 @@ an OS guarantee.
 | Production dependencies | 9 |
 | Development dependencies | 5 |
 | Packages installed in total | 35 |
-| Packages defining install scripts | 0 |
+| Packages defining install scripts | 1 |
 
 Every dependency is mainstream and widely audited: React, CodeMirror, Lucide icons, Vite and
 oxlint.
 
-No package anywhere in the tree defines a `preinstall`, `install` or `postinstall` script. That is
-the usual vector for arbitrary code execution during `npm install`, and it is absent here.
+One package in the tree defines an install script: `fsevents`, an optional macOS-only dependency
+of Vite (dev only) that builds its native file-watching binding. npm skips it entirely on Windows
+and Linux. No other package defines a `preinstall`, `install` or `postinstall` script, the usual
+vector for arbitrary code execution during `npm install`.
 
 The application code contains no `eval`, no `new Function`, no `innerHTML` and no
 `dangerouslySetInnerHTML`, so markdown read from disk is not a script-execution path.
@@ -98,7 +114,7 @@ than proceeding. This is a data-loss risk rather than a confidentiality one, and
 again the real mitigation.
 
 **Running Node and npm on a managed device.** Installing dependencies runs npm's resolution
-machinery locally. The tree is small and free of install scripts, but if local installs are
+machinery locally. The tree is small and free of install scripts apart from the macOS-only `fsevents`, but if local installs are
 restricted by policy, the hosted option below avoids the question entirely.
 
 ## Recommended way to run it
