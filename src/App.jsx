@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { FolderOpen, FolderGit2, Compass, RefreshCw, FileText } from "lucide-react";
 import { loadWorkspace, saveWorkspace, watchWorkspace, canWatchWorkspace, entityIdsFor, ensureAgentGuides, addAgentSection, createWorkspaceDoc, removeWorkspaceDoc, uploadSourceFile, removeSourceFile, readSourceFile, SKETCHES_DIR } from "./lib/storage";
+import { openAttachedFile } from "./lib/openFile";
 import { WORKSPACE_DOCS, workspaceDocById } from "./lib/workspaceDocs";
 import { bumpNextId } from "./lib/boardModel";
 import { blankSection, blankDocument, ensureFixedSections, isFixedSection } from "./lib/documentModel";
@@ -1228,9 +1229,7 @@ export default function App() {
     if (!dirHandle) return;
     try {
       const file = await readSourceFile(dirHandle, sourceBase(kind, id), name);
-      const url = URL.createObjectURL(file);
-      window.open(url, "_blank", "noopener");
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      openAttachedFile(file, name);
     } catch (err) {
       console.error("Couldn't open source file:", err);
       showToast("Couldn't open that file");
